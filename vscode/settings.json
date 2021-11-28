@@ -1,0 +1,28 @@
+{
+    "update.channel": "none",
+    "update.mode": "manual",
+    "redhat.telemetry.enabled": true,
+    "workbench.colorTheme": "Ayu Dark",
+    "ruby.intellisense": "rubyLocate",
+    "ruby.codeCompletion": "rcodetools",
+    "java.home": "/Library/Java/JavaVirtualMachines/temurin-11.jdk/Contents/Home",
+    "java.help.firstView": "gettingStarted",
+    "files.exclude": {
+        "**/.classpath": true,
+        "**/.project": true,
+        "**/.settings": true,
+        "**/.factorypath": true
+    },
+    "editor.suggestSelection": "first",
+    "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
+    "diffEditor.wordWrap": "off",
+    "workbench.colorCustomizations": {
+        "terminal.ansiLightCyan":"#28fdff",
+  
+    },
+    "explorer.confirmDragAndDrop": false,
+    "workbench.iconTheme": "Monokai Pro Icons",
+    "editor.formatOnPaste": true,
+    "editor.formatOnType": true,
+    "window.zoomLevel": -1
+}

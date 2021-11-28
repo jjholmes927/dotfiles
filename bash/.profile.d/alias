@@ -1,0 +1,22 @@
+##### Aliases
+
+### Git
+alias ga="git add ."
+alias gc="git commit -v"
+alias gout="git checkout"
+alias gpl="git pull"
+alias gpu="git push"
+alias suo="git push --set-upstream origin"
+alias b="branch"
+
+
+### System
+alias ll="ls -a"
+
+### GC specific
+alias ucc="utopia consoles create"
+alias adc="anu deployments create"
+
+
+### Ruby
+alias diffocop="git diff origin/master --name-only --diff-filter=ACMRTUXB | grep '\.rb$' | tr '\n' ' ' | xargs bundle exec rubocop"
