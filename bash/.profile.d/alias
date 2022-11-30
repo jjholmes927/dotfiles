@@ -1,12 +1,13 @@
 ##### Aliases
 
 ### Git
+git_branch () { git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'; }
 alias ga="git add ."
 alias gc="git commit -v"
 alias gout="git checkout"
 alias gpl="git pull"
 alias gpu="git push"
-alias suo="git push --set-upstream origin"
+alias suo="git push --set-upstream origin $(git_branch)"
 alias b="branch"
 
 
@@ -19,4 +20,6 @@ alias adc="anu deployments create"
 
 
 ### Ruby
+alias deprecations=" bundle exec packwerk update-deprecations ."
+alias diffospec="git diff origin/master --name-only --diff-filter=ACMRTUXB | grep '\_spec.rb$' | tr '\n' ' ' | xargs bundle exec rspec"
 alias diffocop="git diff origin/master --name-only --diff-filter=ACMRTUXB | grep '\.rb$' | tr '\n' ' ' | xargs bundle exec rubocop"
