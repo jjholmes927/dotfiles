@@ -13,13 +13,17 @@ alias b="branch"
 
 ### System
 alias ll="ls -a"
+alias fixt="stty sane"
 
 ### GC specific
 alias ucc="utopia consoles create"
 alias adc="anu deployments create"
-
+alias live-stage-console="ucc --environment=live-staging --service=payments-service --reason='exploring pay-svc wilderness' --template=readwrite"
+alias draupnir-clean="unset PGHOST PGPORT PGUSER PGPASSWORD PGDATABASE PGSSLMODE PGSSLROOTCERT PGSSLCERT PGSSLKEY"
 
 ### Ruby
+alias yaml_ok?="ruby -ryaml -e 'p YAML.load(STDIN.read)' < $1"
+alias rspec-format-test="rspec ./spec/rspec/ci/prettify_spec.rb --require ./lib/rspec/ci/prettify.rb --format RSpec::Ci::Prettify::Formatter"
 alias deprecations=" bundle exec packwerk update-deprecations ."
 alias diffospec="git diff origin/master --name-only --diff-filter=ACMRTUXB | grep '\_spec.rb$' | tr '\n' ' ' | xargs bundle exec rspec"
 alias diffocop="git diff origin/master --name-only --diff-filter=ACMRTUXB | grep '\.rb$' | tr '\n' ' ' | xargs bundle exec rubocop"
