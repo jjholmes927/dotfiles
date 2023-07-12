@@ -1,4 +1,5 @@
-#### Colours / Git Parse
+
+###Colours / Git Parse
 
 git_branch () { git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'; }
 TIME='\033[01;31m\]\t \033[01;32m\]'
@@ -8,3 +9,11 @@ PS1=$TIME$USER$LOCATION$BRANCH
 PS2='\[\033[01;36m\]>'
 
 ls --color=al > /dev/null 2>&1 && alias ls='ls -F --color=al' || alias ls='ls -G'
+
+
+
+
+
+
+
+
