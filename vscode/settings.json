@@ -1,11 +1,9 @@
 {
     "update.channel": "none",
     "update.mode": "manual",
+    "update.mode": "manual",
     "redhat.telemetry.enabled": true,
-    "workbench.colorTheme": "Ayu Dark",
-    "ruby.intellisense": "rubyLocate",
-    "ruby.codeCompletion": "rcodetools",
-    "java.home": "/Library/Java/JavaVirtualMachines/temurin-11.jdk/Contents/Home",
+    "workbench.colorTheme": "Noctis High Contrast No Italic No Bold",
     "java.help.firstView": "gettingStarted",
     "files.exclude": {
         "**/.classpath": true,
@@ -17,12 +15,74 @@
     "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
     "diffEditor.wordWrap": "off",
     "workbench.colorCustomizations": {
-        "terminal.ansiLightCyan":"#28fdff",
-  
+        "terminal.ansiLightCyan": "#28fdff",
+        "menu.background": "#262222",
+        "editor.background": "#070707",
+        "sideBar.background": "#070707",
+        "editorInfo.background": "#070707",
+        "editorPane.background": "#070707",
+        "tab.activeBorderTop": "#070707",
+        "editorGroupHeader.tabsBackground": "#070707",
+        "tab.activeBackground": "#070707",
+        "tab.inactiveBackground": "#070707",
+        "sideBarSectionHeader.background": "#070707",
+        "editorMarkerNavigation.background": "#070707",
+        "breadcrumb.background": "#070707",
+        "breadcrumb.foreground": "#00c8ff",
+        "sideBar.dropBackground": "#070707",
+        "titleBar.inactiveBackground": "#070707",
+        "titleBar.activeBackground": "#070707",
+        "sideBar.border": "#070707",
+        "activityBar.activeBackground": "#070707",
+        "activityBar.background": "#070707",
     },
     "explorer.confirmDragAndDrop": false,
     "workbench.iconTheme": "Monokai Pro Icons",
     "editor.formatOnPaste": true,
     "editor.formatOnType": true,
-    "window.zoomLevel": -1
+    "security.workspace.trust.untrustedFiles": "open",
+    "vs-kubernetes": {
+        "vs-kubernetes.ignore-recommendations": true
+    },
+    "editor.formatOnSave": true,
+    "files.trimFinalNewlines": true,
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "editor.autoClosingQuotes": "never",
+    "files.eol": "\n",
+    "diffEditor.ignoreTrimWhitespace": false,
+    "[python]": {
+        "editor.formatOnType": true
+    },
+    "rubyLsp.rubyVersionManager": "rbenv",
+    "rubyLsp.formatter": "rubocop",
+    "rubyLsp.enabledFeatures": {
+        "codeActions": true,
+        "diagnostics": true,
+        "documentHighlights": true,
+        "documentLink": true,
+        "documentSymbols": true,
+        "foldingRanges": true,
+        "formatting": true,
+        "hover": true,
+        "inlayHint": true,
+        "onTypeFormatting": true,
+        "selectionRanges": true,
+        "semanticHighlighting": true,
+        "completion": true,
+        "codeLens": true
+    },
+    "[ruby]": {
+        "editor.defaultFormatter": "Shopify.ruby-lsp",
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.semanticHighlighting.enabled": true
+    },
+    "editor.rulers": [
+        120
+    ],
+    "totalTypeScript.hideAllTips": false,
+    "totalTypeScript.hideBasicTips": false,
 }
