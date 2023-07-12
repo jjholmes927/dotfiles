@@ -169,25 +169,25 @@ colors:
     text: '#222222'
     cursor: '#c2c2b0'
 
+#  normal:
+#    black: '#222222'
+#    red: '#aa4450'
+#    green: '#719611'
+#    yellow: '#cc8800'
+#    blue: '#6688aa'
+#    magenta: '#8f6f8f'
+#    cyan: '#528b8b'
+#    white: '#d3d3d3'
+# previously 'bright'
   normal:
-    black: '#222222'
-    red: '#aa4450'
-    green: '#719611'
-    yellow: '#cc8800'
-    blue: '#6688aa'
-    magenta: '#8f6f8f'
-    cyan: '#528b8b'
-    white: '#d3d3d3'
-
-  bright:
-    black: '#272822'
-    red: '#ff6a6a'
-    green: '#b1d631'
-    yellow: '#ff9800'
-    blue: '#90b0d1'
-    magenta: '#8181a6'
-    cyan: '#87ceeb'
-    white: '#c1cdc1'
+    black: '#050000'
+    red: '#ff1100'
+    green: '#1aeb02'
+    yellow: '#fafa05'
+    blue: '#0b03fc'
+    magenta: '#fc03ec'
+    cyan: '#00fafa'
+    white: '#f7f7f7'
 
 # █▓▒░ blaque magick#
 #colors:
@@ -618,6 +618,4 @@ key_bindings:
     }
   - { key: N, mods: Command, action: SpawnNewInstance }
   - { key: Space, mods: Alt, chars: ' ' }
-
-
 
