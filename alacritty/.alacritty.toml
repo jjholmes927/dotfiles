@@ -1,11 +1,14 @@
-dynamic_title = true
-enable_experimental_conpty_backend = true
+import = [
+    "~/.config/alacritty/themes/themes/hyper.toml"
+]
+
 live_config_reload = true
 
 [bell]
 animation = "EaseOutExpo"
 color = "0xffffff"
 duration = 0
+
 
 [colors]
 draw_bold_text_with_bright_colors = true
@@ -15,14 +18,14 @@ cursor = "#c2c2b0"
 text = "#222222"
 
 [colors.normal]
-black = "#050000"
-blue = "#0b03fc"
-cyan = "#00fafa"
-green = "#1aeb02"
-magenta = "#fc03ec"
-red = "#ff1100"
+black = "#000000"
+blue = "#6a71f6"
+cyan = "#8ef9fd"
+green = "#36ef16"
+magenta = "#f07ef8"
+red = "#f54234"
 white = "#f7f7f7"
-yellow = "#fafa05"
+yellow = "#fefb7e"
 
 [colors.primary]
 background = "#222222"
@@ -36,7 +39,6 @@ unfocused_hollow = true
 log_level = "Warn"
 persistent_logging = false
 print_events = false
-ref_test = false
 render_timer = false
 
 [env]
@@ -634,16 +636,9 @@ hide_when_typing = false
 action = "PasteSelection"
 mouse = "Middle"
 
-[mouse.double_click]
-threshold = 300
-
-[mouse.triple_click]
-threshold = 300
-
 [scrolling]
 history = 10000
 multiplier = 2
-"scrolling.multiplier" = 1
 
 [selection]
 save_to_clipboard = true
