@@ -1,2 +1,10 @@
 eval "$(/opt/homebrew/bin/brew shellenv)"
+eval "$(rbenv init - bash)"
+export PATH="$HOME/.rbenv/bin:$PATH"
+export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
+export PATH="$PATH:$(ruby -e 'print Gem.user_dir')/bin"
+export PATH="/usr/local/bin:$PATH"
 export BASH_SILENCE_DEPRECTION_WARNING=1
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
+  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
