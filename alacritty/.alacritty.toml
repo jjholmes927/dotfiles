@@ -1,14 +1,7 @@
-import = [
-    "~/.config/alacritty/themes/themes/hyper.toml"
-]
-
-live_config_reload = true
-
 [bell]
 animation = "EaseOutExpo"
 color = "0xffffff"
 duration = 0
-
 
 [colors]
 draw_bold_text_with_bright_colors = true
@@ -18,14 +11,14 @@ cursor = "#c2c2b0"
 text = "#222222"
 
 [colors.normal]
-black = "#000000"
-blue = "#6a71f6"
-cyan = "#8ef9fd"
-green = "#36ef16"
-magenta = "#f07ef8"
-red = "#f54234"
+black = "#050000"
+blue = "#0b03fc"
+cyan = "#00fafa"
+green = "#1aeb02"
+magenta = "#fc03ec"
+red = "#ff1100"
 white = "#f7f7f7"
-yellow = "#fefb7e"
+yellow = "#fafa05"
 
 [colors.primary]
 background = "#222222"
@@ -614,10 +607,6 @@ key = "NumpadEnter"
 [[keyboard.bindings]]
 key = "Comma"
 mods = "Command"
-
-[keyboard.bindings.command]
-args = ["~/.config/alacritty/alacritty.yml"]
-program = "open"
 
 [[keyboard.bindings]]
 action = "SpawnNewInstance"
