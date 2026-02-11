@@ -14,6 +14,14 @@
 # then uncomment the following line to make Meta + arrow keys mapping work
 #set -ga terminal-overrides "*:kUP3=\e[1;9A,*:kDN3=\e[1;9B,*:kRIT3=\e[1;9C,*:kLFT3=\e[1;9D"
 
+# Fix for Warp terminal Option+Arrow key word navigation
+set -ga terminal-overrides "*:kUP3=\e[1;9A,*:kDN3=\e[1;9B,*:kRIT3=\e[1;9C,*:kLFT3=\e[1;9D"
+set -g assume-paste-time 0
+
+# Option+Arrow key bindings for word navigation
+bind-key -n M-Left send-keys M-b     # Option+Left = backward word
+bind-key -n M-Right send-keys M-f    # Option+Right = forward word
+
 set-option -g default-shell /bin/bash
 # -- windows & pane creation ---------------------------------------------------
 
@@ -416,3 +424,7 @@ tmux_conf_uninstall_plugins_on_reload=true
 #
 # "$@"
 # # /!\ do not remove the previous line
+
+# -- pane borders --
+set -g pane-border-status top
+set -g pane-border-format " #T "
