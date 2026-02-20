@@ -9,5 +9,36 @@
   "statusLine": {
     "type": "command",
     "command": "~/.claude/scripts/statusline.sh"
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-alert.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-alert.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-alert.sh"
+          }
+        ]
+      }
+    ]
   }
 }
