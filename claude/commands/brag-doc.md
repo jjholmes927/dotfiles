@@ -1,5 +1,7 @@
 ---
-description: Generate weekly brag doc entries from GitHub activity
+description: "Generate weekly brag doc entries from GitHub activity. Use when asked to create a brag doc, summarize weekly contributions, or review GitHub activity."
+allowed-tools: Bash, Read, Write
+argument-hint: "[person] [week] [repos] [org]"
 ---
 
 # Brag Doc Generator
@@ -12,6 +14,7 @@ Parse from user input:
 - **person**: Name of person (default: "joel")
 - **week**: Week commencing date like "2025-01-06" (default: current week's Monday)
 - **repos**: Comma-separated repo list (default: "magicnotes")
+- **org**: GitHub org/owner prefix (default: "wearebeam")
 
 ## Paths
 
@@ -21,6 +24,15 @@ PEOPLE_DIR=~/Documents/repos/second-brain/02-people
 ```
 
 ## Steps
+
+### 0. Validate Paths
+
+Before doing anything, verify that `$BRAG_ROOT` and `$PEOPLE_DIR` exist:
+```bash
+ls -d "${BRAG_ROOT}" "${PEOPLE_DIR}"
+```
+If either path does not exist, stop and tell the user:
+> "Required directory not found: {path}. Please check that your second-brain repo is cloned at the expected location."
 
 ### 1. Resolve Person
 
@@ -41,28 +53,30 @@ If no week specified, calculate current week's Monday.
 
 File naming: `{week-commencing}.md` (e.g., `2025-01-06.md`)
 
-### 3. Pull GitHub Data
+### 3. Check for Existing Entry
+
+Before generating, check if `$BRAG_ROOT/{person}/{week-commencing}.md` already exists. If it does, ask the user:
+> "A brag doc already exists for {person} week of {week-commencing}. Overwrite it, or skip?"
+
+Only proceed if the user confirms overwrite.
+
+### 4. Pull GitHub Data
 
 For each repo in the repos list, run these gh CLI commands:
 
 **Merged PRs by this person:**
 ```bash
-gh pr list --repo wearebeam/{repo} --author {github_username} --state merged --search "merged:{start}..{end}" --json number,title,mergedAt,url --limit 50
+gh pr list --repo "${org}/${repo}" --author "${github_username}" --state merged --search "merged:${start}..${end}" --json number,title,mergedAt,url --limit 50
 ```
 
 **Reviews given by this person:**
 ```bash
-gh api "repos/wearebeam/{repo}/pulls?state=all&per_page=100" --jq '.[] | select(.updated_at >= "{start}" and .updated_at <= "{end}")' | head -50
+gh search prs --reviewed-by="${github_username}" --repo="${org}/${repo}" --updated "${start}..${end}" --json number,title,url --limit 50
 ```
 
-Then for PRs in that timeframe:
-```bash
-gh api "repos/wearebeam/{repo}/pulls/{pr_number}/reviews" --jq '.[] | select(.user.login == "{github_username}")'
-```
+Note: The reviews query finds PRs the person reviewed in the date range. If it returns too many results or times out, summarize what you can get.
 
-Note: The reviews query is expensive. If it times out or returns too much, summarize what you can get.
-
-### 4. Generate Weekly Entry
+### 5. Generate Weekly Entry
 
 Create file at: `$BRAG_ROOT/{person}/{week-commencing}.md`
 
@@ -105,7 +119,7 @@ repos: {repos}
 <!-- Add any context, blockers overcome, or learnings -->
 ```
 
-### 5. Prompt for Highlights
+### 6. Prompt for Highlights
 
 After creating the weekly file, ask:
 
@@ -124,7 +138,7 @@ If user selects items, append to `$BRAG_ROOT/{person}/highlights.md`:
 | {week-commencing} | {highlight text} | {category} |
 ```
 
-### 6. Confirm Completion
+### 7. Confirm Completion
 
 Report:
 - Weekly file created at: {path}
@@ -143,11 +157,8 @@ Report:
 
 ```
 /brag-doc
-→ Generates current week for joel from magicnotes
+→ Generates current week for joel from magicnotes (wearebeam org)
 
-/brag-doc cameron 2025-03-10
-→ Generates week of March 10th for Cameron
-
-/brag-doc joel 2025-01-06 magicnotes,second-brain
-→ Generates week of Jan 6th for joel across multiple repos
+/brag-doc cameron 2025-03-10 magicnotes myorg
+→ Generates week of March 10th for Cameron in the myorg GitHub org
 ```
