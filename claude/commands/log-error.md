@@ -1,3 +1,9 @@
+---
+description: "Interview about a recent error to identify user mistakes and log prevention strategies. Use when the user says 'log error', 'what went wrong', or wants to analyze a mistake."
+disable-model-invocation: true
+argument-hint: [brief description of what went wrong]
+---
+
 # Log Error
 
 Interview the user about an error that just occurred to identify what THEY did wrong and how to prevent it.
@@ -9,11 +15,15 @@ Errors in agentic coding are almost always traceable to:
 - **Context Rot** - Didn't /clear, conversation too long, stale context
 - **Bad Harnessing** - Wrong agent type, missing context for subagents, no guardrails
 
-The model is the constant. The user's input is the variable. Focus on the variable.
+Focus primarily on user inputs as the controllable variable, but note genuine model-side failures when they occur.
 
 ## Instructions
 
+**IMPORTANT: Steps 1-3 are INTERACTIVE. Ask questions and WAIT for user responses. Do NOT proceed to Step 4 until you have completed the interview and received answers.**
+
 ### Step 1: Identify What Went Wrong
+
+If the user provided a description via `$ARGUMENTS`, use that as the starting point for identifying what went wrong.
 
 Review the recent conversation and identify what failed:
 - Hallucination (code that doesn't exist, wrong API, made-up feature)
@@ -30,19 +40,15 @@ Ask SPECIFIC questions about what the user did, not generic ones. Examples:
 
 **Prompt-focused:**
 - "Your prompt was quite long. What were the 2-3 most critical requirements?"
-- "Did you specify what NOT to do, or only what to do?"
 - "What constraints were in your head but not in the prompt?"
-- "Was that reference material or explicit requirements?"
-- "Did you define what 'done' looks like?"
+- "Did you specify what NOT to do, or only what to do?"
 
 **Context-focused:**
 - "When did you last /clear or start fresh?"
-- "How long has this conversation been going?"
 - "Is there old debugging or abandoned approaches still in context?"
 
 **Harness-focused:**
 - "Did you verify subagents received the critical context?"
-- "Was this the right tool/agent for the task?"
 - "Did you validate the output before accepting it?"
 
 ### Step 3: Get the Triggering Prompt
@@ -55,7 +61,7 @@ After the interview, create a log file at: `tmp/error-logs/error-YYYY-MM-DD-HHMM
 
 Use this template:
 
-```markdown
+`````markdown
 # Error: [Short Descriptive Name]
 
 **Date:** [Date]
@@ -111,10 +117,11 @@ Use this template:
 
 ## Pattern Check
 - **Seen before?** [Yes/No - if yes, this is a habit to break]
+- Check `tmp/error-logs/` for past error logs to identify recurring patterns.
 
 ## One-Line Lesson
 [Actionable takeaway - one sentence]
-```
+`````
 
 ### Step 5: Offer to Continue
 
@@ -122,6 +129,7 @@ After logging, ask if the user wants to:
 1. Use double-escape to restore conversation (trim the debugging context)
 2. Continue working on the fix
 3. Add a prevention rule to CLAUDE.md
+4. Run `/context-check` to verify current context health
 
 ## Important
 
@@ -129,5 +137,3 @@ After logging, ask if the user wants to:
 - Focus 80% on user error, 20% on model behavior
 - If the user can't identify their mistake, help them find it
 - Be specific - vague logs are useless
-
-$ARGUMENTS - Optional brief description of what went wrong
