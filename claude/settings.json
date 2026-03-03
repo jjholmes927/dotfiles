@@ -1,15 +1,5 @@
 {
   "model": "opus",
-  "enabledPlugins": {
-    "superpowers@superpowers-marketplace": true,
-    "guideline-refresher@jjholmes927-claude-skills": true,
-    "beam-claude-skills-all@beam-claude-skills": true,
-    "beam-claude-skills@beam-claude-skills": true
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "~/.claude/scripts/statusline.sh"
-  },
   "hooks": {
     "Notification": [
       {
@@ -40,5 +30,16 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/scripts/statusline.sh"
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true,
+    "guideline-refresher@jjholmes927-claude-skills": true,
+    "beam-claude-skills-all@beam-claude-skills": true,
+    "beam-claude-skills@beam-claude-skills": true,
+    "frontend-design@claude-code-plugins": true
   }
 }
