@@ -110,6 +110,13 @@ Fixes LINEAR-123
 
 Include the Linear ticket reference in the PR title or description body.
 
+## Commands and Skills
+
+When creating new slash commands or skills, prefer placing them in the global dotfiles (`~/.claude/commands/`, `~/.claude/skills/`) unless they are truly project-specific. This makes them available across all projects automatically.
+
+- **Project-agnostic tools** (verify-ui, brag-doc, etc.) → `~/.claude/commands/`
+- **Project-specific workflows** (brainstorm, write-plan, etc.) → `.claude/commands/` in the repo
+
 ## Working Style
 
 - When uncertain about scope, ask one clarifying question rather than assuming
