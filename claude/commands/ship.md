@@ -11,9 +11,10 @@ Preflight → Format → Stage → Branch (if on main) → Commit → Push → C
                                                                             │               │
                                                                          CI Green      CI Failed
                                                                             │               │
-                                                                      Code Review    Fetch failures
+                                                                     Bugbot Review    Fetch failures
                                                                             │          Fix + push
-                                                                            │          └──→ Watch CI
+                                                                      Code Review     └──→ Watch CI
+                                                                            │
                                                                           Done
 ```
 
@@ -144,9 +145,32 @@ This blocks until all checks complete.
 
 **Max 3 CI fix iterations.** If still failing after 3 rounds, stop and report to the user.
 
-## Step 6: Code Review
+## Step 6: Bugbot Review
 
-Once CI is green, dispatch a code review subagent:
+Once CI is green, check if Cursor Bugbot has reviewed the PR:
+
+```bash
+gh pr checks <PR_NUMBER> | grep -i "bugbot\|cursor"
+```
+
+If Bugbot has completed, fetch its review comments:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/<PR_NUMBER>/comments --jq '.[] | select(.user.login | test("cursor|bugbot"; "i")) | {path: .path, line: .line, body: .body}'
+```
+
+For each Bugbot comment:
+1. Evaluate whether the suggestion is valid and worth fixing
+2. If valid → fix locally, stage, commit (new commit), push
+3. If not valid or too noisy → skip it
+
+If Bugbot hasn't run yet, wait briefly (up to 60 seconds) and recheck. If it still hasn't appeared, proceed — don't block on it.
+
+After applying any Bugbot fixes, watch CI again to confirm nothing broke before proceeding.
+
+## Step 7: Code Review
+
+Once CI is green and Bugbot is addressed, dispatch a code review subagent:
 
 ```
 Agent tool with subagent_type: "superpowers:code-reviewer"
