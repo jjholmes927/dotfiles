@@ -1,6 +1,6 @@
 ---
 description: "Verify a UI flow using agent-browser against the live dev server. Use when the user says 'verify ui', 'check the ui', or 'verify-ui'."
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: [what to verify, e.g. "the login page renders correctly"]
 ---
 

@@ -42,6 +42,24 @@ LOCATION=$(abbrev_path "$CWD")
 # Get git branch
 BRANCH=$(git_branch)
 
+# Get dev server port from project tmp/dev_port (written by bin/dev)
+dev_port() {
+    local project_dir=$(echo "$INPUT" | jq -r '.workspace.project_dir // empty')
+    if [[ -z "$project_dir" ]]; then
+        project_dir="$CWD"
+    fi
+    local port_file="$project_dir/tmp/dev_port"
+    if [[ -f "$port_file" ]]; then
+        local port=$(cat "$port_file" 2>/dev/null)
+        # Verify the port is actually in use (quick check)
+        if [[ -n "$port" ]] && (echo >/dev/tcp/localhost/"$port") 2>/dev/null; then
+            echo "$port"
+        fi
+    fi
+}
+
+DEV_PORT=$(dev_port)
+
 # Get context usage from JSON input
 context_usage() {
     # Use total_input_tokens (cumulative) rather than current_usage which may be null
@@ -70,8 +88,18 @@ CONTEXT=$(context_usage)
 # Get model display name
 MODEL=$(echo "$INPUT" | jq -r '.model.display_name // empty')
 
+# Format port display
+PORT_DISPLAY=""
+if [[ -n "$DEV_PORT" ]]; then
+    PORT_DISPLAY=$(printf "%b:%s%b" "$GREEN" "$DEV_PORT" "$RESET")
+fi
+
 # Output styled status line
-printf "%b%s%b %b%s%b %b%s%b %b%s%b\n" "$RED" "$TIME" "$RESET" "$GREEN" "$USER" "$RESET" "$CYAN" "$LOCATION" "$RESET" "$YELLOW" "$BRANCH" "$RESET"
+if [[ -n "$PORT_DISPLAY" ]]; then
+    printf "%b%s%b %b%s%b %b%s%b %b%s%b %s\n" "$RED" "$TIME" "$RESET" "$GREEN" "$USER" "$RESET" "$CYAN" "$LOCATION" "$RESET" "$YELLOW" "$BRANCH" "$RESET" "$PORT_DISPLAY"
+else
+    printf "%b%s%b %b%s%b %b%s%b %b%s%b\n" "$RED" "$TIME" "$RESET" "$GREEN" "$USER" "$RESET" "$CYAN" "$LOCATION" "$RESET" "$YELLOW" "$BRANCH" "$RESET"
+fi
 
 # Second line: model and context
 if [[ -n "$MODEL" && -n "$CONTEXT" ]]; then

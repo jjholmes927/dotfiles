@@ -20,7 +20,11 @@ Personal configuration for [Claude Code](https://docs.anthropic.com/en/docs/clau
 | `/context-check` | Assess context health and recommend action (continue, compact, handoff, clear) |
 | `/handoff` | Create a handoff summary for continuing work in a fresh session |
 | `/log-error` | Interview-style error logging to identify prompting/context mistakes |
+| `/save-permissions` | Scan recent sessions and save missing Bash permission patterns to `.claude/settings.local.json` |
 | `/second-brain` | Process second brain inbox and run vault commands |
+| `/ship` | End-to-end ship workflow: format, commit, push, PR, CI watch, code review |
+| `/skill-reviewer` | Review a Claude Code skill for structural and domain quality |
+| `/verify-ui` | Verify a UI flow using agent-browser against the live dev server |
 
 ## Setup on a new machine
 
@@ -33,11 +37,8 @@ ln -sf "$(pwd)/claude/CLAUDE.md" ~/.claude/CLAUDE.md
 # Symlink settings
 ln -sf "$(pwd)/claude/settings.json" ~/.claude/settings.json
 
-# Symlink custom commands
-mkdir -p ~/.claude/commands
-for f in claude/commands/*.md; do
-  ln -sf "$(pwd)/$f" ~/.claude/commands/$(basename "$f")
-done
+# Symlink commands directory (new commands are picked up automatically)
+ln -sf "$(pwd)/claude/commands" ~/.claude/commands
 
 # Symlink scripts
 mkdir -p ~/.claude/scripts
@@ -55,8 +56,8 @@ Or as a one-liner from the dotfiles repo root:
 ```bash
 ln -sf "$(pwd)/claude/CLAUDE.md" ~/.claude/CLAUDE.md && \
 ln -sf "$(pwd)/claude/settings.json" ~/.claude/settings.json && \
-mkdir -p ~/.claude/commands ~/.claude/scripts ~/.claude/hooks && \
-for f in claude/commands/*.md; do ln -sf "$(pwd)/$f" ~/.claude/commands/$(basename "$f"); done && \
+ln -sf "$(pwd)/claude/commands" ~/.claude/commands && \
+mkdir -p ~/.claude/scripts ~/.claude/hooks && \
 ln -sf "$(pwd)/claude/scripts/statusline.sh" ~/.claude/scripts/statusline.sh && \
 chmod +x ~/.claude/scripts/statusline.sh && \
 ln -sf "$(pwd)/claude/hooks/tmux-alert.sh" ~/.claude/hooks/tmux-alert.sh && \
