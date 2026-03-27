@@ -5,17 +5,17 @@ End-to-end workflow: format, branch, commit, push, PR, CI watch, fix failures, c
 ## Workflow
 
 ```
-Preflight → Format → Stage → Branch (if on main) → Commit → Push → Create PR → Watch CI
-                                                                                    │
-                                                                            ┌───────┴───────┐
-                                                                            │               │
-                                                                         CI Green      CI Failed
-                                                                            │               │
-                                                                     Bugbot Review    Fetch failures
-                                                                            │          Fix + push
-                                                                      Code Review     └──→ Watch CI
-                                                                            │
-                                                                          Done
+Preflight → Format → Stage → Branch (if on main) → Commit → Simplify → Push → Create PR → Watch CI
+                                                                                               │
+                                                                                       ┌───────┴───────┐
+                                                                                       │               │
+                                                                                    CI Green      CI Failed
+                                                                                       │               │
+                                                                                Bugbot Review    Fetch failures
+                                                                                       │          Fix + push
+                                                                                 Code Review     └──→ Watch CI
+                                                                                       │
+                                                                                     Done
 ```
 
 ## Step 0: Preflight
@@ -90,7 +90,24 @@ Format: `prefix: Imperative description`
 - Add ticket reference in body if relevant (e.g., `INT-107`)
 - Use a HEREDOC for the commit message to preserve formatting
 
-## Step 4: Push + Create PR
+## Step 4: Simplify
+
+Before pushing, run `/simplify` to review changed code for reuse opportunities, quality issues, and efficiency improvements. This uses three parallel review agents (code reuse, code quality, efficiency) to catch issues locally before they go remote.
+
+Invoke the `simplify` skill, which will:
+1. Identify all changes via `git diff`
+2. Launch three parallel review agents
+3. Fix any issues found
+
+If simplify made changes, stage and create a new commit before proceeding:
+```bash
+git add <changed files>
+git commit  # New commit with fixes from simplify
+```
+
+If no issues were found, proceed directly to push.
+
+## Step 5: Push + Create PR
 
 ```bash
 git push -u origin <branch-name>
@@ -115,7 +132,7 @@ EOF
 
 For bug fixes, add a **Steps to Reproduce** section.
 
-## Step 5: Watch CI
+## Step 6: Watch CI
 
 Wait a few seconds after PR creation for checks to register, then watch:
 
@@ -126,7 +143,7 @@ gh pr checks <PR_NUMBER> --watch
 
 This blocks until all checks complete.
 
-### If CI is green → proceed to Step 6
+### If CI is green → proceed to Step 7
 
 ### If CI fails → iterate
 
@@ -145,7 +162,7 @@ This blocks until all checks complete.
 
 **Max 3 CI fix iterations.** If still failing after 3 rounds, stop and report to the user.
 
-## Step 6: Bugbot Review
+## Step 7: Bugbot Review
 
 Once CI is green, check if Cursor Bugbot has reviewed the PR:
 
@@ -168,25 +185,17 @@ If Bugbot hasn't run yet, wait briefly (up to 60 seconds) and recheck. If it sti
 
 After applying any Bugbot fixes, watch CI again to confirm nothing broke before proceeding.
 
-## Step 7: Code Review
+## Step 8: Code Review
 
-Once CI is green and Bugbot is addressed, dispatch a code review subagent:
+Once CI is green and Bugbot is addressed, invoke the domain-aware code reviewer:
 
 ```
-Agent tool with subagent_type: "superpowers:code-reviewer"
-
-Prompt should include:
-- What was implemented (summary of changes)
-- The plan/requirements (ticket description or user's original request)
-- BASE_SHA: the commit before your changes (e.g., origin/main)
-- HEAD_SHA: current HEAD
-- Brief description of the PR
+Invoke the /review-pr skill
 ```
 
-If the superpowers:code-reviewer subagent is not available, self-review:
-- Run `git diff origin/main...HEAD` to see all changes
-- Check for correctness, edge cases, and adherence to project conventions
-- Report findings to user
+The `/review-pr` skill handles the full review flow: loads domain docs, runs the review checklist, traces callers, and presents findings by severity. It replaces the generic `superpowers:code-reviewer` dispatch with domain-specific review knowledge.
+
+If the `/review-pr` skill is not available, fall back to dispatching `superpowers:code-reviewer` as before.
 
 Act on review feedback:
 - **Critical** → fix immediately, push, re-check CI
