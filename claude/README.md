@@ -28,46 +28,36 @@ Personal configuration for [Claude Code](https://docs.anthropic.com/en/docs/clau
 
 ## Setup on a new machine
 
-Claude Code stores its config at `~/.claude/`. Symlink the files from this repo:
+Run the bootstrap script from the dotfiles repo root (or from inside `claude/`):
 
 ```bash
-# Symlink the global instructions
-ln -sf "$(pwd)/claude/CLAUDE.md" ~/.claude/CLAUDE.md
-
-# Symlink settings
-ln -sf "$(pwd)/claude/settings.json" ~/.claude/settings.json
-
-# Symlink commands directory (new commands are picked up automatically)
-ln -sf "$(pwd)/claude/commands" ~/.claude/commands
-
-# Symlink scripts
-mkdir -p ~/.claude/scripts
-ln -sf "$(pwd)/claude/scripts/statusline.sh" ~/.claude/scripts/statusline.sh
-chmod +x ~/.claude/scripts/statusline.sh
-
-# Symlink hooks
-mkdir -p ~/.claude/hooks
-ln -sf "$(pwd)/claude/hooks/tmux-alert.sh" ~/.claude/hooks/tmux-alert.sh
-chmod +x ~/.claude/hooks/tmux-alert.sh
+./claude/install.sh
 ```
 
-Or as a one-liner from the dotfiles repo root:
+The script is idempotent — safe to re-run. It symlinks `CLAUDE.md`, `settings.json`, `commands/`, `scripts/statusline.sh`, and `hooks/tmux-alert.sh` into `~/.claude/`, and backs up anything it would overwrite to `~/.claude/backups/install-<timestamp>/`.
+
+## Unified memory across parallel clones (GigMe only)
+
+Claude Code keys its memory dir by absolute CWD, so working on the same repo from multiple clones (`GigMe/`, `gigme2/`, `gigme3/`) would normally fragment memory across three isolated dirs. To fix this, each clone's memory dir is symlinked at a canonical shared location:
+
+```
+~/.claude/shared-memory/gigme/                            ← real dir, single source of truth
+~/.claude/projects/<encoded-GigMe>/memory   → shared-memory/gigme
+~/.claude/projects/<encoded-gigme2>/memory  → shared-memory/gigme
+~/.claude/projects/<encoded-gigme3>/memory  → shared-memory/gigme
+```
+
+This unification is **per-machine and GigMe-only**. It isn't managed by `install.sh` and isn't synced across machines (intentional — personal and work laptops stay independent). To add a new GigMe clone, symlink its memory dir after the first Claude Code session creates the project folder:
 
 ```bash
-ln -sf "$(pwd)/claude/CLAUDE.md" ~/.claude/CLAUDE.md && \
-ln -sf "$(pwd)/claude/settings.json" ~/.claude/settings.json && \
-ln -sf "$(pwd)/claude/commands" ~/.claude/commands && \
-mkdir -p ~/.claude/scripts ~/.claude/hooks && \
-ln -sf "$(pwd)/claude/scripts/statusline.sh" ~/.claude/scripts/statusline.sh && \
-chmod +x ~/.claude/scripts/statusline.sh && \
-ln -sf "$(pwd)/claude/hooks/tmux-alert.sh" ~/.claude/hooks/tmux-alert.sh && \
-chmod +x ~/.claude/hooks/tmux-alert.sh
+ln -sfn ~/.claude/shared-memory/gigme \
+  ~/.claude/projects/<encoded-path-of-new-clone>/memory
 ```
 
 ## Notes
 
 - `settings.json` contains plugin references that may need adjusting per machine (e.g. if plugins aren't installed yet)
-- `settings.local.json` (permissions) is intentionally excluded - it's machine-specific
+- `settings.local.json` (permissions) is intentionally excluded — it's machine-specific
 - Project-level `CLAUDE.md` files live in each repo, not here
-- The `projects/` directory (per-project memory) uses absolute paths and doesn't sync
+- `~/.claude/projects/` (session history and memory) is not touched by `install.sh` — too machine-specific and paths-based to sync via dotfiles
 - The tmux notification hook requires `monitor-bell on` and `bell-action any` in tmux (enabled by default in gpakosz/.tmux)
