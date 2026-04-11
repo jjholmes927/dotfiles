@@ -1,0 +1,25 @@
+{
+  "underlying_goal": "Sprint planning, team management, documentation updates, and writing/editing support for a product engineering manager running an interpretation product team",
+  "goal_categories": {
+    "sprint_planning_documentation": 3,
+    "project_management_linear": 2,
+    "writing_editing_review": 4,
+    "management_advice": 2,
+    "decision_documentation": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "satisfied": 5,
+    "likely_satisfied": 5,
+    "dissatisfied": 1
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {
+    "user_rejected_action": 1
+  },
+  "friction_detail": "Claude offered to create sub-tickets for milestones but user said 'no lets leave them for now'.",
+  "primary_success": "proactive_help",
+  "brief_summary": "Engineering manager used Claude as a thought partner for sprint planning, Linear ticket management, architectural decision documentation, message proofreading, and promotion writeup editing — all handled effectively across a long working session.",
+  "session_id": "7cb10e4b-f5ab-4935-b966-df308443d508"
+}

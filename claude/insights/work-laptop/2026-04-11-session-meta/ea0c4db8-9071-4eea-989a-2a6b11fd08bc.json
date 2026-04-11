@@ -1,0 +1,81 @@
+{
+  "session_id": "ea0c4db8-9071-4eea-989a-2a6b11fd08bc",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-19T12:00:35.120Z",
+  "duration_minutes": 163,
+  "user_message_count": 12,
+  "assistant_message_count": 127,
+  "tool_counts": {
+    "Bash": 33,
+    "Read": 10,
+    "Edit": 16,
+    "EnterPlanMode": 1,
+    "Task": 1,
+    "Write": 2,
+    "ExitPlanMode": 1,
+    "Glob": 1,
+    "Grep": 3
+  },
+  "languages": {
+    "TypeScript": 27,
+    "Markdown": 1
+  },
+  "git_commits": 5,
+  "git_pushes": 6,
+  "input_tokens": 178,
+  "output_tokens": 7088,
+  "first_prompt": "typerscript error    │> magicnotes@ check /Users/beamtempmacbookpro/Documents/repos/magicnotes…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    1008.725,
+    1003.276,
+    4.24,
+    19.127,
+    32.018,
+    187.473,
+    43.352,
+    11.073,
+    138.008,
+    1020.631
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "Command Failed": 1,
+    "Other": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 170,
+  "lines_removed": 101,
+  "files_modified": 6,
+  "message_hours": [
+    12,
+    12,
+    13,
+    13,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14
+  ],
+  "user_message_timestamps": [
+    "2026-02-19T12:00:35.120Z",
+    "2026-02-19T12:17:44.857Z",
+    "2026-02-19T13:37:20.002Z",
+    "2026-02-19T13:54:19.375Z",
+    "2026-02-19T14:14:50.616Z",
+    "2026-02-19T14:15:05.503Z",
+    "2026-02-19T14:15:41.721Z",
+    "2026-02-19T14:19:08.701Z",
+    "2026-02-19T14:20:07.879Z",
+    "2026-02-19T14:23:18.023Z",
+    "2026-02-19T14:25:39.153Z",
+    "2026-02-19T14:43:48.312Z"
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "session_id": "ec038560-998c-4396-8eb9-8377055a9b0a",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/second-brain",
+  "start_time": "2026-04-07T16:27:02.478Z",
+  "duration_minutes": 2498,
+  "user_message_count": 10,
+  "assistant_message_count": 26,
+  "tool_counts": {
+    "Bash": 2,
+    "Read": 2,
+    "Write": 6,
+    "Edit": 1
+  },
+  "languages": {
+    "Markdown": 9
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 62,
+  "output_tokens": 7242,
+  "first_prompt": "How does this sound as a starting point for guide for eng managers setting up probation goals Setting Probation Goals for A New Engineer Joiner   TLDR this document is aimed at providing some guidance…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    50.156,
+    222.535,
+    317.787,
+    44.532,
+    45.227,
+    2612.649,
+    71.094,
+    31.678
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 234,
+  "lines_removed": 4,
+  "files_modified": 6,
+  "message_hours": [
+    17,
+    17,
+    10,
+    10,
+    10,
+    10,
+    10,
+    11,
+    11,
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-04-07T16:27:02.478Z",
+    "2026-04-07T16:28:12.687Z",
+    "2026-04-09T09:02:06.344Z",
+    "2026-04-09T09:06:21.528Z",
+    "2026-04-09T09:16:30.572Z",
+    "2026-04-09T09:18:03.828Z",
+    "2026-04-09T09:19:00.669Z",
+    "2026-04-09T10:02:56.456Z",
+    "2026-04-09T10:04:17.139Z",
+    "2026-04-09T10:05:05.689Z"
+  ]
+}

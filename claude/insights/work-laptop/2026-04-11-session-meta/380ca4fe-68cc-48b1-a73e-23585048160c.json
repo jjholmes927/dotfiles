@@ -1,0 +1,61 @@
+{
+  "session_id": "380ca4fe-68cc-48b1-a73e-23585048160c",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn4/magicnotes",
+  "start_time": "2026-02-11T08:50:37.564Z",
+  "duration_minutes": 16,
+  "user_message_count": 8,
+  "assistant_message_count": 56,
+  "tool_counts": {
+    "Bash": 30,
+    "Read": 9,
+    "Write": 1
+  },
+  "languages": {
+    "JSON": 2,
+    "Markdown": 7,
+    "Shell": 1
+  },
+  "git_commits": 2,
+  "git_pushes": 2,
+  "input_tokens": 2216,
+  "output_tokens": 3255,
+  "first_prompt": "where do things like my claude personal md file and status file get stored I have a repo called dotfiles here /Users/beamtempmacbookpro/Documents/repos/dotfiles that i would like to update with those…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    94.258,
+    92.085,
+    163.33,
+    61.046
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Other": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 64,
+  "lines_removed": 0,
+  "files_modified": 1,
+  "message_hours": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8,
+    9,
+    9
+  ],
+  "user_message_timestamps": [
+    "2026-02-11T08:50:37.579Z",
+    "2026-02-11T08:50:37.519Z",
+    "2026-02-11T08:50:37.578Z",
+    "2026-02-11T08:51:32.840Z",
+    "2026-02-11T08:53:39.081Z",
+    "2026-02-11T08:57:25.683Z",
+    "2026-02-11T09:00:19.503Z",
+    "2026-02-11T09:06:35.430Z"
+  ]
+}

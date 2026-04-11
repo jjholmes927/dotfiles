@@ -1,0 +1,44 @@
+{
+  "session_id": "ccd5e5d5-b255-4a5b-bbf0-6c53a3bade61",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/second-brain",
+  "start_time": "2026-03-09T15:35:45.334Z",
+  "duration_minutes": 6,
+  "user_message_count": 3,
+  "assistant_message_count": 19,
+  "tool_counts": {
+    "Glob": 2,
+    "Bash": 9
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 2789,
+  "output_tokens": 1313,
+  "first_prompt": "Where does this command symlink skills to im trying to see if claude has access toi gws-docs skill npx skills add https://github.com/googleworkspace/cli/tree/main/skills/gws-docs",
+  "user_interruptions": 0,
+  "user_response_times": [
+    20.164,
+    13.486
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "Other": 2
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-03-09T15:39:02.870Z",
+    "2026-03-09T15:40:48.243Z",
+    "2026-03-09T15:41:29.579Z"
+  ]
+}

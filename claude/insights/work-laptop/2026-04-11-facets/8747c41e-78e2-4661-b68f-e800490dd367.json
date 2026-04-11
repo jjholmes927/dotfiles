@@ -1,0 +1,18 @@
+{
+  "underlying_goal": "Implement a Slack notification feature for new Interpret conversations based on a Linear ticket, then commit and create a PR",
+  "goal_categories": {
+    "feature_implementation": 1,
+    "git_pr_workflow": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 1
+  },
+  "claude_helpfulness": "essential",
+  "session_type": "single_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User asked Claude to implement a Slack notification feature from a Linear ticket, commit it, and create a PR — all of which were completed successfully.",
+  "session_id": "8747c41e-78e2-4661-b68f-e800490dd367"
+}

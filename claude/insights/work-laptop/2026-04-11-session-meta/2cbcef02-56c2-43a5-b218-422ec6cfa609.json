@@ -1,0 +1,36 @@
+{
+  "session_id": "2cbcef02-56c2-43a5-b218-422ec6cfa609",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn4",
+  "start_time": "2026-03-25T09:07:00.504Z",
+  "duration_minutes": 5,
+  "user_message_count": 2,
+  "assistant_message_count": 6,
+  "tool_counts": {
+    "Bash": 2
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 11,
+  "output_tokens": 398,
+  "first_prompt": "09:06:36 beamtempmacbookpro /Users/beamtempmacbookpro/Documents/repos/mn4  $ gout magicnotes/ fatal: not a git repository (or any of the parent directories): .git",
+  "user_interruptions": 1,
+  "user_response_times": [],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    9,
+    9
+  ],
+  "user_message_timestamps": [
+    "2026-03-25T09:07:00.504Z",
+    "2026-03-25T09:11:53.274Z"
+  ]
+}

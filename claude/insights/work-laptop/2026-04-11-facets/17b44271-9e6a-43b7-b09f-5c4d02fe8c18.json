@@ -1,0 +1,29 @@
+{
+  "underlying_goal": "The user wanted Claude to serve as a comprehensive work assistant: preparing 1:1 meeting notes, creating product review updates, planning and implementing an engineering onboarding initiative, maintaining a brag document, coaching on salary negotiation messaging, and configuring tooling.",
+  "goal_categories": {
+    "meeting_prep": 2,
+    "project_planning_and_implementation": 3,
+    "document_creation_and_editing": 4,
+    "communication_drafting": 3,
+    "brag_doc_updates": 2,
+    "career_coaching": 3,
+    "tooling_configuration": 1,
+    "information_retrieval": 2
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "satisfied": 5,
+    "likely_satisfied": 8,
+    "happy": 2
+  },
+  "claude_helpfulness": "essential",
+  "session_type": "multi_task",
+  "friction_counts": {
+    "wrong_approach": 1,
+    "tool_failure": 1
+  },
+  "friction_detail": "Claude initially included two weeks of data in the product review when the user only wanted one week; Linear MCP failed to update an issue description requiring clipboard fallback.",
+  "primary_success": "proactive_help",
+  "brief_summary": "User ran a wide-ranging work session covering 1:1 prep, product reviews, onboarding initiative planning, brag doc maintenance, salary negotiation coaching, and MCP setup — Claude delivered effectively across all of them with minimal friction.",
+  "session_id": "17b44271-9e6a-43b7-b09f-5c4d02fe8c18"
+}

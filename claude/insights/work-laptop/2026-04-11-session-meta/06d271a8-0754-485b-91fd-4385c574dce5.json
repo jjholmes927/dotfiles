@@ -1,0 +1,79 @@
+{
+  "session_id": "06d271a8-0754-485b-91fd-4385c574dce5",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-24T10:07:37.903Z",
+  "duration_minutes": 228,
+  "user_message_count": 15,
+  "assistant_message_count": 30,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "WebFetch": 1,
+    "Task": 3,
+    "Bash": 5,
+    "Grep": 1,
+    "Read": 1,
+    "Edit": 2
+  },
+  "languages": {
+    "Ruby": 3
+  },
+  "git_commits": 2,
+  "git_pushes": 2,
+  "input_tokens": 60,
+  "output_tokens": 2602,
+  "first_prompt": "we shouldnt have this error in sentry either https://beam-eu.sentry.io/alerts/rules/magic-notes/67272/details/",
+  "user_interruptions": 1,
+  "user_response_times": [
+    611.051,
+    115.676,
+    226.595,
+    396.785,
+    70.114,
+    18.134
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "User Rejected": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": true,
+  "lines_added": 3,
+  "lines_removed": 1,
+  "files_modified": 1,
+  "message_hours": [
+    10,
+    10,
+    10,
+    10,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12,
+    13,
+    13,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-02-24T10:07:38.243Z",
+    "2026-02-24T10:07:37.874Z",
+    "2026-02-24T10:07:38.243Z",
+    "2026-02-24T10:07:59.972Z",
+    "2026-02-24T12:07:33.019Z",
+    "2026-02-24T12:07:36.963Z",
+    "2026-02-24T12:07:36.963Z",
+    "2026-02-24T12:20:16.934Z",
+    "2026-02-24T12:26:55.058Z",
+    "2026-02-24T12:31:28.162Z",
+    "2026-02-24T13:43:42.423Z",
+    "2026-02-24T13:43:42.423Z",
+    "2026-02-24T13:53:32.497Z",
+    "2026-02-24T13:55:07.178Z",
+    "2026-02-24T13:55:32.532Z"
+  ]
+}

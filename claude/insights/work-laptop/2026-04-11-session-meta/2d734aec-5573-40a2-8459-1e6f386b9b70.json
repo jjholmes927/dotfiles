@@ -1,0 +1,49 @@
+{
+  "session_id": "2d734aec-5573-40a2-8459-1e6f386b9b70",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-03-31T15:02:49.727Z",
+  "duration_minutes": 16,
+  "user_message_count": 5,
+  "assistant_message_count": 31,
+  "tool_counts": {
+    "Agent": 2,
+    "ToolSearch": 3,
+    "mcp__honeycomb__get_workspace_context": 1,
+    "mcp__honeycomb__run_query": 13
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 12593,
+  "output_tokens": 9858,
+  "first_prompt": "I want to rethink our RealTime Interpretation Honeycomb board from first principles. The current board is chaotic with leftover queries from the old realtime streaming approach — we now use the asynch…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    318.74
+  ],
+  "tool_errors": 13,
+  "tool_error_categories": {
+    "Other": 13
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-03-31T15:02:49.727Z",
+    "2026-03-31T15:02:49.722Z",
+    "2026-03-31T15:02:49.722Z",
+    "2026-03-31T15:03:30.563Z",
+    "2026-03-31T15:14:50.234Z"
+  ]
+}

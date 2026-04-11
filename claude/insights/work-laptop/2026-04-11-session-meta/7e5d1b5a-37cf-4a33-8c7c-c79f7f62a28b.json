@@ -1,0 +1,46 @@
+{
+  "session_id": "7e5d1b5a-37cf-4a33-8c7c-c79f7f62a28b",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-02-26T17:23:41.283Z",
+  "duration_minutes": 2,
+  "user_message_count": 5,
+  "assistant_message_count": 9,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "mcp__linear-server__list_issue_statuses": 1,
+    "mcp__linear-server__list_issues": 1
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 19,
+  "output_tokens": 1246,
+  "first_prompt": "How far back on issues that have been triage in this linear project can you see ? https://linear.app/beamazing/team/MN/triage",
+  "user_interruptions": 0,
+  "user_response_times": [
+    18.395
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    17,
+    17,
+    17,
+    17,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-02-26T17:23:41.495Z",
+    "2026-02-26T17:23:41.275Z",
+    "2026-02-26T17:23:41.494Z",
+    "2026-02-26T17:24:29.404Z",
+    "2026-02-26T17:25:55.742Z"
+  ]
+}

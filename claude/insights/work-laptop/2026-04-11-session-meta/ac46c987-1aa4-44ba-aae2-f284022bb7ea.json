@@ -1,0 +1,55 @@
+{
+  "session_id": "ac46c987-1aa4-44ba-aae2-f284022bb7ea",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-03-04T10:55:05.127Z",
+  "duration_minutes": 58,
+  "user_message_count": 5,
+  "assistant_message_count": 51,
+  "tool_counts": {
+    "Read": 4,
+    "Edit": 10,
+    "Bash": 14,
+    "Agent": 2,
+    "TaskOutput": 1
+  },
+  "languages": {
+    "Ruby": 14
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 71,
+  "output_tokens": 5080,
+  "first_prompt": "Implement the following plan:  # INT-164: Add new languages behind feature flag  ## Context  The Interpret team wants to evaluate 5 new languages: **Amharic, Somali, Turkish, Vietnamese, and Nepali**.…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    2386.411,
+    2386.411,
+    367.4,
+    130.413
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "Command Failed": 2
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 118,
+  "lines_removed": 7,
+  "files_modified": 4,
+  "message_hours": [
+    10,
+    11,
+    11,
+    11,
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T10:55:05.047Z",
+    "2026-03-04T11:36:12.606Z",
+    "2026-03-04T11:36:12.606Z",
+    "2026-03-04T11:50:58.230Z",
+    "2026-03-04T11:53:21.111Z"
+  ]
+}

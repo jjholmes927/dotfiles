@@ -1,0 +1,18 @@
+{
+  "underlying_goal": "Investigate why Slack notifications were missing for feedback ratings and fix the issue",
+  "goal_categories": {
+    "bug_investigation_and_fix": 1,
+    "ship_pr": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 2
+  },
+  "claude_helpfulness": "essential",
+  "session_type": "single_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "good_debugging",
+  "brief_summary": "User asked Claude to investigate and fix missing Slack notifications for feedback ratings; Claude identified the root cause, implemented the fix, passed tests, and shipped a green PR.",
+  "session_id": "4217cc6f-7fd7-4b56-b91b-dd5f400505ca"
+}

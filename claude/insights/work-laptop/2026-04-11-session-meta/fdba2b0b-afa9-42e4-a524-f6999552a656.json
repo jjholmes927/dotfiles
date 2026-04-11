@@ -1,0 +1,66 @@
+{
+  "session_id": "fdba2b0b-afa9-42e4-a524-f6999552a656",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-09T18:18:04.881Z",
+  "duration_minutes": 11,
+  "user_message_count": 10,
+  "assistant_message_count": 46,
+  "tool_counts": {
+    "Task": 1,
+    "Read": 5,
+    "Edit": 7,
+    "Grep": 4,
+    "Glob": 2,
+    "Bash": 6
+  },
+  "languages": {
+    "Ruby": 12
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 88,
+  "output_tokens": 1509,
+  "first_prompt": "can you add a link to the open ai requests on a tab for turn interpretations on avo",
+  "user_interruptions": 1,
+  "user_response_times": [
+    296.176,
+    19.623,
+    20.719,
+    25.126,
+    25.126,
+    37.494
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 10,
+  "lines_removed": 9,
+  "files_modified": 3,
+  "message_hours": [
+    18,
+    18,
+    18,
+    18,
+    18,
+    18,
+    18,
+    18,
+    18,
+    18
+  ],
+  "user_message_timestamps": [
+    "2026-02-09T18:18:05.695Z",
+    "2026-02-09T18:18:04.868Z",
+    "2026-02-09T18:18:05.695Z",
+    "2026-02-09T18:19:30.240Z",
+    "2026-02-09T18:26:03.531Z",
+    "2026-02-09T18:27:04.623Z",
+    "2026-02-09T18:27:05.719Z",
+    "2026-02-09T18:27:47.307Z",
+    "2026-02-09T18:27:47.307Z",
+    "2026-02-09T18:29:03.310Z"
+  ]
+}

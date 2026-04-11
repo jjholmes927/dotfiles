@@ -1,0 +1,59 @@
+{
+  "session_id": "0f9acbcd-4ce3-40da-9463-b7caa0fb9c45",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-02-12T10:50:01.831Z",
+  "duration_minutes": 203,
+  "user_message_count": 7,
+  "assistant_message_count": 88,
+  "tool_counts": {
+    "Task\" subagent_type=\"Explore": 1,
+    "Task": 2,
+    "Read": 9,
+    "Grep": 6,
+    "Bash": 15,
+    "Edit": 11,
+    "AskUserQuestion": 1
+  },
+  "languages": {
+    "TypeScript": 20
+  },
+  "git_commits": 2,
+  "git_pushes": 1,
+  "input_tokens": 1226,
+  "output_tokens": 7556,
+  "first_prompt": "On the interpreter show page view we need to clean up a couple of things on the mobile responsive view this imagie is how it currently looks on mobile. We can get rid of the status connected on both m…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    117.844,
+    656.237
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Other": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 14,
+  "lines_removed": 26,
+  "files_modified": 3,
+  "message_hours": [
+    10,
+    10,
+    10,
+    10,
+    11,
+    13,
+    14
+  ],
+  "user_message_timestamps": [
+    "2026-02-12T10:50:01.850Z",
+    "2026-02-12T10:50:01.778Z",
+    "2026-02-12T10:50:01.850Z",
+    "2026-02-12T10:53:19.543Z",
+    "2026-02-12T11:00:10.007Z",
+    "2026-02-12T13:48:29.501Z",
+    "2026-02-12T14:13:09.266Z"
+  ]
+}

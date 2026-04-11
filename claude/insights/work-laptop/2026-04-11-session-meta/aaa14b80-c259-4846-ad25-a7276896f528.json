@@ -1,0 +1,53 @@
+{
+  "session_id": "aaa14b80-c259-4846-ad25-a7276896f528",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-03-05T14:37:25.491Z",
+  "duration_minutes": 51,
+  "user_message_count": 4,
+  "assistant_message_count": 23,
+  "tool_counts": {
+    "Skill": 1,
+    "ToolSearch": 2,
+    "mcp__linear-server__get_issue": 1,
+    "Agent": 3,
+    "AskUserQuestion": 1,
+    "EnterPlanMode": 1,
+    "Read": 3,
+    "Write": 1,
+    "ExitPlanMode": 1
+  },
+  "languages": {
+    "Ruby": 3,
+    "Markdown": 1
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 35,
+  "output_tokens": 4585,
+  "first_prompt": "i want you to pick up this linear ticket https://linear.app/beamazing/issue/INT-93/after-mvp-release-when-customers-are-live-on-pilot-move-feature-flag where as currently we are checking feature flags…",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "User Rejected": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 88,
+  "lines_removed": 0,
+  "files_modified": 1,
+  "message_hours": [
+    14,
+    14,
+    14,
+    14
+  ],
+  "user_message_timestamps": [
+    "2026-03-05T14:37:26.112Z",
+    "2026-03-05T14:37:25.443Z",
+    "2026-03-05T14:38:43.910Z",
+    "2026-03-05T14:38:49.171Z"
+  ]
+}

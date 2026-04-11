@@ -1,0 +1,20 @@
+{
+  "underlying_goal": "Get thorough code reviews on multiple PRs related to Interpret TTS and outbound calling features",
+  "goal_categories": {
+    "code_review": 3,
+    "clarifying_question": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 3
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {
+    "tool_error": 1
+  },
+  "friction_detail": "The review-pr skill failed once with 'Unknown skill' error, but user re-invoked and it worked.",
+  "primary_success": "good_explanations",
+  "brief_summary": "User requested code reviews on three PRs (TTS latency, outbound calling, TTS streaming) and Claude provided detailed reviews for each.",
+  "session_id": "1a3f3aaa-4ead-498a-bae5-4933348919f9"
+}

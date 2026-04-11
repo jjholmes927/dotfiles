@@ -1,0 +1,44 @@
+{
+  "session_id": "2d422018-5b51-424b-8653-fc1f1b034c81",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/terraform-gcp",
+  "start_time": "2026-03-24T11:17:42.198Z",
+  "duration_minutes": 16,
+  "user_message_count": 4,
+  "assistant_message_count": 7,
+  "tool_counts": {
+    "Agent": 1
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 19,
+  "output_tokens": 1971,
+  "first_prompt": "how are we handling project permissions for engineers in this repo",
+  "user_interruptions": 0,
+  "user_response_times": [
+    36.319,
+    50.37,
+    752.704
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    11,
+    11,
+    11,
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-03-24T11:17:42.198Z",
+    "2026-03-24T11:19:55.483Z",
+    "2026-03-24T11:21:09.775Z",
+    "2026-03-24T11:33:48.346Z"
+  ]
+}

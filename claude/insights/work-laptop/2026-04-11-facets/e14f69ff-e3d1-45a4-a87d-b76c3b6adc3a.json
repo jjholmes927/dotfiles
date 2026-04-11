@@ -1,0 +1,23 @@
+{
+  "underlying_goal": "Pick up a Linear ticket (INT-222) to hide a UI button when there are no relevant sources, implement the fix, and ship a PR",
+  "goal_categories": {
+    "implement_feature": 1,
+    "ship_pr": 1,
+    "fix_bug_in_implementation": 2
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "dissatisfied": 2,
+    "likely_satisfied": 2
+  },
+  "claude_helpfulness": "moderately_helpful",
+  "session_type": "iterative_refinement",
+  "friction_counts": {
+    "misunderstood_request": 2,
+    "buggy_code": 1
+  },
+  "friction_detail": "Claude initially hid the wrong button (InterpretConversationSheet instead of FilesSheet), then used wrong logical operator, requiring multiple user corrections.",
+  "primary_success": "correct_code_edits",
+  "brief_summary": "User wanted to implement a ticket to hide the FilesSheet button when no sources exist; Claude initially targeted the wrong button and needed iterative correction but eventually shipped the fix.",
+  "session_id": "e14f69ff-e3d1-45a4-a87d-b76c3b6adc3a"
+}

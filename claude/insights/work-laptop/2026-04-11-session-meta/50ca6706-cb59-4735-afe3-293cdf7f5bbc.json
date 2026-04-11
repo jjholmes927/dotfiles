@@ -1,0 +1,51 @@
+{
+  "session_id": "50ca6706-cb59-4735-afe3-293cdf7f5bbc",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-03-19T13:32:38.903Z",
+  "duration_minutes": 6018,
+  "user_message_count": 8,
+  "assistant_message_count": 23,
+  "tool_counts": {
+    "Bash": 8,
+    "Read": 8
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 41,
+  "output_tokens": 5224,
+  "first_prompt": "No prompt",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "File Too Large": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    13,
+    13,
+    14,
+    14,
+    15,
+    15,
+    17,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-03-19T13:32:38.903Z",
+    "2026-03-19T13:32:38.903Z",
+    "2026-03-19T14:35:59.502Z",
+    "2026-03-19T14:35:59.502Z",
+    "2026-03-23T15:55:59.353Z",
+    "2026-03-23T15:55:59.353Z",
+    "2026-03-23T17:50:40.888Z",
+    "2026-03-23T17:50:40.888Z"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "underlying_goal": "Replace feature flag checks with product grant checks for the 'interpret' feature across the codebase, as part of moving from pilot to full product MVP",
+  "goal_categories": {
+    "code_refactoring": 1
+  },
+  "outcome": "partially_achieved",
+  "user_satisfaction_counts": {},
+  "claude_helpfulness": "moderately_helpful",
+  "session_type": "single_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User asked Claude to swap all interpret feature flag checks to product grant checks per a Linear ticket; Claude explored the codebase and wrote a plan but the session ends before implementation is confirmed complete.",
+  "session_id": "aaa14b80-c259-4846-ad25-a7276896f528"
+}

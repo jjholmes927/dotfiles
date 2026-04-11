@@ -1,0 +1,59 @@
+{
+  "session_id": "ca119be6-f71b-491d-99b8-34151702cd29",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-02-23T16:41:16.571Z",
+  "duration_minutes": 17,
+  "user_message_count": 6,
+  "assistant_message_count": 89,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "mcp__linear-server__get_issue": 1,
+    "Task": 1,
+    "Read": 12,
+    "Grep": 20,
+    "Bash": 16,
+    "Edit": 8,
+    "Write": 1
+  },
+  "languages": {
+    "TypeScript": 13,
+    "YAML": 8
+  },
+  "git_commits": 2,
+  "git_pushes": 2,
+  "input_tokens": 101,
+  "output_tokens": 8303,
+  "first_prompt": "Look at this ticket https://linear.app/beamazing/issue/INT-130/update-title-and-start-session-button-on-interpret-index-page change the relevant copy and the start session button should be on the left…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    186.722,
+    171.36
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 142,
+  "lines_removed": 12,
+  "files_modified": 5,
+  "message_hours": [
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-23T16:41:16.852Z",
+    "2026-02-23T16:41:16.554Z",
+    "2026-02-23T16:41:16.851Z",
+    "2026-02-23T16:42:20.863Z",
+    "2026-02-23T16:52:03.434Z",
+    "2026-02-23T16:57:09.972Z"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "underlying_goal": "Understand why a PruneTranscriptDataTask processed 119 items when only 111 were passed in",
+  "goal_categories": {
+    "debugging_investigation": 1
+  },
+  "outcome": "not_achieved",
+  "user_satisfaction_counts": {
+    "dissatisfied": 3
+  },
+  "claude_helpfulness": "slightly_helpful",
+  "session_type": "iterative_refinement",
+  "friction_counts": {
+    "wrong_approach": 3
+  },
+  "friction_detail": "Claude kept guessing explanations (input parsing, pause/resume overlap, GoodJob interruption) that the user rejected each time, rather than investigating the actual code/data.",
+  "primary_success": "none",
+  "brief_summary": "User wanted to understand why their maintenance task processed more items than expected; Claude offered multiple incorrect guesses that the user rejected before finally suggesting actual investigation.",
+  "session_id": "2f6ee2a2-85af-45f0-86d1-7a11e7190525"
+}

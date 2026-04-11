@@ -1,0 +1,75 @@
+{
+  "session_id": "a9414db9-a571-4d52-86db-b7617e5a8b6e",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-10T14:47:26.542Z",
+  "duration_minutes": 22,
+  "user_message_count": 10,
+  "assistant_message_count": 93,
+  "tool_counts": {
+    "Bash": 17,
+    "Read": 7,
+    "Grep": 4,
+    "TaskCreate": 3,
+    "TaskUpdate": 6,
+    "Edit": 10,
+    "ToolSearch": 4,
+    "mcp__linear-server__get_project": 1,
+    "mcp__linear-server__list_issue_statuses": 2,
+    "mcp__linear-server__list_teams": 1,
+    "mcp__linear-server__create_issue": 1
+  },
+  "languages": {
+    "Ruby": 9,
+    "YAML": 5,
+    "TypeScript": 3
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 131,
+  "output_tokens": 7468,
+  "first_prompt": "lets pull main and checkout a new branch im seeing a lot of garbled results transcription results from scribe with 0.0% language confidence, if we get a score below 10% confidence   I think we should…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    35.628,
+    87.03,
+    37.72,
+    167.199,
+    536.841
+  ],
+  "tool_errors": 3,
+  "tool_error_categories": {
+    "Command Failed": 1,
+    "Other": 2
+  },
+  "uses_task_agent": false,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 217,
+  "lines_removed": 4,
+  "files_modified": 5,
+  "message_hours": [
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-02-10T14:47:26.542Z",
+    "2026-02-10T14:45:28.209Z",
+    "2026-02-10T14:45:28.209Z",
+    "2026-02-10T14:47:26.644Z",
+    "2026-02-10T14:47:30.377Z",
+    "2026-02-10T14:50:51.445Z",
+    "2026-02-10T14:52:29.708Z",
+    "2026-02-10T14:54:20.913Z",
+    "2026-02-10T14:57:20.468Z",
+    "2026-02-10T15:07:45.797Z"
+  ]
+}

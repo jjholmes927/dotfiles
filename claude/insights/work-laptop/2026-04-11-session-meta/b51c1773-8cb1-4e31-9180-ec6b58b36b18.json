@@ -1,0 +1,62 @@
+{
+  "session_id": "b51c1773-8cb1-4e31-9180-ec6b58b36b18",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-03-05T15:28:54.242Z",
+  "duration_minutes": 34,
+  "user_message_count": 6,
+  "assistant_message_count": 150,
+  "tool_counts": {
+    "TaskCreate": 7,
+    "Skill": 2,
+    "Read": 22,
+    "Grep": 6,
+    "Agent": 4,
+    "TaskUpdate": 14,
+    "Write": 2,
+    "Edit": 15,
+    "Bash": 29
+  },
+  "languages": {
+    "Ruby": 38
+  },
+  "git_commits": 2,
+  "git_pushes": 1,
+  "input_tokens": 651,
+  "output_tokens": 16433,
+  "first_prompt": "Implement the following plan:  # INT-93: Move interpret feature flag to product grant  ## Context  The interpret feature is rolling out as a full product MVP. Currently, access is gated by a LaunchDar…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    121.899,
+    121.899,
+    457.054
+  ],
+  "tool_errors": 5,
+  "tool_error_categories": {
+    "Other": 2,
+    "Command Failed": 2,
+    "File Too Large": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 75,
+  "lines_removed": 15,
+  "files_modified": 12,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-03-05T15:28:54.124Z",
+    "2026-03-05T15:29:19.785Z",
+    "2026-03-05T15:36:26.884Z",
+    "2026-03-05T15:36:26.884Z",
+    "2026-03-05T15:37:04.081Z",
+    "2026-03-05T15:58:38.063Z"
+  ]
+}

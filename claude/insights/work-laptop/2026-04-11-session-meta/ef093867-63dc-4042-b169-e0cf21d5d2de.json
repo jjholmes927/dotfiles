@@ -1,0 +1,43 @@
+{
+  "session_id": "ef093867-63dc-4042-b169-e0cf21d5d2de",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-02-23T10:26:18.619Z",
+  "duration_minutes": 381,
+  "user_message_count": 2,
+  "assistant_message_count": 16,
+  "tool_counts": {
+    "Task": 1,
+    "Bash": 7,
+    "Read": 1,
+    "Edit": 1
+  },
+  "languages": {
+    "Ruby": 2
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 28,
+  "output_tokens": 1609,
+  "first_prompt": "add a new product grant type called interpret on a new branch",
+  "user_interruptions": 0,
+  "user_response_times": [
+    119.455
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 2,
+  "lines_removed": 1,
+  "files_modified": 1,
+  "message_hours": [
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-23T16:39:10.785Z",
+    "2026-02-23T16:46:49.269Z"
+  ]
+}

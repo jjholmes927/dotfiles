@@ -1,0 +1,21 @@
+{
+  "underlying_goal": "Implement a Linear ticket to hide the sidebar (desktop and mobile hamburger menu) on the realtime interpret conversation show page when the conversation is in progress, and show it when saved",
+  "goal_categories": {
+    "feature_implementation": 1,
+    "ship_workflow": 1,
+    "code_review": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 3
+  },
+  "claude_helpfulness": "essential",
+  "session_type": "single_task",
+  "friction_counts": {
+    "buggy_code": 1
+  },
+  "friction_detail": "ESLint curly brace rule violation on the initial code change required a CI fix push.",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User asked Claude to implement a Linear ticket hiding the sidebar during active interpret conversations; Claude implemented it across controller and frontend, fixed a CI lint failure, added tests, and shipped a green PR.",
+  "session_id": "3f011de8-4c24-4d9d-87d7-bdaa42498b88"
+}

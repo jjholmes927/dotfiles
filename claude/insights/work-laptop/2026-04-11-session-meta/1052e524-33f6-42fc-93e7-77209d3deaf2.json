@@ -1,0 +1,32 @@
+{
+  "session_id": "1052e524-33f6-42fc-93e7-77209d3deaf2",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-23T10:26:12.046Z",
+  "duration_minutes": 44,
+  "user_message_count": 1,
+  "assistant_message_count": 2,
+  "tool_counts": {},
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 6,
+  "output_tokens": 219,
+  "first_prompt": "how do i change this claude mcp add honeycomb --transport http https://mcp.eu1.honeycomb.io/mcp to add to my user rather thsn",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-02-23T11:09:42.874Z"
+  ]
+}

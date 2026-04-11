@@ -1,0 +1,22 @@
+{
+  "underlying_goal": "Managing a personal second-brain knowledge base: drafting engineering management guidance, cataloging project ideas, and designing an automated PR review system",
+  "goal_categories": {
+    "feedback_on_writing": 1,
+    "content_drafting": 1,
+    "codebase_exploration": 1,
+    "add_notes_to_backlog": 2,
+    "system_design_discussion": 3
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 6,
+    "satisfied": 1
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User managed their second-brain repo across multiple tasks — drafting probation goal guidance, adding 6 idea notes to backlog, and designing an automated multi-model PR review system — all completed smoothly.",
+  "session_id": "ec038560-998c-4396-8eb9-8377055a9b0a"
+}

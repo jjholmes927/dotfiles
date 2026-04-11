@@ -1,0 +1,50 @@
+{
+  "session_id": "66f40f82-268d-4e38-aeca-8e7be45e8e5b",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-03-09T10:38:52.271Z",
+  "duration_minutes": 54,
+  "user_message_count": 4,
+  "assistant_message_count": 45,
+  "tool_counts": {
+    "Bash": 15,
+    "Read": 5,
+    "Agent": 2,
+    "Grep": 1,
+    "Edit": 3
+  },
+  "languages": {
+    "TypeScript": 8
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 53,
+  "output_tokens": 6229,
+  "first_prompt": "Can you take a look at this PR and pull down the branch and resolve the merge conflicts to main please https://github.com/wearebeam/magicnotes/pull/6419",
+  "user_interruptions": 0,
+  "user_response_times": [
+    2479.92
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 15,
+  "lines_removed": 43,
+  "files_modified": 1,
+  "message_hours": [
+    10,
+    10,
+    10,
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-03-09T10:38:52.799Z",
+    "2026-03-09T10:38:52.257Z",
+    "2026-03-09T10:39:40.847Z",
+    "2026-03-09T11:32:51.610Z"
+  ]
+}

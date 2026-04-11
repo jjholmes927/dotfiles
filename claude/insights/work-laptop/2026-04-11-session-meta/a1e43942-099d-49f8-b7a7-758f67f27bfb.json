@@ -1,0 +1,58 @@
+{
+  "session_id": "a1e43942-099d-49f8-b7a7-758f67f27bfb",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-03-04T16:10:41.126Z",
+  "duration_minutes": 37,
+  "user_message_count": 5,
+  "assistant_message_count": 130,
+  "tool_counts": {
+    "Bash": 35,
+    "Read": 12,
+    "Grep": 17,
+    "Glob": 1,
+    "Edit": 8,
+    "Skill": 1,
+    "Agent": 2
+  },
+  "languages": {
+    "Ruby": 13,
+    "YAML": 6
+  },
+  "git_commits": 3,
+  "git_pushes": 2,
+  "input_tokens": 4671,
+  "output_tokens": 23068,
+  "first_prompt": "/ship this PR https://github.com/wearebeam/magicnotes/pull/6417/changes#r2884684170",
+  "user_interruptions": 0,
+  "user_response_times": [
+    503.917,
+    637.639
+  ],
+  "tool_errors": 5,
+  "tool_error_categories": {
+    "Command Failed": 3,
+    "File Too Large": 1,
+    "Other": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 43,
+  "lines_removed": 9,
+  "files_modified": 5,
+  "message_hours": [
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T16:11:00.069Z",
+    "2026-03-04T16:11:00.069Z",
+    "2026-03-04T16:19:14.211Z",
+    "2026-03-04T16:31:53.596Z",
+    "2026-03-04T16:44:50.072Z"
+  ]
+}

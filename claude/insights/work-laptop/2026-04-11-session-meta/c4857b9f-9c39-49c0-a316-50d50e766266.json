@@ -1,0 +1,67 @@
+{
+  "session_id": "c4857b9f-9c39-49c0-a316-50d50e766266",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-04-09T10:10:49.895Z",
+  "duration_minutes": 9,
+  "user_message_count": 7,
+  "assistant_message_count": 51,
+  "tool_counts": {
+    "Agent": 1,
+    "Skill": 2,
+    "ToolSearch": 2,
+    "mcp__linear-server__get_issue": 1,
+    "mcp__linear-server__list_comments": 1,
+    "Bash": 4,
+    "mcp__linear-server__get_authenticated_user": 1,
+    "mcp__linear-server__save_issue": 1,
+    "TaskCreate": 4,
+    "TaskUpdate": 7,
+    "Read": 4,
+    "Edit": 7,
+    "Glob": 1,
+    "Grep": 1
+  },
+  "languages": {
+    "Ruby": 4,
+    "TypeScript": 7
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 81,
+  "output_tokens": 5970,
+  "first_prompt": "For the realtime interpret product on the target languages model we store gender, is this random in the database or does it order based on filled in order on the new conversation form so the first tar…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    61.532,
+    6.614
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Other": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 17,
+  "lines_removed": 4,
+  "files_modified": 3,
+  "message_hours": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-04-09T10:10:49.895Z",
+    "2026-04-09T10:10:49.389Z",
+    "2026-04-09T10:14:22.767Z",
+    "2026-04-09T10:17:28.125Z",
+    "2026-04-09T10:17:31.781Z",
+    "2026-04-09T10:18:10.882Z",
+    "2026-04-09T10:18:23.933Z"
+  ]
+}

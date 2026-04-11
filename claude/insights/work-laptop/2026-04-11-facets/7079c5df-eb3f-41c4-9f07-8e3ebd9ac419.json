@@ -1,0 +1,15 @@
+{
+  "underlying_goal": "Pull a branch, fix a failing CI test, and push the fix back up",
+  "goal_categories": {
+    "fix_failing_test": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {},
+  "claude_helpfulness": "essential",
+  "session_type": "single_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "correct_code_edits",
+  "brief_summary": "User asked Claude to pull a branch, fix a failing test, and push it back; Claude identified the missing product key, added it, verified the test passed, and pushed successfully.",
+  "session_id": "7079c5df-eb3f-41c4-9f07-8e3ebd9ac419"
+}

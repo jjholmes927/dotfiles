@@ -1,0 +1,60 @@
+{
+  "session_id": "9fa46842-76cd-4e6f-8fc4-4463ef54f634",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn5/magicnotes",
+  "start_time": "2026-04-02T12:31:55.410Z",
+  "duration_minutes": 178,
+  "user_message_count": 6,
+  "assistant_message_count": 44,
+  "tool_counts": {
+    "Agent": 4,
+    "Skill": 2,
+    "Read": 4,
+    "Bash": 10,
+    "ToolSearch": 1,
+    "TaskCreate": 3,
+    "TaskUpdate": 6,
+    "Write": 1,
+    "Edit": 3
+  },
+  "languages": {
+    "Ruby": 8
+  },
+  "git_commits": 2,
+  "git_pushes": 0,
+  "input_tokens": 67,
+  "output_tokens": 7954,
+  "first_prompt": "Given this information and research is there anything you would change about our avo and error /span reporting setup # Avo Observability & Error Handling Research  > Researched 2026-04-01. Applies to…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    1065.487,
+    45.519,
+    45.519
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 38,
+  "lines_removed": 0,
+  "files_modified": 4,
+  "message_hours": [
+    13,
+    13,
+    13,
+    13,
+    13,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-04-02T12:31:55.410Z",
+    "2026-04-02T12:52:55.343Z",
+    "2026-04-02T12:53:00.322Z",
+    "2026-04-02T12:57:25.805Z",
+    "2026-04-02T12:57:25.805Z",
+    "2026-04-02T15:29:45.283Z"
+  ]
+}

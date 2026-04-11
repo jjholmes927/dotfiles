@@ -1,0 +1,73 @@
+{
+  "session_id": "d8ab292b-6675-4524-b508-7f29ef6b9bad",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-25T13:04:33.117Z",
+  "duration_minutes": 52,
+  "user_message_count": 9,
+  "assistant_message_count": 121,
+  "tool_counts": {
+    "Bash": 29,
+    "Grep": 6,
+    "Glob": 1,
+    "Read": 17,
+    "TaskCreate": 2,
+    "TaskUpdate": 4,
+    "Edit": 7,
+    "Write": 2,
+    "AskUserQuestion": 2,
+    "Task": 1
+  },
+  "languages": {
+    "Ruby": 26
+  },
+  "git_commits": 4,
+  "git_pushes": 4,
+  "input_tokens": 4423,
+  "output_tokens": 16424,
+  "first_prompt": "looks good make all of those improvements please also before we do that pull out the validation transcript code into a seperate commit and cherry pick it to a new brnach and create a pr as they are di…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    105.953,
+    870.922,
+    870.922,
+    949.525,
+    239.875,
+    114.381
+  ],
+  "tool_errors": 6,
+  "tool_error_categories": {
+    "File Not Found": 1,
+    "Other": 2,
+    "File Changed": 1,
+    "Command Failed": 2
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 456,
+  "lines_removed": 3,
+  "files_modified": 5,
+  "message_hours": [
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-02-25T13:05:13.046Z",
+    "2026-02-25T13:05:13.046Z",
+    "2026-02-25T13:08:18.770Z",
+    "2026-02-25T13:26:59.215Z",
+    "2026-02-25T13:26:59.215Z",
+    "2026-02-25T13:43:48.011Z",
+    "2026-02-25T13:46:18.656Z",
+    "2026-02-25T13:50:49.349Z",
+    "2026-02-25T13:52:58.271Z"
+  ]
+}

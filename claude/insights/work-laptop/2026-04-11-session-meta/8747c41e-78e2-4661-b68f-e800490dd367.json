@@ -1,0 +1,64 @@
+{
+  "session_id": "8747c41e-78e2-4661-b68f-e800490dd367",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-02-24T09:16:20.186Z",
+  "duration_minutes": 265,
+  "user_message_count": 8,
+  "assistant_message_count": 53,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "mcp__linear-server__get_issue": 1,
+    "Task": 1,
+    "Read": 5,
+    "AskUserQuestion": 2,
+    "Grep": 3,
+    "Bash": 12,
+    "Edit": 4,
+    "Glob": 2
+  },
+  "languages": {
+    "Ruby": 7,
+    "YAML": 2
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 67,
+  "output_tokens": 1211,
+  "first_prompt": "can you pick up this ticket https://linear.app/beamazing/issue/INT-152/create-slack-channel-for-live-updates-on-new-conversations",
+  "user_interruptions": 1,
+  "user_response_times": [
+    6.205
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "Command Failed": 1,
+    "User Rejected": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 29,
+  "lines_removed": 2,
+  "files_modified": 3,
+  "message_hours": [
+    9,
+    9,
+    9,
+    9,
+    10,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-02-24T09:16:20.726Z",
+    "2026-02-24T09:16:20.164Z",
+    "2026-02-24T09:16:20.726Z",
+    "2026-02-24T09:16:36.189Z",
+    "2026-02-24T10:43:49.481Z",
+    "2026-02-24T13:40:44.117Z",
+    "2026-02-24T13:40:44.117Z",
+    "2026-02-24T13:40:55.212Z"
+  ]
+}

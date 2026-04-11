@@ -1,0 +1,24 @@
+{
+  "underlying_goal": "Debug why interpret/WebSocket functionality isn't working on staging review apps and fix it",
+  "goal_categories": {
+    "debugging": 1,
+    "code_changes": 1,
+    "git_operations": 3,
+    "explanation": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 3,
+    "dissatisfied": 1
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "iterative_refinement",
+  "friction_counts": {
+    "wrong_approach": 2,
+    "misunderstood_request": 1
+  },
+  "friction_detail": "Claude initially investigated job queue config as the issue when the real problem was WebSocket connectivity broken by h2c switch; also included unwanted commits in PR.",
+  "primary_success": "good_debugging",
+  "brief_summary": "User needed to fix broken WebSockets on staging review apps; Claude traced it to an h2c protocol switch that broke WebSocket upgrades and created a PR to revert to http1.",
+  "session_id": "47a4901c-d15e-4c81-8f23-6338cbbfdb93"
+}

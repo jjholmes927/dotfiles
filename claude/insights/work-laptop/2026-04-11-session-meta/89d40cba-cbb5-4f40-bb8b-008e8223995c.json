@@ -1,0 +1,56 @@
+{
+  "session_id": "89d40cba-cbb5-4f40-bb8b-008e8223995c",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-02-23T10:26:32.158Z",
+  "duration_minutes": 336,
+  "user_message_count": 6,
+  "assistant_message_count": 37,
+  "tool_counts": {
+    "Grep": 5,
+    "Glob": 2,
+    "Read": 7,
+    "Edit": 6,
+    "WebSearch": 1,
+    "Bash": 6
+  },
+  "languages": {
+    "Ruby": 13
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 63,
+  "output_tokens": 2596,
+  "first_prompt": "remove turn interpretations and turn interpretations turn from the avo global search they're clogging it",
+  "user_interruptions": 1,
+  "user_response_times": [
+    6.858,
+    19.17,
+    4.711,
+    75.127
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": true,
+  "uses_web_fetch": false,
+  "lines_added": 26,
+  "lines_removed": 26,
+  "files_modified": 2,
+  "message_hours": [
+    15,
+    15,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-23T15:58:51.071Z",
+    "2026-02-23T15:59:28.949Z",
+    "2026-02-23T16:00:12.013Z",
+    "2026-02-23T16:00:30.925Z",
+    "2026-02-23T16:00:33.640Z",
+    "2026-02-23T16:02:02.146Z"
+  ]
+}

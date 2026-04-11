@@ -1,0 +1,49 @@
+{
+  "session_id": "792c166e-b64e-43c4-bac7-1c2102366cfe",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-03-04T15:21:29.366Z",
+  "duration_minutes": 6,
+  "user_message_count": 4,
+  "assistant_message_count": 22,
+  "tool_counts": {
+    "Read": 1,
+    "Edit": 2,
+    "Grep": 1,
+    "Bash": 8
+  },
+  "languages": {
+    "Ruby": 3
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 36,
+  "output_tokens": 3531,
+  "first_prompt": "is this going to add overhead to chunk p[rocessing?",
+  "user_interruptions": 0,
+  "user_response_times": [
+    140.731,
+    140.731,
+    95.231
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 8,
+  "lines_removed": 3,
+  "files_modified": 1,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T15:21:29.367Z",
+    "2026-03-04T15:25:08.110Z",
+    "2026-03-04T15:25:08.110Z",
+    "2026-03-04T15:27:12.045Z"
+  ]
+}

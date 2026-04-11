@@ -1,0 +1,40 @@
+{
+  "session_id": "fb826948-a507-4139-84b1-c050ff1d7893",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn5/magicnotes",
+  "start_time": "2026-04-10T17:58:55.877Z",
+  "duration_minutes": 3,
+  "user_message_count": 3,
+  "assistant_message_count": 6,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "mcp__honeycomb__get_workspace_context": 1,
+    "mcp__honeycomb__list_boards": 2
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 14,
+  "output_tokens": 583,
+  "first_prompt": "At the moment we have two observability boards on honeycomb for the real time interpretation product a latency deep dive https://ui.eu1.honeycomb.io/beam-4f/environments/production/board/gT-7DVy1AkMj/…",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    18,
+    18,
+    19
+  ],
+  "user_message_timestamps": [
+    "2026-04-10T17:58:55.877Z",
+    "2026-04-10T17:58:55.483Z",
+    "2026-04-10T18:01:43.613Z"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "session_id": "2f6ee2a2-85af-45f0-86d1-7a11e7190525",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-27T13:59:45.262Z",
+  "duration_minutes": 11,
+  "user_message_count": 7,
+  "assistant_message_count": 11,
+  "tool_counts": {
+    "Task": 1
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 29,
+  "output_tokens": 4574,
+  "first_prompt": "i passed 111 items into the PruneTranscriptDataTask and Im currently on 119 processed on the maintencance task UI so i paused it how?",
+  "user_interruptions": 0,
+  "user_response_times": [
+    347.179,
+    23.004
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    13,
+    13,
+    13,
+    14,
+    14,
+    14,
+    14
+  ],
+  "user_message_timestamps": [
+    "2026-02-27T13:59:46.180Z",
+    "2026-02-27T13:59:45.237Z",
+    "2026-02-27T13:59:46.180Z",
+    "2026-02-27T14:00:14.432Z",
+    "2026-02-27T14:08:35.976Z",
+    "2026-02-27T14:09:18.831Z",
+    "2026-02-27T14:09:47.584Z"
+  ]
+}

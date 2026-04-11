@@ -1,0 +1,80 @@
+{
+  "session_id": "42b6529d-55dd-4d76-9f3e-08a127246c23",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-03-09T18:13:18.135Z",
+  "duration_minutes": 1134,
+  "user_message_count": 15,
+  "assistant_message_count": 165,
+  "tool_counts": {
+    "Skill": 2,
+    "Bash": 86,
+    "Agent": 1,
+    "Read": 1,
+    "Glob": 2
+  },
+  "languages": {
+    "Shell": 1
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 237,
+  "output_tokens": 43943,
+  "first_prompt": "Using the gdocs skill I want you to look at this document https://docs.google.com/document/d/1wuOSXI5sNDo8M93vTw3xUT4t6uPlqjIClUkFAU40ciw/edit?tab=t.0 i'm tryiong to put together a document that shows…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    77.392,
+    63.492,
+    50.766,
+    233.841,
+    259.571,
+    100.517,
+    331.505,
+    74.789,
+    10.879
+  ],
+  "tool_errors": 6,
+  "tool_error_categories": {
+    "Command Failed": 6
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    18,
+    18,
+    18,
+    18,
+    18,
+    18,
+    18,
+    18,
+    18,
+    19,
+    19,
+    19,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-03-09T18:13:18.135Z",
+    "2026-03-09T18:13:25.066Z",
+    "2026-03-09T18:18:53.420Z",
+    "2026-03-09T18:27:22.832Z",
+    "2026-03-09T18:31:34.124Z",
+    "2026-03-09T18:34:46.656Z",
+    "2026-03-09T18:40:37.490Z",
+    "2026-03-09T18:46:11.926Z",
+    "2026-03-09T18:49:05.902Z",
+    "2026-03-09T19:00:50.577Z",
+    "2026-03-09T19:06:24.915Z",
+    "2026-03-09T19:08:50.216Z",
+    "2026-03-10T13:07:14.751Z",
+    "2026-03-10T13:07:14.751Z",
+    "2026-03-10T13:07:16.351Z"
+  ]
+}

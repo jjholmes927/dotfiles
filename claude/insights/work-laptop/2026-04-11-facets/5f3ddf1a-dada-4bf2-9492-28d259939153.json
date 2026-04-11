@@ -1,0 +1,21 @@
+{
+  "underlying_goal": "Prepare for meetings, write team updates, get feedback on message drafts, and organize personal development notes",
+  "goal_categories": {
+    "information_retrieval": 2,
+    "content_creation": 3,
+    "content_editing_and_refinement": 8,
+    "note_taking_and_organization": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "satisfied": 3,
+    "likely_satisfied": 8
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "good_explanations",
+  "brief_summary": "User needed help preparing 1:1s, writing a midweek team update, polishing multiple Slack messages, and organizing 360 feedback — all were delivered iteratively with the user refining wording across multiple rounds.",
+  "session_id": "5f3ddf1a-dada-4bf2-9492-28d259939153"
+}

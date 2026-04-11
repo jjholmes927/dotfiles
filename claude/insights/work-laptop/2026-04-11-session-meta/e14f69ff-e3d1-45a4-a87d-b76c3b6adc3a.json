@@ -1,0 +1,47 @@
+{
+  "session_id": "e14f69ff-e3d1-45a4-a87d-b76c3b6adc3a",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-03-30T09:59:31.188Z",
+  "duration_minutes": 3,
+  "user_message_count": 5,
+  "assistant_message_count": 13,
+  "tool_counts": {
+    "ToolSearch": 5,
+    "Glob": 2
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 31,
+  "output_tokens": 1052,
+  "first_prompt": "/beam-claude-skills:pick-up-linear-ticket https://linear.app/beamazing/issue/INT-222/hide-interpret-conversation-source-button-with-no-recordings",
+  "user_interruptions": 0,
+  "user_response_times": [
+    143.486
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Other": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    10,
+    10,
+    10,
+    10,
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-03-30T09:59:31.188Z",
+    "2026-03-30T09:59:30.891Z",
+    "2026-03-30T09:59:56.525Z",
+    "2026-03-30T09:59:56.525Z",
+    "2026-03-30T10:02:30.975Z"
+  ]
+}

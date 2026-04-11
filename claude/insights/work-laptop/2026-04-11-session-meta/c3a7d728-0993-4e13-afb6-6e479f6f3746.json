@@ -1,0 +1,69 @@
+{
+  "session_id": "c3a7d728-0993-4e13-afb6-6e479f6f3746",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-02-12T10:32:25.189Z",
+  "duration_minutes": 102,
+  "user_message_count": 12,
+  "assistant_message_count": 65,
+  "tool_counts": {
+    "Task": 1,
+    "Bash": 18,
+    "Read": 7,
+    "Grep": 4,
+    "Edit": 8
+  },
+  "languages": {
+    "TypeScript": 14,
+    "Ruby": 1
+  },
+  "git_commits": 4,
+  "git_pushes": 4,
+  "input_tokens": 93,
+  "output_tokens": 5963,
+  "first_prompt": "I've noticed the assigned teams dropdown on the edit user and create use from is a massive select and doesn't have a search what component is it using and should we swap it to use something else to wo…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    248.417,
+    136.391,
+    321.666,
+    1340.733,
+    2688.327
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 37,
+  "lines_removed": 29,
+  "files_modified": 1,
+  "message_hours": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    11,
+    11,
+    12
+  ],
+  "user_message_timestamps": [
+    "2026-02-12T10:32:25.209Z",
+    "2026-02-12T10:32:25.135Z",
+    "2026-02-12T10:32:25.209Z",
+    "2026-02-12T10:32:48.515Z",
+    "2026-02-12T10:32:48.514Z",
+    "2026-02-12T10:32:48.514Z",
+    "2026-02-12T10:48:32.035Z",
+    "2026-02-12T10:53:54.767Z",
+    "2026-02-12T10:58:55.671Z",
+    "2026-02-12T11:04:46.605Z",
+    "2026-02-12T11:28:01.274Z",
+    "2026-02-12T12:13:17.925Z"
+  ]
+}

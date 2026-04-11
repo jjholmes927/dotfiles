@@ -1,0 +1,52 @@
+{
+  "session_id": "c80cecaf-754f-4713-8bf5-d7c3624ed965",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn5/magicnotes",
+  "start_time": "2026-02-10T16:39:53.197Z",
+  "duration_minutes": 70,
+  "user_message_count": 4,
+  "assistant_message_count": 29,
+  "tool_counts": {
+    "Task": 2,
+    "Bash": 4,
+    "Read": 6,
+    "Edit": 2
+  },
+  "languages": {
+    "Ruby": 8
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 51,
+  "output_tokens": 1898,
+  "first_prompt": "can you look at all of the rails backend server logs across the real time interpretation tool and ensure they follow structured logging best practice please? check out a new branch to work on this",
+  "user_interruptions": 1,
+  "user_response_times": [
+    494.265,
+    520.243,
+    185.471
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "User Rejected": 1,
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 11,
+  "lines_removed": 2,
+  "files_modified": 2,
+  "message_hours": [
+    17,
+    17,
+    17,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-02-10T17:24:46.104Z",
+    "2026-02-10T17:43:13.642Z",
+    "2026-02-10T17:43:39.620Z",
+    "2026-02-10T17:47:07.375Z"
+  ]
+}

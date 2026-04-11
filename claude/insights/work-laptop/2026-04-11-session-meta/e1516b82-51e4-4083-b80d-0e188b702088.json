@@ -1,0 +1,47 @@
+{
+  "session_id": "e1516b82-51e4-4083-b80d-0e188b702088",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/second-brain",
+  "start_time": "2026-03-09T15:28:43.544Z",
+  "duration_minutes": 3,
+  "user_message_count": 4,
+  "assistant_message_count": 17,
+  "tool_counts": {
+    "Glob": 3,
+    "Bash": 8,
+    "Read": 2
+  },
+  "languages": {
+    "JSON": 2
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 25,
+  "output_tokens": 1154,
+  "first_prompt": "getting this and failed to connect gws gws mcp -s drive",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 4,
+  "tool_error_categories": {
+    "Other": 2,
+    "Command Failed": 2
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-03-09T15:28:54.758Z",
+    "2026-03-09T15:28:54.758Z",
+    "2026-03-09T15:28:54.758Z",
+    "2026-03-09T15:30:16.628Z"
+  ]
+}

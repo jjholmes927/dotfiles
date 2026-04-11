@@ -1,0 +1,17 @@
+{
+  "underlying_goal": "Get a domain-aware code review of PR #6758 on the magicnotes repository",
+  "goal_categories": {
+    "code_review": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 1
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "single_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "good_explanations",
+  "brief_summary": "User triggered a PR review skill for a GitHub PR, and Claude provided a detailed code review with critical findings despite missing domain docs.",
+  "session_id": "627bc8d6-c617-4be8-a593-f2f7eb6c5c62"
+}

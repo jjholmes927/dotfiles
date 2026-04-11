@@ -1,0 +1,82 @@
+{
+  "session_id": "bfa42715-9593-42fe-9cb1-b9d13ea0a7cc",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-09T11:06:42.072Z",
+  "duration_minutes": 267,
+  "user_message_count": 15,
+  "assistant_message_count": 97,
+  "tool_counts": {
+    "Task": 2,
+    "Read": 11,
+    "Grep": 6,
+    "Bash": 23,
+    "Edit": 7,
+    "Glob": 2,
+    "Write": 2
+  },
+  "languages": {
+    "Ruby": 20
+  },
+  "git_commits": 5,
+  "git_pushes": 5,
+  "input_tokens": 167,
+  "output_tokens": 4550,
+  "first_prompt": "I'm trying to work out the cost of each part of our interpretation pipeline specifically azure tts right now the docs say ext to Speech8    Standard Voice    Neural (real-time and batch): £10.878 per…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    98.648,
+    457.205,
+    626.326,
+    55.916,
+    15.623,
+    20.202,
+    106.663,
+    520.1,
+    490.429
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 57,
+  "lines_removed": 9,
+  "files_modified": 7,
+  "message_hours": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    13,
+    13,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-02-09T11:06:42.867Z",
+    "2026-02-09T11:06:42.029Z",
+    "2026-02-09T11:06:42.866Z",
+    "2026-02-09T11:07:28.932Z",
+    "2026-02-09T11:11:09.896Z",
+    "2026-02-09T11:21:48.637Z",
+    "2026-02-09T11:33:22.625Z",
+    "2026-02-09T11:34:40.457Z",
+    "2026-02-09T11:35:47.947Z",
+    "2026-02-09T11:36:34.413Z",
+    "2026-02-09T11:38:42.804Z",
+    "2026-02-09T11:47:41.580Z",
+    "2026-02-09T13:49:41.909Z",
+    "2026-02-09T13:58:24.876Z",
+    "2026-02-09T15:33:15.872Z"
+  ]
+}

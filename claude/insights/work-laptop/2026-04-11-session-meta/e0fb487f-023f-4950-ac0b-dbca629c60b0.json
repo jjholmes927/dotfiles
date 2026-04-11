@@ -1,0 +1,74 @@
+{
+  "session_id": "e0fb487f-023f-4950-ac0b-dbca629c60b0",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn4/magicnotes",
+  "start_time": "2026-03-30T10:12:13.405Z",
+  "duration_minutes": 43,
+  "user_message_count": 10,
+  "assistant_message_count": 81,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "mcp__claude_ai_Linear__get_issue": 2,
+    "mcp__claude_ai_Linear__list_comments": 1,
+    "Bash": 18,
+    "mcp__claude_ai_Linear__save_issue": 1,
+    "Read": 10,
+    "Glob": 5,
+    "Edit": 5,
+    "Grep": 3,
+    "Skill": 2,
+    "Agent": 3
+  },
+  "languages": {
+    "TypeScript": 14
+  },
+  "git_commits": 2,
+  "git_pushes": 1,
+  "input_tokens": 547,
+  "output_tokens": 10335,
+  "first_prompt": "/beam-claude-skills:pick-up-linear-ticket https://linear.app/beamazing/issue/INT-223/update-interpret-create-conversation-button-to-new-style",
+  "user_interruptions": 0,
+  "user_response_times": [
+    57.535,
+    125.491,
+    125.491,
+    1375.604
+  ],
+  "tool_errors": 5,
+  "tool_error_categories": {
+    "Other": 2,
+    "File Not Found": 1,
+    "Command Failed": 1,
+    "File Too Large": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 42,
+  "lines_removed": 44,
+  "files_modified": 1,
+  "message_hours": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-03-30T10:12:13.405Z",
+    "2026-03-30T10:12:12.961Z",
+    "2026-03-30T10:12:18.598Z",
+    "2026-03-30T10:12:18.598Z",
+    "2026-03-30T10:14:24.743Z",
+    "2026-03-30T10:18:33.962Z",
+    "2026-03-30T10:18:33.962Z",
+    "2026-03-30T10:18:47.393Z",
+    "2026-03-30T10:54:53.450Z",
+    "2026-03-30T10:55:06.272Z"
+  ]
+}

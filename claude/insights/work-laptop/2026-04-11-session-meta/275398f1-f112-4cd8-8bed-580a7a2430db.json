@@ -1,0 +1,63 @@
+{
+  "session_id": "275398f1-f112-4cd8-8bed-580a7a2430db",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-02-11T16:12:21.632Z",
+  "duration_minutes": 24,
+  "user_message_count": 7,
+  "assistant_message_count": 68,
+  "tool_counts": {
+    "mcp__linear-server__get_issue": 1,
+    "Bash": 23,
+    "Read": 10,
+    "Grep": 1,
+    "Task": 1,
+    "Edit": 4
+  },
+  "languages": {
+    "Ruby": 10,
+    "TypeScript": 1,
+    "Markdown": 2
+  },
+  "git_commits": 3,
+  "git_pushes": 2,
+  "input_tokens": 1531,
+  "output_tokens": 2927,
+  "first_prompt": "We are doing the work necessary on this branch to implement this ticket https://linear.app/beamazing/issue/INT-111/add-states-to-conversation-model we have made some commits and you were finishing off…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    33.204,
+    49.328,
+    5.028,
+    93.387,
+    885.708
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "User Rejected": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 10,
+  "lines_removed": 3,
+  "files_modified": 2,
+  "message_hours": [
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-11T16:13:22.968Z",
+    "2026-02-11T16:14:45.567Z",
+    "2026-02-11T16:16:55.498Z",
+    "2026-02-11T16:16:59.926Z",
+    "2026-02-11T16:17:03.171Z",
+    "2026-02-11T16:18:58.438Z",
+    "2026-02-11T16:34:09.422Z"
+  ]
+}

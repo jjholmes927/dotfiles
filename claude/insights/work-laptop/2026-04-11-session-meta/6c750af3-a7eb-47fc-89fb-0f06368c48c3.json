@@ -1,0 +1,66 @@
+{
+  "session_id": "6c750af3-a7eb-47fc-89fb-0f06368c48c3",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/second-brain",
+  "start_time": "2026-02-20T16:55:36.215Z",
+  "duration_minutes": 7204,
+  "user_message_count": 11,
+  "assistant_message_count": 37,
+  "tool_counts": {
+    "Glob": 2,
+    "Read": 1,
+    "Bash": 5,
+    "mcp__linear-server__list_issues": 4
+  },
+  "languages": {
+    "Markdown": 1
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 82,
+  "output_tokens": 1320,
+  "first_prompt": "thoughts on Now that we've got a few more people on the rota it would be good if we could avoid putting primary on-call engineer for the week in interviews ideally :pray:   Not sure what other peoples…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    59.128,
+    127.577,
+    19.363,
+    108.177,
+    197.615,
+    794.846
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    16,
+    15,
+    15,
+    15,
+    13,
+    14,
+    14,
+    14,
+    14,
+    15,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-20T16:55:36.215Z",
+    "2026-02-24T15:18:06.714Z",
+    "2026-02-24T15:19:13.851Z",
+    "2026-02-24T15:21:28.082Z",
+    "2026-02-25T13:14:10.829Z",
+    "2026-02-25T14:46:11.986Z",
+    "2026-02-25T14:46:42.956Z",
+    "2026-02-25T14:48:38.720Z",
+    "2026-02-25T14:52:03.751Z",
+    "2026-02-25T15:05:28.569Z",
+    "2026-02-25T16:58:27.768Z"
+  ]
+}

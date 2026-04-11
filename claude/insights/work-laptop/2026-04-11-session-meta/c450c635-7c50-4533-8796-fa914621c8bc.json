@@ -1,0 +1,83 @@
+{
+  "session_id": "c450c635-7c50-4533-8796-fa914621c8bc",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-19T15:08:19.367Z",
+  "duration_minutes": 11,
+  "user_message_count": 16,
+  "assistant_message_count": 74,
+  "tool_counts": {
+    "Task": 1,
+    "Read": 7,
+    "Edit": 18,
+    "Grep": 6,
+    "Bash": 7
+  },
+  "languages": {
+    "TypeScript": 16,
+    "YAML": 9
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 124,
+  "output_tokens": 5218,
+  "first_prompt": "right nnow on the realtime interpretation page we allow you to save a paused or inprogress conversation even if there's no turns we pass conversation turns into the UI we should disable the save butto…",
+  "user_interruptions": 2,
+  "user_response_times": [
+    3.6,
+    4.333,
+    10.232,
+    10.524,
+    15.816,
+    35.565,
+    98.672,
+    44.906,
+    23.61
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Other": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 82,
+  "lines_removed": 44,
+  "files_modified": 5,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-02-19T15:08:19.376Z",
+    "2026-02-19T15:08:19.355Z",
+    "2026-02-19T15:08:19.376Z",
+    "2026-02-19T15:08:38.961Z",
+    "2026-02-19T15:08:38.960Z",
+    "2026-02-19T15:08:38.960Z",
+    "2026-02-19T15:09:54.749Z",
+    "2026-02-19T15:12:17.255Z",
+    "2026-02-19T15:12:17.988Z",
+    "2026-02-19T15:12:30.725Z",
+    "2026-02-19T15:12:31.017Z",
+    "2026-02-19T15:13:28.333Z",
+    "2026-02-19T15:14:13.287Z",
+    "2026-02-19T15:16:10.812Z",
+    "2026-02-19T15:17:01.711Z",
+    "2026-02-19T15:19:02.379Z"
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "session_id": "1d067469-33b3-4049-bd54-83f3017e2406",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-23T13:00:35.742Z",
+  "duration_minutes": 53,
+  "user_message_count": 10,
+  "assistant_message_count": 75,
+  "tool_counts": {
+    "ToolSearch": 2,
+    "mcp__sentry__get_issue_details": 1,
+    "Grep": 1,
+    "Read": 10,
+    "Edit": 5,
+    "Bash": 21,
+    "mcp__sentry__search_issues": 1,
+    "Task": 1,
+    "AskUserQuestion": 2,
+    "Write": 1
+  },
+  "languages": {
+    "Ruby": 8,
+    "JavaScript": 3,
+    "TypeScript": 4,
+    "Markdown": 1
+  },
+  "git_commits": 3,
+  "git_pushes": 3,
+  "input_tokens": 2642,
+  "output_tokens": 11919,
+  "first_prompt": "looking at this issue in sentry https://beam-eu.sentry.io/issues/76462334/?environment=production&project=4507984634708048&query=is%3Aunresolved&referrer=issue-stream we shouldnt have not authorized p…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    659.293,
+    431.089,
+    66.071,
+    159.612,
+    125.246,
+    744.448
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 69,
+  "lines_removed": 7,
+  "files_modified": 4,
+  "message_hours": [
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-02-23T13:00:36.036Z",
+    "2026-02-23T13:00:35.724Z",
+    "2026-02-23T13:00:36.035Z",
+    "2026-02-23T13:00:58.132Z",
+    "2026-02-23T13:12:37.041Z",
+    "2026-02-23T13:20:29.565Z",
+    "2026-02-23T13:32:19.502Z",
+    "2026-02-23T13:37:36.346Z",
+    "2026-02-23T13:40:14.422Z",
+    "2026-02-23T13:52:49.264Z"
+  ]
+}

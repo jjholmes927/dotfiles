@@ -1,0 +1,56 @@
+{
+  "session_id": "82a98065-5050-4d69-aeb7-63075a707f98",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn4",
+  "start_time": "2026-03-04T12:41:08.427Z",
+  "duration_minutes": 184,
+  "user_message_count": 7,
+  "assistant_message_count": 45,
+  "tool_counts": {
+    "Skill": 2,
+    "Glob": 4,
+    "Grep": 2,
+    "Read": 5,
+    "Edit": 14,
+    "Agent": 1
+  },
+  "languages": {
+    "Markdown": 19
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 65,
+  "output_tokens": 6145,
+  "first_prompt": "on the beam-claude-skills ship command lets add a step before code review and before pushing up a PR at all locally that runs the claude code native /simplify command, lets add this to our dotfiles to…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    92.392,
+    1064.805
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 70,
+  "lines_removed": 36,
+  "files_modified": 3,
+  "message_hours": [
+    12,
+    12,
+    15,
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T12:41:09.183Z",
+    "2026-03-04T12:41:08.393Z",
+    "2026-03-04T15:19:48.294Z",
+    "2026-03-04T15:19:54.675Z",
+    "2026-03-04T15:20:02.281Z",
+    "2026-03-04T15:23:18.470Z",
+    "2026-03-04T15:44:46.672Z"
+  ]
+}

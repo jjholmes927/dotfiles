@@ -1,0 +1,69 @@
+{
+  "session_id": "7857254a-0c0f-4de6-a868-34158ab68d6f",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-02-11T17:41:56.795Z",
+  "duration_minutes": 18,
+  "user_message_count": 9,
+  "assistant_message_count": 88,
+  "tool_counts": {
+    "Bash": 19,
+    "Grep": 9,
+    "Edit": 12,
+    "Read": 12,
+    "Glob": 1,
+    "Write": 1
+  },
+  "languages": {
+    "TypeScript": 17,
+    "YAML": 8
+  },
+  "git_commits": 4,
+  "git_pushes": 4,
+  "input_tokens": 134,
+  "output_tokens": 4203,
+  "first_prompt": "whats the debounce we set before searching from keyboard stop typing",
+  "user_interruptions": 1,
+  "user_response_times": [
+    150.189,
+    5.877,
+    8.368,
+    118.098,
+    134.599,
+    345.156,
+    13.784
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "Other": 1,
+    "User Rejected": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 64,
+  "lines_removed": 8,
+  "files_modified": 8,
+  "message_hours": [
+    17,
+    17,
+    17,
+    17,
+    17,
+    17,
+    17,
+    17,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-02-11T17:41:56.796Z",
+    "2026-02-11T17:45:11.517Z",
+    "2026-02-11T17:45:25.765Z",
+    "2026-02-11T17:45:42.351Z",
+    "2026-02-11T17:47:57.611Z",
+    "2026-02-11T17:52:55.761Z",
+    "2026-02-11T17:58:59.473Z",
+    "2026-02-11T17:59:04.598Z",
+    "2026-02-11T17:59:18.289Z"
+  ]
+}

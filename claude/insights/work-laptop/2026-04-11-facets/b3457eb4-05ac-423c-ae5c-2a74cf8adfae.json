@@ -1,0 +1,20 @@
+{
+  "underlying_goal": "Add a header to the realtime interpretation conversation show page displaying speaker info, languages, creation date, and duration when in saved mode",
+  "goal_categories": {
+    "feature_implementation": 1,
+    "git_pr_workflow": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 1
+  },
+  "claude_helpfulness": "essential",
+  "session_type": "single_task",
+  "friction_counts": {
+    "buggy_code": 1
+  },
+  "friction_detail": "TypeScript checks failed initially due to test files and factories missing newly added fields, requiring multiple test file fixes.",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User requested a header with speaker/language/date/duration info on the interpretation show page; Claude implemented it across backend serializers, frontend schemas, translations, components, and tests, then created a PR.",
+  "session_id": "b3457eb4-05ac-423c-ae5c-2a74cf8adfae"
+}

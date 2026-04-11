@@ -1,0 +1,52 @@
+{
+  "session_id": "2d93df53-45eb-4892-b7dd-71b1a7612e19",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-03-04T10:45:09.221Z",
+  "duration_minutes": 24,
+  "user_message_count": 3,
+  "assistant_message_count": 34,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "mcp__linear-server__get_issue": 1,
+    "Agent": 5,
+    "EnterPlanMode": 1,
+    "Read": 8,
+    "Grep": 3,
+    "Write": 1,
+    "ExitPlanMode": 1
+  },
+  "languages": {
+    "TypeScript": 3,
+    "Ruby": 4,
+    "YAML": 1,
+    "Markdown": 1
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 52,
+  "output_tokens": 5571,
+  "first_prompt": "When a user clicks save interpretation on the realtime interpretation tool https://linear.app/beamazing/issue/INT-159/ask-for-feedback-flow-after-save-hook we want to pick up this ticket to implement…",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "User Rejected": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 109,
+  "lines_removed": 0,
+  "files_modified": 1,
+  "message_hours": [
+    10,
+    10,
+    10
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T10:45:11.480Z",
+    "2026-03-04T10:45:09.132Z",
+    "2026-03-04T10:49:00.881Z"
+  ]
+}

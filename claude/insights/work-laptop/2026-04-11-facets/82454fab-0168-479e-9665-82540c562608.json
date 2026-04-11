@@ -1,0 +1,19 @@
+{
+  "underlying_goal": "Resolve merge conflicts on a PR branch by pulling latest main and the PR branch, then pushing the result",
+  "goal_categories": {
+    "memory_storage": 1,
+    "git_merge_conflict_resolution": 2,
+    "git_push": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 3
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "correct_code_edits",
+  "brief_summary": "User asked Claude to store a memory, then resolve merge conflicts on a PR branch twice and push — all completed successfully.",
+  "session_id": "82454fab-0168-479e-9665-82540c562608"
+}

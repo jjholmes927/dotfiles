@@ -1,0 +1,15 @@
+{
+  "underlying_goal": "Fix a failing MCP connection to GWS (Google Workspace) for use with Claude Code",
+  "goal_categories": {
+    "debugging": 1
+  },
+  "outcome": "partially_achieved",
+  "user_satisfaction_counts": {},
+  "claude_helpfulness": "moderately_helpful",
+  "session_type": "quick_question",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "good_debugging",
+  "brief_summary": "User reported a failing GWS MCP connection; Claude diagnosed that gws doesn't have an mcp subcommand and isn't configured as an MCP server, but didn't provide a concrete fix.",
+  "session_id": "e1516b82-51e4-4083-b80d-0e188b702088"
+}

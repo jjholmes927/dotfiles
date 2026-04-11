@@ -1,0 +1,46 @@
+{
+  "session_id": "e8656180-7dfc-4050-b350-1f213be423bd",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn5/magicnotes",
+  "start_time": "2026-03-09T12:36:51.963Z",
+  "duration_minutes": 1,
+  "user_message_count": 4,
+  "assistant_message_count": 11,
+  "tool_counts": {
+    "Bash": 2,
+    "Read": 1,
+    "Grep": 3
+  },
+  "languages": {
+    "Ruby": 1
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 19,
+  "output_tokens": 1650,
+  "first_prompt": "No prompt",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "File Not Found": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    12,
+    12,
+    12,
+    12
+  ],
+  "user_message_timestamps": [
+    "2026-03-09T12:36:52.448Z",
+    "2026-03-09T12:36:51.900Z",
+    "2026-03-09T12:36:55.938Z",
+    "2026-03-09T12:36:55.938Z"
+  ]
+}

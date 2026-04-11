@@ -1,0 +1,62 @@
+{
+  "session_id": "6cc946b0-976a-4351-a6c8-1da6d9b7f84c",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-02-12T16:42:35.269Z",
+  "duration_minutes": 16,
+  "user_message_count": 8,
+  "assistant_message_count": 120,
+  "tool_counts": {
+    "Bash": 15,
+    "Task": 1,
+    "Read": 16,
+    "Grep": 17,
+    "Edit": 28,
+    "TaskOutput": 2
+  },
+  "languages": {
+    "TypeScript": 27,
+    "YAML": 17
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 1309,
+  "output_tokens": 12331,
+  "first_prompt": "right now im noticing sometimes a bug where token getting on the azure TTS part of the real time interpretation pipeline can return an error like a 500 inertia-BwoeIKB8.js:99  POST https://magicnotes.…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    186.316,
+    57.638
+  ],
+  "tool_errors": 3,
+  "tool_error_categories": {
+    "Other": 1,
+    "Command Failed": 2
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 204,
+  "lines_removed": 9,
+  "files_modified": 8,
+  "message_hours": [
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-12T16:42:35.275Z",
+    "2026-02-12T16:42:35.260Z",
+    "2026-02-12T16:42:35.275Z",
+    "2026-02-12T16:43:36.966Z",
+    "2026-02-12T16:52:29.047Z",
+    "2026-02-12T16:56:22.752Z",
+    "2026-02-12T16:58:39.326Z",
+    "2026-02-12T16:58:44.424Z"
+  ]
+}

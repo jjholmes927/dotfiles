@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Claude Code Insights</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: #f8fafc; color: #334155; line-height: 1.65; padding: 48px 24px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 32px; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    h2 { font-size: 20px; font-weight: 600; color: #0f172a; margin-top: 48px; margin-bottom: 16px; }
+    .subtitle { color: #64748b; font-size: 15px; margin-bottom: 32px; }
+    .nav-toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 24px 0 32px 0; padding: 16px; background: white; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .nav-toc a { font-size: 12px; color: #64748b; text-decoration: none; padding: 6px 12px; border-radius: 6px; background: #f1f5f9; transition: all 0.15s; }
+    .nav-toc a:hover { background: #e2e8f0; color: #334155; }
+    .stats-row { display: flex; gap: 24px; margin-bottom: 40px; padding: 20px 0; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-value { font-size: 24px; font-weight: 700; color: #0f172a; }
+    .stat-label { font-size: 11px; color: #64748b; text-transform: uppercase; }
+    .at-a-glance { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #f59e0b; border-radius: 12px; padding: 20px 24px; margin-bottom: 32px; }
+    .glance-title { font-size: 16px; font-weight: 700; color: #92400e; margin-bottom: 16px; }
+    .glance-sections { display: flex; flex-direction: column; gap: 12px; }
+    .glance-section { font-size: 14px; color: #78350f; line-height: 1.6; }
+    .glance-section strong { color: #92400e; }
+    .see-more { color: #b45309; text-decoration: none; font-size: 13px; white-space: nowrap; }
+    .see-more:hover { text-decoration: underline; }
+    .project-areas { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .project-area { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+    .area-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .area-name { font-weight: 600; font-size: 15px; color: #0f172a; }
+    .area-count { font-size: 12px; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; }
+    .area-desc { font-size: 14px; color: #475569; line-height: 1.5; }
+    .narrative { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .narrative p { margin-bottom: 12px; font-size: 14px; color: #475569; line-height: 1.7; }
+    .key-insight { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 14px; color: #166534; }
+    .section-intro { font-size: 14px; color: #64748b; margin-bottom: 16px; }
+    .big-wins { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+    .big-win { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; }
+    .big-win-title { font-weight: 600; font-size: 15px; color: #166534; margin-bottom: 8px; }
+    .big-win-desc { font-size: 14px; color: #15803d; line-height: 1.5; }
+    .friction-categories { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+    .friction-category { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; }
+    .friction-title { font-weight: 600; font-size: 15px; color: #991b1b; margin-bottom: 6px; }
+    .friction-desc { font-size: 13px; color: #7f1d1d; margin-bottom: 10px; }
+    .friction-examples { margin: 0 0 0 20px; font-size: 13px; color: #334155; }
+    .friction-examples li { margin-bottom: 4px; }
+    .claude-md-section { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+    .claude-md-section h3 { font-size: 14px; font-weight: 600; color: #1e40af; margin: 0 0 12px 0; }
+    .claude-md-actions { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #dbeafe; }
+    .copy-all-btn { background: #2563eb; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+    .copy-all-btn:hover { background: #1d4ed8; }
+    .copy-all-btn.copied { background: #16a34a; }
+    .claude-md-item { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 10px 0; border-bottom: 1px solid #dbeafe; }
+    .claude-md-item:last-child { border-bottom: none; }
+    .cmd-checkbox { margin-top: 2px; }
+    .cmd-code { background: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #1e40af; border: 1px solid #bfdbfe; font-family: monospace; display: block; white-space: pre-wrap; word-break: break-word; flex: 1; }
+    .cmd-why { font-size: 12px; color: #64748b; width: 100%; padding-left: 24px; margin-top: 4px; }
+    .features-section, .patterns-section { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
+    .feature-card { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 16px; }
+    .pattern-card { background: #f0f9ff; border: 1px solid #7dd3fc; border-radius: 8px; padding: 16px; }
+    .feature-title, .pattern-title { font-weight: 600; font-size: 15px; color: #0f172a; margin-bottom: 6px; }
+    .feature-oneliner { font-size: 14px; color: #475569; margin-bottom: 8px; }
+    .pattern-summary { font-size: 14px; color: #475569; margin-bottom: 8px; }
+    .feature-why, .pattern-detail { font-size: 13px; color: #334155; line-height: 1.5; }
+    .feature-examples { margin-top: 12px; }
+    .feature-example { padding: 8px 0; border-top: 1px solid #d1fae5; }
+    .feature-example:first-child { border-top: none; }
+    .example-desc { font-size: 13px; color: #334155; margin-bottom: 6px; }
+    .example-code-row { display: flex; align-items: flex-start; gap: 8px; }
+    .example-code { flex: 1; background: #f1f5f9; padding: 8px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #334155; overflow-x: auto; white-space: pre-wrap; }
+    .copyable-prompt-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0; }
+    .copyable-prompt-row { display: flex; align-items: flex-start; gap: 8px; }
+    .copyable-prompt { flex: 1; background: #f8fafc; padding: 10px 12px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #334155; border: 1px solid #e2e8f0; white-space: pre-wrap; line-height: 1.5; }
+    .feature-code { background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 12px; border: 1px solid #e2e8f0; display: flex; align-items: flex-start; gap: 8px; }
+    .feature-code code { flex: 1; font-family: monospace; font-size: 12px; color: #334155; white-space: pre-wrap; }
+    .pattern-prompt { background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 12px; border: 1px solid #e2e8f0; }
+    .pattern-prompt code { font-family: monospace; font-size: 12px; color: #334155; display: block; white-space: pre-wrap; margin-bottom: 8px; }
+    .prompt-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+    .copy-btn { background: #e2e8f0; border: none; border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; color: #475569; flex-shrink: 0; }
+    .copy-btn:hover { background: #cbd5e1; }
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 24px 0; }
+    .chart-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+    .chart-title { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 12px; }
+    .bar-row { display: flex; align-items: center; margin-bottom: 6px; }
+    .bar-label { width: 100px; font-size: 11px; color: #475569; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; margin: 0 8px; }
+    .bar-fill { height: 100%; border-radius: 3px; }
+    .bar-value { width: 28px; font-size: 11px; font-weight: 500; color: #64748b; text-align: right; }
+    .empty { color: #94a3b8; font-size: 13px; }
+    .horizon-section { display: flex; flex-direction: column; gap: 16px; }
+    .horizon-card { background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border: 1px solid #c4b5fd; border-radius: 8px; padding: 16px; }
+    .horizon-title { font-weight: 600; font-size: 15px; color: #5b21b6; margin-bottom: 8px; }
+    .horizon-possible { font-size: 14px; color: #334155; margin-bottom: 10px; line-height: 1.5; }
+    .horizon-tip { font-size: 13px; color: #6b21a8; background: rgba(255,255,255,0.6); padding: 8px 12px; border-radius: 4px; }
+    .feedback-header { margin-top: 48px; color: #64748b; font-size: 16px; }
+    .feedback-intro { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+    .feedback-section { margin-top: 16px; }
+    .feedback-section h3 { font-size: 14px; font-weight: 600; color: #475569; margin-bottom: 12px; }
+    .feedback-card { background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+    .feedback-card.team-card { background: #eff6ff; border-color: #bfdbfe; }
+    .feedback-card.model-card { background: #faf5ff; border-color: #e9d5ff; }
+    .feedback-title { font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 6px; }
+    .feedback-detail { font-size: 13px; color: #475569; line-height: 1.5; }
+    .feedback-evidence { font-size: 12px; color: #64748b; margin-top: 8px; }
+    .fun-ending { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border: 1px solid #fbbf24; border-radius: 12px; padding: 24px; margin-top: 40px; text-align: center; }
+    .fun-headline { font-size: 18px; font-weight: 600; color: #78350f; margin-bottom: 8px; }
+    .fun-detail { font-size: 14px; color: #92400e; }
+    .collapsible-section { margin-top: 16px; }
+    .collapsible-header { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 12px 0; border-bottom: 1px solid #e2e8f0; }
+    .collapsible-header h3 { margin: 0; font-size: 14px; font-weight: 600; color: #475569; }
+    .collapsible-arrow { font-size: 12px; color: #94a3b8; transition: transform 0.2s; }
+    .collapsible-content { display: none; padding-top: 16px; }
+    .collapsible-content.open { display: block; }
+    .collapsible-header.open .collapsible-arrow { transform: rotate(90deg); }
+    @media (max-width: 640px) { .charts-row { grid-template-columns: 1fr; } .stats-row { justify-content: center; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Claude Code Insights</h1>
+    <p class="subtitle">920 messages across 57 sessions (79 total) | 2026-03-09 to 2026-04-11</p>
+
+    
+    <div class="at-a-glance">
+      <div class="glance-title">At a Glance</div>
+      <div class="glance-sections">
+        <div class="glance-section"><strong>What's working:</strong> You&apos;ve built an impressive end-to-end shipping workflow — picking up Linear tickets, implementing across Rails and TypeScript, fixing CI, and pushing green PRs in single sessions. Beyond your own productivity, you&apos;re investing in team infrastructure by creating shared skills like the domain-aware code review system and /pick-up-linear-ticket command, which multiplies Claude&apos;s impact across your org. <a href="#section-wins" class="see-more">Impressive Things You Did →</a></div>
+        <div class="glance-section"><strong>What's hindering you:</strong> On Claude&apos;s side, it frequently starts down the wrong path (wrong repo, wrong root cause, wrong CSS approach) and needs you to course-correct, especially with UI work where visual matching takes too many iteration rounds. On your side, sessions often stall when Claude hits environment walls you could pre-flag — SSO constraints, feature flags needing enablement, or schema drift from stale branches — and browser-based verification attempts tend to waste time versus just verifying manually. <a href="#section-friction" class="see-more">Where Things Go Wrong →</a></div>
+        <div class="glance-section"><strong>Quick wins to try:</strong> Try using <strong>hooks</strong> to auto-run schema validation or linting before commits — this could eliminate the recurring schema.rb drift and forgotten-push friction that has slowed several of your PR sessions. You&apos;ve already built custom skills for your team; consider adding one that pre-loads known environment constraints (staging auth flow, required feature flags) so Claude stops bumping into the same walls. <a href="#section-features" class="see-more">Features to Try →</a></div>
+        <div class="glance-section"><strong>Ambitious workflows:</strong> With stronger models, your 24+ code review sessions could become a single command that fans out parallel sub-agents across your open PR queue, each loaded with your domain knowledge docs. Even more compelling: an autonomous ship-PR loop that picks up a ticket, implements, runs CI locally, self-heals failures (missing mocks, schema drift), and only surfaces a green PR for your review — eliminating the back-and-forth that currently downgrades many sessions from fully to mostly achieved. <a href="#section-horizon" class="see-more">On the Horizon →</a></div>
+      </div>
+    </div>
+    
+
+    <nav class="nav-toc">
+      <a href="#section-work">What You Work On</a>
+      <a href="#section-usage">How You Use CC</a>
+      <a href="#section-wins">Impressive Things</a>
+      <a href="#section-friction">Where Things Go Wrong</a>
+      <a href="#section-features">Features to Try</a>
+      <a href="#section-patterns">New Usage Patterns</a>
+      <a href="#section-horizon">On the Horizon</a>
+      <a href="#section-feedback">Team Feedback</a>
+    </nav>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-value">920</div><div class="stat-label">Messages</div></div>
+      <div class="stat"><div class="stat-value">+11,234/-1,397</div><div class="stat-label">Lines</div></div>
+      <div class="stat"><div class="stat-value">174</div><div class="stat-label">Files</div></div>
+      <div class="stat"><div class="stat-value">19</div><div class="stat-label">Days</div></div>
+      <div class="stat"><div class="stat-value">48.4</div><div class="stat-label">Msgs/Day</div></div>
+    </div>
+
+    
+    <h2 id="section-work">What You Work On</h2>
+    <div class="project-areas">
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Interpretation Platform Feature Development</span>
+            <span class="area-count">~15 sessions</span>
+          </div>
+          <div class="area-desc">Core feature work on a real-time interpretation platform built with Rails and React/Inertia, including Twilio participant lifecycle tracking, VAD sensitivity configuration, speaker gender/name pre-fill, language management (Bulgarian, Hindi, feature-flagged languages), inline phone number input, copy transcript button, and model upgrades to GPT 5.x. Claude Code was used end-to-end from ticket pickup through implementation, test writing, CI fixing, and PR shipping, often across 10+ commits per feature.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Code Review</span>
+            <span class="area-count">~12 sessions</span>
+          </div>
+          <div class="area-desc">Systematic code reviews across the codebase covering PRs for TTS latency, outbound calling, Twilio voice, API rate limiting, wait audio, and more. Claude provided thorough domain-aware reviews, and the user also built a custom code review skill with product knowledge docs and a GitHub Action to improve the team&apos;s review process.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Observability &amp; Honeycomb Instrumentation</span>
+            <span class="area-count">~8 sessions</span>
+          </div>
+          <div class="area-desc">Extensive work on interpretation pipeline observability including Honeycomb board design via MCP tools, latency analysis and optimization (5-turn history cap), trace propagation across websocket/worker services, OTEL sampling configuration, debug translation tagging, and porting boards to Terraform. Claude used the Honeycomb MCP integration heavily for querying and board creation, though provider limitations required workarounds.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">UI/Frontend &amp; Login Page Migration</span>
+            <span class="area-count">~7 sessions</span>
+          </div>
+          <div class="area-desc">Frontend work including migrating a login page from ERB to React/Inertia with visual parity to production, feature-flagged rebranded login page matching Figma designs, button restyling, hiding conditional UI elements, and various visual refinements. These sessions involved iterative cycles matching designs with multiple rounds of CSS/component fixes and CORS resolution.</div>
+        </div>
+      
+        <div class="project-area">
+          <div class="area-header">
+            <span class="area-name">Engineering Management &amp; Content Work</span>
+            <span class="area-count">~5 sessions</span>
+          </div>
+          <div class="area-desc">Used Claude as a thought partner for sprint planning, Linear ticket management, architectural decision documentation, 1:1 preparation, team updates, Slack message polishing, 360 feedback organization, and promotion writeups. Also included editing onboarding documents against ticket requirements and managing a second-brain repo with idea notes and probation goal guidance.</div>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">What You Wanted</div>
+        <div class="bar-row">
+        <div class="bar-label">Code Review</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#2563eb"></div></div>
+        <div class="bar-value">24</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Ship Pr</div>
+        <div class="bar-track"><div class="bar-fill" style="width:66.66666666666666%;background:#2563eb"></div></div>
+        <div class="bar-value">16</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Iterative Board Refinement</div>
+        <div class="bar-track"><div class="bar-fill" style="width:50%;background:#2563eb"></div></div>
+        <div class="bar-value">12</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Feature Implementation</div>
+        <div class="bar-track"><div class="bar-fill" style="width:45.83333333333333%;background:#2563eb"></div></div>
+        <div class="bar-value">11</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Bug Fix</div>
+        <div class="bar-track"><div class="bar-fill" style="width:37.5%;background:#2563eb"></div></div>
+        <div class="bar-value">9</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Content Editing And Refinement</div>
+        <div class="bar-track"><div class="bar-fill" style="width:33.33333333333333%;background:#2563eb"></div></div>
+        <div class="bar-value">8</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Top Tools Used</div>
+        <div class="bar-row">
+        <div class="bar-label">Bash</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#0891b2"></div></div>
+        <div class="bar-value">1691</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Read</div>
+        <div class="bar-track"><div class="bar-fill" style="width:40.80425783560024%;background:#0891b2"></div></div>
+        <div class="bar-value">690</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Edit</div>
+        <div class="bar-track"><div class="bar-fill" style="width:25.073920756948553%;background:#0891b2"></div></div>
+        <div class="bar-value">424</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Grep</div>
+        <div class="bar-track"><div class="bar-fill" style="width:14.725014784151389%;background:#0891b2"></div></div>
+        <div class="bar-value">249</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">TaskUpdate</div>
+        <div class="bar-track"><div class="bar-fill" style="width:12.359550561797752%;background:#0891b2"></div></div>
+        <div class="bar-value">209</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Agent</div>
+        <div class="bar-track"><div class="bar-fill" style="width:12.12300413956239%;background:#0891b2"></div></div>
+        <div class="bar-value">205</div>
+      </div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Languages</div>
+        <div class="bar-row">
+        <div class="bar-label">TypeScript</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#10b981"></div></div>
+        <div class="bar-value">301</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Ruby</div>
+        <div class="bar-track"><div class="bar-fill" style="width:76.0797342192691%;background:#10b981"></div></div>
+        <div class="bar-value">229</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Markdown</div>
+        <div class="bar-track"><div class="bar-fill" style="width:69.76744186046511%;background:#10b981"></div></div>
+        <div class="bar-value">210</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">YAML</div>
+        <div class="bar-track"><div class="bar-fill" style="width:40.863787375415285%;background:#10b981"></div></div>
+        <div class="bar-value">123</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">JSON</div>
+        <div class="bar-track"><div class="bar-fill" style="width:12.29235880398671%;background:#10b981"></div></div>
+        <div class="bar-value">37</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">CSS</div>
+        <div class="bar-track"><div class="bar-fill" style="width:1.6611295681063125%;background:#10b981"></div></div>
+        <div class="bar-value">5</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Session Types</div>
+        <div class="bar-row">
+        <div class="bar-label">Multi Task</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">18</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Single Task</div>
+        <div class="bar-track"><div class="bar-fill" style="width:88.88888888888889%;background:#8b5cf6"></div></div>
+        <div class="bar-value">16</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Iterative Refinement</div>
+        <div class="bar-track"><div class="bar-fill" style="width:61.111111111111114%;background:#8b5cf6"></div></div>
+        <div class="bar-value">11</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Exploration</div>
+        <div class="bar-track"><div class="bar-fill" style="width:11.11111111111111%;background:#8b5cf6"></div></div>
+        <div class="bar-value">2</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-usage">How You Use Claude Code</h2>
+    <div class="narrative">
+      <p>You operate as a <strong>high-throughput engineering manager who treats Claude as a full-stack junior engineer</strong>. Across 57 sessions in just over a month, you drive an impressive volume of work — code reviews (24 sessions), shipped PRs (16), feature implementations, bug fixes, and even management tasks like 1:1 prep, sprint planning, and promotion writeups. Your style is to <strong>delegate entire workflows end-to-end</strong>: you hand Claude a Linear ticket or PR link and expect it to pick up context, implement, test, fix CI, and ship. You heavily leverage sub-agents (205 Agent calls, 104 TaskCreates) and Honeycomb MCP queries (122 calls), showing you&apos;ve built a sophisticated tool ecosystem around Claude. With 1,691 Bash calls dwarfing everything else, you clearly prefer Claude to *do* rather than just advise.</p>
+<p>Your interaction pattern is <strong>iterative correction rather than detailed upfront specification</strong>. You let Claude run autonomously but course-correct when it drifts — the friction data tells this story clearly. When Claude targeted the wrong button, started from the wrong repo, or investigated job queues instead of WebSocket connectivity, you redirected rather than abandoning. You&apos;re notably patient with visual refinement loops (login page, dial-in panel) where you&apos;ll go through multiple rounds sharing Figma screenshots and comparing against production. However, you <strong>interrupt decisively when something is clearly off track</strong> — like aborting a session when Claude was in the wrong repo context. The 24 &quot;wrong approach&quot; friction events paired with your high satisfaction scores (128 likely satisfied + 58 satisfied) suggest you expect missteps but value the overall velocity Claude provides.</p>
+<p>What&apos;s distinctive is how you blur the line between <strong>IC work and management work</strong> in the same tool. One session you&apos;re shipping a Twilio participant lifecycle feature across 12 commits with full test coverage; the next you&apos;re polishing Slack messages and organizing 360 feedback. You work across Ruby (229 files), TypeScript (301), Markdown (210), and YAML (123) — a full-stack polyglot profile. Your 132 commits across 47 analyzed sessions (~2.8 per session) confirm you&apos;re not just exploring but consistently shipping. The Honeycomb board work — iteratively designing observability dashboards, porting to Terraform, hitting provider limitations — shows you push Claude to the edges of what&apos;s possible and pragmatically work around gaps.</p>
+      <div class="key-insight"><strong>Key pattern:</strong> You delegate entire ticket-to-PR workflows to Claude like a tech lead assigning work to a junior engineer, course-correcting iteratively rather than specifying upfront, across both IC engineering and management tasks.</div>
+    </div>
+    
+
+    <!-- Response Time Distribution -->
+    <div class="chart-card" style="margin: 24px 0;">
+      <div class="chart-title">User Response Time Distribution</div>
+      <div class="bar-row">
+        <div class="bar-label">2-10s</div>
+        <div class="bar-track"><div class="bar-fill" style="width:30.909090909090907%;background:#6366f1"></div></div>
+        <div class="bar-value">34</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">10-30s</div>
+        <div class="bar-track"><div class="bar-fill" style="width:77.27272727272727%;background:#6366f1"></div></div>
+        <div class="bar-value">85</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">30s-1m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:80%;background:#6366f1"></div></div>
+        <div class="bar-value">88</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">1-2m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:99.0909090909091%;background:#6366f1"></div></div>
+        <div class="bar-value">109</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">2-5m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#6366f1"></div></div>
+        <div class="bar-value">110</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">5-15m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:66.36363636363637%;background:#6366f1"></div></div>
+        <div class="bar-value">73</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">>15m</div>
+        <div class="bar-track"><div class="bar-fill" style="width:71.81818181818181%;background:#6366f1"></div></div>
+        <div class="bar-value">79</div>
+      </div>
+      <div style="font-size: 12px; color: #64748b; margin-top: 8px;">
+        Median: 100.5s &bull; Average: 406.2s
+      </div>
+    </div>
+
+    <!-- Multi-clauding Section (matching Python reference) -->
+    <div class="chart-card" style="margin: 24px 0;">
+      <div class="chart-title">Multi-Clauding (Parallel Sessions)</div>
+      
+        <div style="display: flex; gap: 24px; margin: 12px 0;">
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #7c3aed;">42</div>
+            <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Overlap Events</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #7c3aed;">36</div>
+            <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Sessions Involved</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font-size: 24px; font-weight: 700; color: #7c3aed;">26%</div>
+            <div style="font-size: 11px; color: #64748b; text-transform: uppercase;">Of Messages</div>
+          </div>
+        </div>
+        <p style="font-size: 13px; color: #475569; margin-top: 12px;">
+          You run multiple Claude Code sessions simultaneously. Multi-clauding is detected when sessions
+          overlap in time, suggesting parallel workflows.
+        </p>
+      
+    </div>
+
+    <!-- Time of Day & Tool Errors -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title" style="display: flex; align-items: center; gap: 12px;">
+          User Messages by Time of Day
+          <select id="timezone-select" style="font-size: 12px; padding: 4px 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
+            <option value="0">PT (UTC-8)</option>
+            <option value="3">ET (UTC-5)</option>
+            <option value="8">London (UTC)</option>
+            <option value="9">CET (UTC+1)</option>
+            <option value="17">Tokyo (UTC+9)</option>
+            <option value="custom">Custom offset...</option>
+          </select>
+          <input type="number" id="custom-offset" placeholder="UTC offset" style="display: none; width: 80px; font-size: 12px; padding: 4px; border-radius: 4px; border: 1px solid #e2e8f0;">
+        </div>
+        <div id="hour-histogram">
+      <div class="bar-row">
+        <div class="bar-label">Morning (6-12)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:55.43859649122807%;background:#8b5cf6"></div></div>
+        <div class="bar-value">316</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Afternoon (12-18)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">570</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Evening (18-24)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:5.964912280701754%;background:#8b5cf6"></div></div>
+        <div class="bar-value">34</div>
+      </div>
+
+      <div class="bar-row">
+        <div class="bar-label">Night (0-6)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0%;background:#8b5cf6"></div></div>
+        <div class="bar-value">0</div>
+      </div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Tool Errors Encountered</div>
+        <div class="bar-row">
+        <div class="bar-label">Command Failed</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#dc2626"></div></div>
+        <div class="bar-value">108</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Other</div>
+        <div class="bar-track"><div class="bar-fill" style="width:45.370370370370374%;background:#dc2626"></div></div>
+        <div class="bar-value">49</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">File Too Large</div>
+        <div class="bar-track"><div class="bar-fill" style="width:23.14814814814815%;background:#dc2626"></div></div>
+        <div class="bar-value">25</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">File Not Found</div>
+        <div class="bar-track"><div class="bar-fill" style="width:13.88888888888889%;background:#dc2626"></div></div>
+        <div class="bar-value">15</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">User Rejected</div>
+        <div class="bar-track"><div class="bar-fill" style="width:11.11111111111111%;background:#dc2626"></div></div>
+        <div class="bar-value">12</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Edit Failed</div>
+        <div class="bar-track"><div class="bar-fill" style="width:1.8518518518518516%;background:#dc2626"></div></div>
+        <div class="bar-value">2</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-wins">Impressive Things You Did</h2>
+    <p class="section-intro">Over the past month, you&apos;ve run 57 sessions with a 96% goal achievement rate, leveraging Claude across a remarkably broad range of engineering and leadership workflows.</p>
+    <div class="big-wins">
+      
+        <div class="big-win">
+          <div class="big-win-title">Honeycomb Observability as Code</div>
+          <div class="big-win-desc">You&apos;ve built a sophisticated observability practice by using the Honeycomb MCP integration to iteratively design boards, analyze latency traces, and then port everything to Terraform for reproducibility. Across multiple sessions, you went from exploratory queries to production-grade monitoring infrastructure for your interpretation pipeline, working around tool limitations pragmatically.</div>
+        </div>
+      
+        <div class="big-win">
+          <div class="big-win-title">End-to-End PR Factory</div>
+          <div class="big-win-desc">You&apos;ve turned Claude into a full-cycle shipping machine — picking up Linear tickets, implementing features across Ruby and TypeScript, fixing CI failures, and pushing green PRs. With 132 commits across the period and workflows that span branch creation through code review responses, you&apos;re consistently going from ticket to merged PR in single sessions.</div>
+        </div>
+      
+        <div class="big-win">
+          <div class="big-win-title">Scaling Reviews via Custom Skills</div>
+          <div class="big-win-desc">You&apos;ve invested in building reusable infrastructure by creating a domain-aware code review system with product knowledge docs, a GitHub Action, and a /pick-up-linear-ticket command for your team. You&apos;re not just using Claude for yourself — you&apos;re packaging your workflows into shared team skills, multiplying the impact across your engineering org.</div>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">What Helped Most (Claude's Capabilities)</div>
+        <div class="bar-row">
+        <div class="bar-label">Multi-file Changes</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#16a34a"></div></div>
+        <div class="bar-value">23</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Good Explanations</div>
+        <div class="bar-track"><div class="bar-fill" style="width:39.130434782608695%;background:#16a34a"></div></div>
+        <div class="bar-value">9</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Proactive Help</div>
+        <div class="bar-track"><div class="bar-fill" style="width:26.08695652173913%;background:#16a34a"></div></div>
+        <div class="bar-value">6</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Correct Code Edits</div>
+        <div class="bar-track"><div class="bar-fill" style="width:17.391304347826086%;background:#16a34a"></div></div>
+        <div class="bar-value">4</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Good Debugging</div>
+        <div class="bar-track"><div class="bar-fill" style="width:13.043478260869565%;background:#16a34a"></div></div>
+        <div class="bar-value">3</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Outcomes</div>
+        <div class="bar-row">
+        <div class="bar-label">Not Achieved</div>
+        <div class="bar-track"><div class="bar-fill" style="width:3.7037037037037033%;background:#8b5cf6"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Partially Achieved</div>
+        <div class="bar-track"><div class="bar-fill" style="width:3.7037037037037033%;background:#8b5cf6"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Mostly Achieved</div>
+        <div class="bar-track"><div class="bar-fill" style="width:66.66666666666666%;background:#8b5cf6"></div></div>
+        <div class="bar-value">18</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Fully Achieved</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#8b5cf6"></div></div>
+        <div class="bar-value">27</div>
+      </div>
+      </div>
+    </div>
+
+    
+    <h2 id="section-friction">Where Things Go Wrong</h2>
+    <p class="section-intro">Your sessions show a pattern of wrong initial approaches, visual implementation mismatches, and tooling/environment friction that forces extra iteration cycles.</p>
+    <div class="friction-categories">
+      
+        <div class="friction-category">
+          <div class="friction-title">Wrong Initial Approach Requiring Course Correction</div>
+          <div class="friction-desc">Claude frequently starts down the wrong path — wrong repo, wrong target, wrong root cause — burning cycles before you have to redirect. Providing more upfront context about the specific codebase area, known constraints, or past failed approaches could reduce these misfires.</div>
+          <ul class="friction-examples"><li>Claude investigated job queue config for broken WebSockets when the real issue was an h2c protocol switch, wasting debugging time before you had to redirect to the actual cause</li><li>Claude pushed fixes to an already-merged PR branch instead of creating a new one from main, and initially targeted the wrong button component for a hide-button ticket requiring iterative correction</li></ul>
+        </div>
+      
+        <div class="friction-category">
+          <div class="friction-title">Visual/UI Implementation Requires Excessive Iteration</div>
+          <div class="friction-desc">When matching designs from Figma or production, you consistently need multiple rounds of back-and-forth because Claude gets spacing, sizing, or styling wrong. Consider providing explicit pixel values, CSS snippets, or screenshots with annotations rather than relying on Figma link interpretation.</div>
+          <ul class="friction-examples"><li>The rebranded login page needed several visual iteration rounds with Claude overcorrecting form size, requiring you to re-share the Figma design multiple times</li><li>The ERB-to-React login migration required multiple rounds to fix text clipping, CORS errors from wrong form submission approach, and visual mismatches you caught by comparing against production</li></ul>
+        </div>
+      
+        <div class="friction-category">
+          <div class="friction-title">Environment and Tooling Gaps Blocking Verification</div>
+          <div class="friction-desc">Browser-based UI verification, staging auth, and infrastructure tooling (Honeycomb MCP, Terraform provider) repeatedly hit walls that stall your workflow. You might save time by pre-flagging known environment limitations (SSO constraints, feature flags that need enabling) or verifying manually upfront instead of having Claude attempt browser automation.</div>
+          <ul class="friction-examples"><li>Browser-based UI verification failed repeatedly due to session/cookie issues and SSO on staging, requiring fallback to Rails console and curl — and you had to manually enable a Twilio feature flag Claude couldn&apos;t access</li><li>Honeycomb MCP lacked update/delete board tools forcing repeated board recreation, and the Terraform provider didn&apos;t support pie charts or named calculations, requiring workarounds and hardcoded query IDs</li></ul>
+        </div>
+      
+    </div>
+    
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-title">Primary Friction Types</div>
+        <div class="bar-row">
+        <div class="bar-label">Wrong Approach</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#dc2626"></div></div>
+        <div class="bar-value">24</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Buggy Code</div>
+        <div class="bar-track"><div class="bar-fill" style="width:83.33333333333334%;background:#dc2626"></div></div>
+        <div class="bar-value">20</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Misunderstood Request</div>
+        <div class="bar-track"><div class="bar-fill" style="width:37.5%;background:#dc2626"></div></div>
+        <div class="bar-value">9</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Excessive Changes</div>
+        <div class="bar-track"><div class="bar-fill" style="width:16.666666666666664%;background:#dc2626"></div></div>
+        <div class="bar-value">4</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Tool Limitation</div>
+        <div class="bar-track"><div class="bar-fill" style="width:12.5%;background:#dc2626"></div></div>
+        <div class="bar-value">3</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Tool Error</div>
+        <div class="bar-track"><div class="bar-fill" style="width:12.5%;background:#dc2626"></div></div>
+        <div class="bar-value">3</div>
+      </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Inferred Satisfaction (model-estimated)</div>
+        <div class="bar-row">
+        <div class="bar-label">Frustrated</div>
+        <div class="bar-track"><div class="bar-fill" style="width:0.78125%;background:#eab308"></div></div>
+        <div class="bar-value">1</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Dissatisfied</div>
+        <div class="bar-track"><div class="bar-fill" style="width:15.625%;background:#eab308"></div></div>
+        <div class="bar-value">20</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Likely Satisfied</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:#eab308"></div></div>
+        <div class="bar-value">128</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Satisfied</div>
+        <div class="bar-track"><div class="bar-fill" style="width:45.3125%;background:#eab308"></div></div>
+        <div class="bar-value">58</div>
+      </div>
+<div class="bar-row">
+        <div class="bar-label">Happy</div>
+        <div class="bar-track"><div class="bar-fill" style="width:4.6875%;background:#eab308"></div></div>
+        <div class="bar-value">6</div>
+      </div>
+      </div>
+    </div>
+
+    
+    
+    <h2 id="section-features">Existing CC Features to Try</h2>
+    <div class="claude-md-section">
+      <h3>Suggested CLAUDE.md Additions</h3>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code to add it to your CLAUDE.md.</p>
+      <div class="claude-md-actions">
+        <button class="copy-all-btn" onclick="copyAllCheckedClaudeMd()">Copy All Checked</button>
+      </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-0" class="cmd-checkbox" checked data-text="Add under a ## Git Workflow section at the top level of CLAUDE.md\n\nAfter making fixes or changes to a branch, always push to remote before reporting completion. Never say &apos;done&apos; without confirming the push succeeded.">
+          <label for="cmd-0">
+            <code class="cmd-code">After making fixes or changes to a branch, always push to remote before reporting completion. Never say &apos;done&apos; without confirming the push succeeded.</code>
+            <button class="copy-btn" onclick="copyCmdItem(0)">Copy</button>
+          </label>
+          <div class="cmd-why">Multiple sessions show Claude forgetting to push after making changes, requiring the user to ask if commits were pushed.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-1" class="cmd-checkbox" checked data-text="Add under ## Git Workflow section\n\nWhen creating PRs, always create a new branch from main/master. Never push to an already-merged branch. Verify the target branch is correct before pushing.">
+          <label for="cmd-1">
+            <code class="cmd-code">When creating PRs, always create a new branch from main/master. Never push to an already-merged branch. Verify the target branch is correct before pushing.</code>
+            <button class="copy-btn" onclick="copyCmdItem(1)">Copy</button>
+          </label>
+          <div class="cmd-why">Claude pushed to an already-merged PR branch and targeted wrong branches in multiple sessions, causing friction.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-2" class="cmd-checkbox" checked data-text="Add under ## Git Workflow section\n\nDo not commit spec docs, plan files, or scratch documents to PR branches. Before creating a PR, review `git diff --stat` to ensure only intended files are included.">
+          <label for="cmd-2">
+            <code class="cmd-code">Do not commit spec docs, plan files, or scratch documents to PR branches. Before creating a PR, review `git diff --stat` to ensure only intended files are included.</code>
+            <button class="copy-btn" onclick="copyCmdItem(2)">Copy</button>
+          </label>
+          <div class="cmd-why">Spec and plan docs were accidentally committed to PRs and had to be removed, and unwanted commits were included in PRs.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-3" class="cmd-checkbox" checked data-text="Add under ## UI/Frontend section\n\nWhen working on UI/visual changes, do not overcorrect. Make minimal, targeted CSS/style changes. If the user shares a Figma or production screenshot, match it precisely rather than guessing at spacing/sizing values.">
+          <label for="cmd-3">
+            <code class="cmd-code">When working on UI/visual changes, do not overcorrect. Make minimal, targeted CSS/style changes. If the user shares a Figma or production screenshot, match it precisely rather than guessing at spacing/sizing values.</code>
+            <button class="copy-btn" onclick="copyCmdItem(3)">Copy</button>
+          </label>
+          <div class="cmd-why">Multiple sessions required many rounds of visual refinement because Claude kept getting spacing/sizing wrong and overcorrected, requiring re-sharing of designs.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-4" class="cmd-checkbox" checked data-text="Add under ## Project Context at the top of CLAUDE.md\n\nThis is a multi-repo environment with Rails + React/Inertia. Always confirm which repo context you are working in before making changes. Ask if unclear.">
+          <label for="cmd-4">
+            <code class="cmd-code">This is a multi-repo environment with Rails + React/Inertia. Always confirm which repo context you are working in before making changes. Ask if unclear.</code>
+            <button class="copy-btn" onclick="copyCmdItem(4)">Copy</button>
+          </label>
+          <div class="cmd-why">Claude started answering from the wrong repo context in at least one session, and cross-repo work (skills repo, dotfiles, main app) is common.</div>
+        </div>
+      
+        <div class="claude-md-item">
+          <input type="checkbox" id="cmd-5" class="cmd-checkbox" checked data-text="Add under ## Honeycomb / Observability section\n\nWhen running Honeycomb queries, always check which dataset is being queried. Default to __all__ dataset unless specifically told otherwise. Expect some queries to return empty results and retry with adjusted filters.">
+          <label for="cmd-5">
+            <code class="cmd-code">When running Honeycomb queries, always check which dataset is being queried. Default to __all__ dataset unless specifically told otherwise. Expect some queries to return empty results and retry with adjusted filters.</code>
+            <button class="copy-btn" onclick="copyCmdItem(5)">Copy</button>
+          </label>
+          <div class="cmd-why">Claude assumed single dataset when user wanted all datasets, and empty query results required multiple retries across Honeycomb sessions.</div>
+        </div>
+      
+    </div>
+    
+    
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code and it'll set it up for you.</p>
+    <div class="features-section">
+      
+        <div class="feature-card">
+          <div class="feature-title">Custom Skills</div>
+          <div class="feature-oneliner">Reusable markdown-defined commands for repetitive workflows.</div>
+          <div class="feature-why"><strong>Why for you:</strong> You already use skills (review-pr, pick-up-linear-ticket) and code review is your #1 activity (24 sessions). A /ship-pr skill could standardize your flow: verify clean diff, run CI checks, ensure no spec docs committed, push, and create PR — eliminating recurring friction.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code">mkdir -p .claude/skills/ship-pr &amp;&amp; cat &gt; .claude/skills/ship-pr/SKILL.md &lt;&lt; &apos;EOF&apos;
+# Ship PR
+1. Run `git diff --stat main` and verify only intended files are included (no spec/plan docs)
+2. Run the test suite and linter
+3. Ensure all changes are committed and pushed to remote
+4. Create the PR with a clear description linked to the Linear ticket
+5. Confirm CI status before reporting done
+EOF</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="feature-card">
+          <div class="feature-title">Hooks</div>
+          <div class="feature-oneliner">Auto-run shell commands at lifecycle events like pre-commit or post-edit.</div>
+          <div class="feature-why"><strong>Why for you:</strong> Your top friction points are buggy code (20x) and wrong approach (24x). A post-edit hook running Rubocop and TypeScript type-checking would catch issues immediately instead of waiting for CI, saving the back-and-forth you see with CI failures.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code"># Add to .claude/settings.json:
+{
+  &quot;hooks&quot;: {
+    &quot;postEdit&quot;: [
+      { &quot;matcher&quot;: &quot;**/*.rb&quot;, &quot;command&quot;: &quot;bundle exec rubocop --force-exclusion ${file}&quot; },
+      { &quot;matcher&quot;: &quot;**/*.{ts,tsx}&quot;, &quot;command&quot;: &quot;npx tsc --noEmit&quot; }
+    ]
+  }
+}</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="feature-card">
+          <div class="feature-title">Headless Mode</div>
+          <div class="feature-oneliner">Run Claude non-interactively from scripts and CI/CD.</div>
+          <div class="feature-why"><strong>Why for you:</strong> You already built a GitHub Action for code reviews and do ~24 code review sessions. Headless mode could automate first-pass reviews on every PR, so Claude reviews before you even open the PR.</div>
+          
+          <div class="feature-examples">
+            <div class="feature-example">
+              <div class="example-code-row">
+                <code class="example-code"># In your GitHub Action workflow:
+claude -p &quot;Review this PR diff for bugs, security issues, and adherence to our Rails/React conventions. Focus on: error handling, test coverage, and N+1 queries.&quot; --allowedTools &quot;Read,Grep,Bash(git diff:*),mcp__honeycomb__run_query&quot; &lt; &lt;(git diff origin/main...HEAD)</code>
+                <button class="copy-btn" onclick="copyText(this)">Copy</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      
+    </div>
+    
+    
+    <h2 id="section-patterns">New Ways to Use Claude Code</h2>
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 12px;">Just copy this into Claude Code and it'll walk you through it.</p>
+    <div class="patterns-section">
+      
+        <div class="pattern-card">
+          <div class="pattern-title">Reduce visual iteration cycles with screenshot-driven validation</div>
+          <div class="pattern-summary">For UI work, ask Claude to describe exactly what it changed and why, then verify against your reference before applying.</div>
+          <div class="pattern-detail">Your UI/visual refinement sessions consistently require 3-5 rounds of corrections (login page, dial-in panel, button restyling). Much of this comes from Claude guessing at values. Try providing explicit pixel values or asking Claude to extract values from the Figma reference first, then apply them. Also consider asking Claude to generate a before/after summary of CSS changes before committing.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Before making any CSS changes, list the exact current values and the target values from the Figma design for each property you plan to change. Show me the comparison table, then I&apos;ll approve before you edit.</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="pattern-card">
+          <div class="pattern-title">Front-load schema/migration validation</div>
+          <div class="pattern-summary">Run schema validation before creating PRs to avoid the schema.rb drift pain.</div>
+          <div class="pattern-detail">Your session on interpretation latency optimization was derailed by schema.rb noise from a stale main branch, requiring DB drops/restores. This is avoidable by rebasing on main and running migrations before starting work. Make it part of your ticket pickup flow so you never waste time on stale schema conflicts.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Before starting implementation: 1) git fetch origin &amp;&amp; git rebase origin/main, 2) bundle exec rails db:migrate, 3) check git diff db/schema.rb — if there&apos;s noise, resolve it now before writing any code.</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+        <div class="pattern-card">
+          <div class="pattern-title">Batch your code reviews into single sessions</div>
+          <div class="pattern-summary">You do ~24 code review sessions — batch them with explicit structure to reduce context-switching overhead.</div>
+          <div class="pattern-detail">Several sessions show you reviewing 3-10 PRs in a row. Instead of invoking the review skill per-PR, give Claude a batch list upfront so it can prioritize and flag cross-PR concerns (e.g., two PRs touching the same service). This also helps Claude maintain domain context across reviews rather than re-loading it each time.</div>
+          
+          <div class="copyable-prompt-section">
+            <div class="prompt-label">Paste into Claude Code:</div>
+            <div class="copyable-prompt-row">
+              <code class="copyable-prompt">Review these PRs in order of risk (highest first). For each, give: 1) Risk level (critical/medium/low), 2) Key concerns, 3) Whether it&apos;s safe to merge. PRs: #123, #124, #125. Flag any interactions between these PRs.</code>
+              <button class="copy-btn" onclick="copyText(this)">Copy</button>
+            </div>
+          </div>
+          
+        </div>
+      
+    </div>
+    
+    
+
+    
+    <h2 id="section-horizon">On the Horizon</h2>
+    <p class="section-intro">Your usage shows a power user leveraging Claude Code across the full development lifecycle—from code review to shipping PRs to observability—with clear opportunities to automate recurring workflows and reduce the friction patterns that still emerge.</p>
+    <div class="horizon-section">
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Parallel Agent PR Review Pipeline</div>
+          <div class="horizon-possible">With 24 code review sessions (your top goal), you could spawn parallel sub-agents that simultaneously review different PRs, each loading your domain knowledge docs and product context automatically. Instead of sequential reviews requiring re-invocation, a single command could fan out across your open PR queue and deliver structured reviews with critical/major/minor findings ranked by impact.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Use the Agent tool and TaskCreate/TaskUpdate pattern you&apos;re already using (205+ Agent calls, 104 TaskCreate) to orchestrate parallel review workflows from a single entry point.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>Review all open PRs on this repo. For each PR: spawn a sub-agent that (1) reads the PR diff and linked Linear ticket, (2) loads any relevant docs from /docs/product/, (3) runs the test suite for changed files, (4) produces a structured review with sections: Overview, Critical Issues, Suggestions, Testing Gaps. Collect all reviews and present a summary table ranked by urgency.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Autonomous Ship-PR With Self-Healing CI</div>
+          <div class="horizon-possible">Your friction data shows recurring CI failures—missing mocks, schema drift, stale branches, forgotten pushes—that cost multiple iteration rounds. An autonomous shipping workflow could pick up a Linear ticket, implement the change, run CI locally, diagnose and fix failures in a loop, and only present you with a green PR ready for review. This eliminates the back-and-forth that caused &apos;mostly_achieved&apos; outcomes in 18 sessions.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Combine your /pick-up-linear-ticket skill with a CI feedback loop that uses Bash to run tests iteratively and self-correct, similar to how you already shipped the Twilio lifecycle tracking across 12 commits with full test coverage.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>Pick up Linear ticket [TICKET-ID]. Create a branch, implement the changes, then enter a CI loop: run the full test suite locally with `bundle exec rspec` and `npx vitest run`, read any failures, fix them, and re-run until green. Check for common issues: missing feature flag registrations, mock mismatches, schema.rb drift (run `bin/rails db:migrate` fresh if needed), and Rubocop offenses. Only create the PR once all checks pass. Include the Linear ticket link in the PR description.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+        <div class="horizon-card">
+          <div class="horizon-title">Honeycomb Board Builder With Terraform Sync</div>
+          <div class="horizon-possible">You&apos;ve invested heavily in Honeycomb observability (122 MCP query calls, multiple board-building sessions) but hit painful friction with MCP tool limitations and Terraform provider gaps. An autonomous workflow could explore your instrumentation, design boards with validated queries, generate Terraform HCL that accounts for known provider limitations, and flag anything requiring manual UI fixup—all in one pass instead of the current multi-session iteration.</div>
+          <div class="horizon-tip"><strong>Getting started:</strong> Chain the mcp__honeycomb__run_query tool with file generation to build boards exploratively, validate each query returns data, then output Terraform configs with comments marking unsupported features like pie charts and named calculations.</div>
+          <div class="pattern-prompt"><div class="prompt-label">Paste into Claude Code:</div><code>I want a new Honeycomb board for [PIPELINE_NAME]. First, explore the available datasets and columns using Honeycomb MCP queries—run at least 5 exploratory queries to understand the data shape and find columns with actual data. Then design a board with 6-8 queries covering: latency percentiles (p50/p95/p99), error rates, throughput, and top-N breakdowns. Validate each query returns non-empty results. Finally, generate a Terraform .tf file for the board. For any features the Terraform provider doesn&apos;t support (pie charts, formulas, named calculations), add TODO comments with the manual UI steps needed. Output a summary of what&apos;s automated vs manual.</code><button class="copy-btn" onclick="copyText(this)">Copy</button></div>
+        </div>
+      
+    </div>
+    
+
+    
+    <div class="fun-ending">
+      <div class="fun-headline">"User tried to invoke a &apos;dream&apos; skill on Claude, and Claude could only awkwardly admit it doesn&apos;t know how to dream"</div>
+      <div class="fun-detail">In one brief session, the user attempted to trigger a non-existent &apos;dream&apos; command — perhaps hoping Claude would generate something creative or reflective — but Claude had to confess the skill simply doesn&apos;t exist. The session ended with nothing achieved and minimal helpfulness.</div>
+    </div>
+    
+
+    
+  </div>
+  <script>
+    function toggleCollapsible(header) {
+      header.classList.toggle('open');
+      const content = header.nextElementSibling;
+      content.classList.toggle('open');
+    }
+    function copyText(btn) {
+      const code = btn.previousElementSibling;
+      navigator.clipboard.writeText(code.textContent).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+    function copyCmdItem(idx) {
+      const checkbox = document.getElementById('cmd-' + idx);
+      if (checkbox) {
+        const text = checkbox.dataset.text;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = checkbox.nextElementSibling.querySelector('.copy-btn');
+          if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 2000); }
+        });
+      }
+    }
+    function copyAllCheckedClaudeMd() {
+      const checkboxes = document.querySelectorAll('.cmd-checkbox:checked');
+      const texts = [];
+      checkboxes.forEach(cb => {
+        if (cb.dataset.text) { texts.push(cb.dataset.text); }
+      });
+      const combined = texts.join('\n');
+      const btn = document.querySelector('.copy-all-btn');
+      if (btn) {
+        navigator.clipboard.writeText(combined).then(() => {
+          btn.textContent = 'Copied ' + texts.length + ' items!';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = 'Copy All Checked'; btn.classList.remove('copied'); }, 2000);
+        });
+      }
+    }
+    // Timezone selector for time of day chart (data is from our own analytics, not user input)
+    const rawHourCounts = {"8":1,"9":48,"10":76,"11":191,"12":83,"13":78,"14":103,"15":102,"16":89,"17":115,"18":25,"19":9};
+    function updateHourHistogram(offsetFromPT) {
+      const periods = [
+        { label: "Morning (6-12)", range: [6,7,8,9,10,11] },
+        { label: "Afternoon (12-18)", range: [12,13,14,15,16,17] },
+        { label: "Evening (18-24)", range: [18,19,20,21,22,23] },
+        { label: "Night (0-6)", range: [0,1,2,3,4,5] }
+      ];
+      const adjustedCounts = {};
+      for (const [hour, count] of Object.entries(rawHourCounts)) {
+        const newHour = (parseInt(hour) + offsetFromPT + 24) % 24;
+        adjustedCounts[newHour] = (adjustedCounts[newHour] || 0) + count;
+      }
+      const periodCounts = periods.map(p => ({
+        label: p.label,
+        count: p.range.reduce((sum, h) => sum + (adjustedCounts[h] || 0), 0)
+      }));
+      const maxCount = Math.max(...periodCounts.map(p => p.count)) || 1;
+      const container = document.getElementById('hour-histogram');
+      container.textContent = '';
+      periodCounts.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'bar-row';
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = p.label;
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+        const fill = document.createElement('div');
+        fill.className = 'bar-fill';
+        fill.style.width = (p.count / maxCount) * 100 + '%';
+        fill.style.background = '#8b5cf6';
+        track.appendChild(fill);
+        const value = document.createElement('div');
+        value.className = 'bar-value';
+        value.textContent = p.count;
+        row.appendChild(label);
+        row.appendChild(track);
+        row.appendChild(value);
+        container.appendChild(row);
+      });
+    }
+    document.getElementById('timezone-select').addEventListener('change', function() {
+      const customInput = document.getElementById('custom-offset');
+      if (this.value === 'custom') {
+        customInput.style.display = 'inline-block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+        updateHourHistogram(parseInt(this.value));
+      }
+    });
+    document.getElementById('custom-offset').addEventListener('change', function() {
+      const offset = parseInt(this.value) + 8;
+      updateHourHistogram(offset);
+    });
+  </script>
+</body>
+</html>

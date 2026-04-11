@@ -1,0 +1,59 @@
+{
+  "session_id": "eb6d5e52-9649-43f9-8e20-0777abe51489",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-02-10T14:56:44.237Z",
+  "duration_minutes": 28,
+  "user_message_count": 7,
+  "assistant_message_count": 37,
+  "tool_counts": {
+    "mcp__linear-server__get_issue": 1,
+    "Bash": 6,
+    "Grep": 1,
+    "Read": 3,
+    "Edit": 3
+  },
+  "languages": {
+    "Ruby": 4,
+    "Markdown": 2
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 312,
+  "output_tokens": 1061,
+  "first_prompt": "Can you pick up this small ticket and checkout a new branch opn the real time interpretation tool for when we do language selection dropdown https://linear.app/beamazing/issue/INT-108/show-dialect-inf…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    1163.408,
+    213.696,
+    152.098
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "User Rejected": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 3,
+  "lines_removed": 3,
+  "files_modified": 2,
+  "message_hours": [
+    14,
+    14,
+    14,
+    14,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-02-10T14:56:44.926Z",
+    "2026-02-10T14:56:44.218Z",
+    "2026-02-10T14:56:44.926Z",
+    "2026-02-10T14:57:06.350Z",
+    "2026-02-10T15:17:22.427Z",
+    "2026-02-10T15:21:22.339Z",
+    "2026-02-10T15:25:07.027Z"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "underlying_goal": "Pick up a Linear ticket to add new languages (Bulgarian, Hindi) to the evaluation list, implement the changes, and ship a PR",
+  "goal_categories": {
+    "implement_feature": 1,
+    "ship_pr": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 2
+  },
+  "claude_helpfulness": "essential",
+  "session_type": "single_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User picked up a Linear ticket to add Bulgarian and move Hindi to feature-flagged languages, Claude implemented all changes across code and tests, and shipped a clean PR with passing CI.",
+  "session_id": "6bd55e59-8cf1-4b06-a3fc-2170b60a4b83"
+}

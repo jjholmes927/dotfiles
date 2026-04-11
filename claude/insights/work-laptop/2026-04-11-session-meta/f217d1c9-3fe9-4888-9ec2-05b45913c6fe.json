@@ -1,0 +1,58 @@
+{
+  "session_id": "f217d1c9-3fe9-4888-9ec2-05b45913c6fe",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-03-05T17:09:21.798Z",
+  "duration_minutes": 12,
+  "user_message_count": 6,
+  "assistant_message_count": 51,
+  "tool_counts": {
+    "Grep": 1,
+    "Read": 6,
+    "Edit": 7,
+    "Bash": 19,
+    "Skill": 1,
+    "Agent": 3
+  },
+  "languages": {
+    "Ruby": 8,
+    "Markdown": 5
+  },
+  "git_commits": 3,
+  "git_pushes": 2,
+  "input_tokens": 65,
+  "output_tokens": 5209,
+  "first_prompt": "can you rip out the auto_create_interpret_mn feature flag it should just be on by default now we no longer need it",
+  "user_interruptions": 0,
+  "user_response_times": [
+    10.075,
+    10.075
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "Other": 1,
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 3,
+  "lines_removed": 22,
+  "files_modified": 4,
+  "message_hours": [
+    17,
+    17,
+    17,
+    17,
+    17,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-03-05T17:09:22.295Z",
+    "2026-03-05T17:09:21.790Z",
+    "2026-03-05T17:10:00.921Z",
+    "2026-03-05T17:10:42.586Z",
+    "2026-03-05T17:10:42.586Z",
+    "2026-03-05T17:11:14.135Z"
+  ]
+}

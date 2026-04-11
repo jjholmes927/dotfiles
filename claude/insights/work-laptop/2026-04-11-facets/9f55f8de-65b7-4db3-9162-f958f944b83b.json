@@ -1,0 +1,23 @@
+{
+  "underlying_goal": "Fix a bug where a Wandsworth user sees a duplicated template giving a 404, by updating the templates controller to find templates globally and check against the user's available set, then create a PR with tests.",
+  "goal_categories": {
+    "investigate_bug": 1,
+    "code_fix": 1,
+    "create_pr": 1,
+    "write_tests": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "satisfied": 2,
+    "likely_satisfied": 1
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "iterative_refinement",
+  "friction_counts": {
+    "buggy_code": 1
+  },
+  "friction_detail": "When trying to verify the test fails with old code, Claude struggled with reverting the controller properly—the revert didn't persist correctly through edits, requiring multiple debugging attempts before successfully proving the test fails without the fix.",
+  "primary_success": "correct_code_edits",
+  "brief_summary": "User needed to fix a 404 bug for team-level templates in a dropdown, and Claude successfully investigated the issue, made the code fix, created a PR referencing the Linear ticket, and wrote a regression test—all pushed to the branch.",
+  "session_id": "9f55f8de-65b7-4db3-9162-f958f944b83b"
+}

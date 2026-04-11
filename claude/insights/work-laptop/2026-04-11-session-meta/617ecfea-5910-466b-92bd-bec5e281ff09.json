@@ -1,0 +1,56 @@
+{
+  "session_id": "617ecfea-5910-466b-92bd-bec5e281ff09",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-03-27T18:57:45.409Z",
+  "duration_minutes": 13,
+  "user_message_count": 8,
+  "assistant_message_count": 20,
+  "tool_counts": {
+    "Bash": 12
+  },
+  "languages": {},
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 36,
+  "output_tokens": 2525,
+  "first_prompt": "I want to sync any latest changes from beam-claude-skills to my dotfiles for new claude commands and updates to existing ones /Users/beamtempmacbookpro/Documents/repos the repos re here",
+  "user_interruptions": 0,
+  "user_response_times": [
+    144.648,
+    31.532,
+    57.301,
+    162.958,
+    98.485
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Command Failed": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    18,
+    18,
+    18,
+    19,
+    19,
+    19,
+    19,
+    19
+  ],
+  "user_message_timestamps": [
+    "2026-03-27T18:57:45.409Z",
+    "2026-03-27T18:57:45.001Z",
+    "2026-03-27T18:58:28.745Z",
+    "2026-03-27T19:02:58.971Z",
+    "2026-03-27T19:03:41.639Z",
+    "2026-03-27T19:04:41.668Z",
+    "2026-03-27T19:07:37.814Z",
+    "2026-03-27T19:09:28.133Z"
+  ]
+}

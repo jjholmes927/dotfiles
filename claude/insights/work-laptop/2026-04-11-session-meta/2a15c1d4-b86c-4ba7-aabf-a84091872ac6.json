@@ -1,0 +1,69 @@
+{
+  "session_id": "2a15c1d4-b86c-4ba7-aabf-a84091872ac6",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn4",
+  "start_time": "2026-03-04T11:30:33.149Z",
+  "duration_minutes": 69,
+  "user_message_count": 9,
+  "assistant_message_count": 69,
+  "tool_counts": {
+    "Glob": 4,
+    "Read": 11,
+    "Agent": 4,
+    "Edit": 9,
+    "Bash": 10,
+    "Write": 4
+  },
+  "languages": {
+    "Markdown": 17,
+    "JSON": 7
+  },
+  "git_commits": 2,
+  "git_pushes": 2,
+  "input_tokens": 121,
+  "output_tokens": 17455,
+  "first_prompt": "/beam-claude-skills:skill-reviewer run skill reviewer on our browser verifcation task also rename it to verify-ui",
+  "user_interruptions": 0,
+  "user_response_times": [
+    135.235,
+    315.237,
+    90.574,
+    232.202,
+    174.302,
+    12.795,
+    1625.184
+  ],
+  "tool_errors": 5,
+  "tool_error_categories": {
+    "Other": 4,
+    "File Not Found": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 582,
+  "lines_removed": 8,
+  "files_modified": 9,
+  "message_hours": [
+    11,
+    11,
+    11,
+    11,
+    12,
+    12,
+    12,
+    12,
+    12
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T11:30:53.479Z",
+    "2026-03-04T11:30:53.479Z",
+    "2026-03-04T11:41:22.287Z",
+    "2026-03-04T11:49:32.015Z",
+    "2026-03-04T12:01:45.861Z",
+    "2026-03-04T12:06:28.727Z",
+    "2026-03-04T12:09:46.098Z",
+    "2026-03-04T12:10:03.668Z",
+    "2026-03-04T12:39:35.199Z"
+  ]
+}

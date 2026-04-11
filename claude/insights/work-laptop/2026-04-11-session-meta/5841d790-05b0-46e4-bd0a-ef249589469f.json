@@ -1,0 +1,44 @@
+{
+  "session_id": "5841d790-05b0-46e4-bd0a-ef249589469f",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-17T09:55:25.393Z",
+  "duration_minutes": 16,
+  "user_message_count": 5,
+  "assistant_message_count": 12,
+  "tool_counts": {
+    "Task": 2
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 28,
+  "output_tokens": 104,
+  "first_prompt": "We are looking at realtime interpretations and we are thinking that an auto save mechanic could be useful what do you think about that, should we even bother and how would you go about it",
+  "user_interruptions": 0,
+  "user_response_times": [
+    519.31
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    9,
+    9,
+    9,
+    9,
+    10
+  ],
+  "user_message_timestamps": [
+    "2026-02-17T09:55:25.414Z",
+    "2026-02-17T09:55:25.375Z",
+    "2026-02-17T09:55:25.413Z",
+    "2026-02-17T09:56:24.344Z",
+    "2026-02-17T10:08:26.908Z"
+  ]
+}

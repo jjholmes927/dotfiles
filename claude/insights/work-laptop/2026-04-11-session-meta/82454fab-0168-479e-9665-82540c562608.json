@@ -1,0 +1,41 @@
+{
+  "session_id": "82454fab-0168-479e-9665-82540c562608",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-03-27T13:09:25.226Z",
+  "duration_minutes": 4022,
+  "user_message_count": 2,
+  "assistant_message_count": 8,
+  "tool_counts": {
+    "Read": 1,
+    "Write": 1,
+    "Edit": 1,
+    "Bash": 2
+  },
+  "languages": {
+    "Markdown": 3
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 16,
+  "output_tokens": 912,
+  "first_prompt": "Remember that my favourite colour is blue    Then come back here and I'll check if it landed in the canonical directory.",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 10,
+  "lines_removed": 1,
+  "files_modified": 2,
+  "message_hours": [
+    13,
+    9
+  ],
+  "user_message_timestamps": [
+    "2026-03-27T13:09:25.226Z",
+    "2026-03-30T08:11:22.390Z"
+  ]
+}

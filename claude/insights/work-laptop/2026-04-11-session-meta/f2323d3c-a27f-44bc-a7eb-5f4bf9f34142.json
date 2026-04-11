@@ -1,0 +1,60 @@
+{
+  "session_id": "f2323d3c-a27f-44bc-a7eb-5f4bf9f34142",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-16T15:46:19.732Z",
+  "duration_minutes": 32,
+  "user_message_count": 7,
+  "assistant_message_count": 53,
+  "tool_counts": {
+    "Task": 1,
+    "Read": 8,
+    "Edit": 14,
+    "Grep": 3,
+    "Bash": 7
+  },
+  "languages": {
+    "TypeScript": 9,
+    "Ruby": 1,
+    "YAML": 12
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 65,
+  "output_tokens": 5804,
+  "first_prompt": "Currently on the show interpreter conversation page the save button is top right near the header but it should actually be on the buttom on the same row as the pause / start recording button https://l…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    1162.816,
+    285.397,
+    160.457
+  ],
+  "tool_errors": 4,
+  "tool_error_categories": {
+    "Other": 4
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 74,
+  "lines_removed": 50,
+  "files_modified": 5,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-16T15:46:19.744Z",
+    "2026-02-16T15:46:19.721Z",
+    "2026-02-16T15:46:19.744Z",
+    "2026-02-16T15:47:01.283Z",
+    "2026-02-16T16:09:59.186Z",
+    "2026-02-16T16:15:01.308Z",
+    "2026-02-16T16:18:10.169Z"
+  ]
+}

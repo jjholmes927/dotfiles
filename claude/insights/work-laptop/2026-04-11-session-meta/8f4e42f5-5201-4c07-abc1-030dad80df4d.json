@@ -1,0 +1,70 @@
+{
+  "session_id": "8f4e42f5-5201-4c07-abc1-030dad80df4d",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-18T10:27:56.392Z",
+  "duration_minutes": 136,
+  "user_message_count": 10,
+  "assistant_message_count": 104,
+  "tool_counts": {
+    "Read": 12,
+    "Bash": 30,
+    "Task": 1,
+    "Edit": 10,
+    "Grep": 1
+  },
+  "languages": {
+    "Ruby": 16,
+    "Markdown": 6
+  },
+  "git_commits": 5,
+  "git_pushes": 7,
+  "input_tokens": 149,
+  "output_tokens": 9254,
+  "first_prompt": "theres a cursor bug bot comment",
+  "user_interruptions": 0,
+  "user_response_times": [
+    1903.931,
+    516.831,
+    81.45,
+    967.346,
+    116.202,
+    467.717,
+    11.695,
+    5.929
+  ],
+  "tool_errors": 4,
+  "tool_error_categories": {
+    "Command Failed": 4
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 76,
+  "lines_removed": 32,
+  "files_modified": 7,
+  "message_hours": [
+    10,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    12,
+    12
+  ],
+  "user_message_timestamps": [
+    "2026-02-18T10:27:56.393Z",
+    "2026-02-18T11:02:32.444Z",
+    "2026-02-18T11:12:08.376Z",
+    "2026-02-18T11:14:40.616Z",
+    "2026-02-18T11:30:50.927Z",
+    "2026-02-18T11:33:10.442Z",
+    "2026-02-18T11:41:06.282Z",
+    "2026-02-18T11:42:07.322Z",
+    "2026-02-18T12:42:34.215Z",
+    "2026-02-18T12:43:27.738Z"
+  ]
+}

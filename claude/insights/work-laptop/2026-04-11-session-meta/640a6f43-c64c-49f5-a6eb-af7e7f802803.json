@@ -1,0 +1,80 @@
+{
+  "session_id": "640a6f43-c64c-49f5-a6eb-af7e7f802803",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-18T16:00:10.741Z",
+  "duration_minutes": 53,
+  "user_message_count": 13,
+  "assistant_message_count": 77,
+  "tool_counts": {
+    "Read": 6,
+    "ToolSearch": 1,
+    "mcp__serena__find_symbol": 1,
+    "Grep": 8,
+    "Edit": 4,
+    "Glob": 1,
+    "Task": 1,
+    "Bash": 9
+  },
+  "languages": {
+    "Ruby": 10
+  },
+  "git_commits": 0,
+  "git_pushes": 1,
+  "input_tokens": 147,
+  "output_tokens": 7331,
+  "first_prompt": "cause its a document one we should pick recording ones for interpret conversations",
+  "user_interruptions": 1,
+  "user_response_times": [
+    67.936,
+    22.202,
+    64.587,
+    373.407,
+    56.943,
+    34.665,
+    23.173,
+    2160.949,
+    15.577
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "File Not Found": 1,
+    "User Rejected": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 5,
+  "lines_removed": 6,
+  "files_modified": 3,
+  "message_hours": [
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-18T16:00:10.741Z",
+    "2026-02-18T16:00:31.238Z",
+    "2026-02-18T16:01:50.679Z",
+    "2026-02-18T16:02:38.799Z",
+    "2026-02-18T16:04:05.634Z",
+    "2026-02-18T16:04:29.939Z",
+    "2026-02-18T16:04:30.462Z",
+    "2026-02-18T16:10:56.461Z",
+    "2026-02-18T16:12:18.337Z",
+    "2026-02-18T16:12:57.958Z",
+    "2026-02-18T16:13:47.176Z",
+    "2026-02-18T16:52:07.496Z",
+    "2026-02-18T16:53:18.284Z"
+  ]
+}

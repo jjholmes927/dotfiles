@@ -1,0 +1,18 @@
+{
+  "underlying_goal": "Move alert banners from the bottom (near waveform) to the top of the card on the show interpret page, and ship the change as a PR",
+  "goal_categories": {
+    "ui_layout_change": 1,
+    "ship_pr": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 1
+  },
+  "claude_helpfulness": "essential",
+  "session_type": "single_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "correct_code_edits",
+  "brief_summary": "User wanted to reposition alert banners to the top of a card on the interpret show page and ship a PR; Claude made the edit, passed CI, and created the PR successfully.",
+  "session_id": "893861a6-7e19-4d77-8012-7bd1ed450157"
+}

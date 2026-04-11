@@ -1,0 +1,50 @@
+{
+  "session_id": "345278f5-13ee-439a-afc6-a660fe066d72",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/terraform-honeycomb",
+  "start_time": "2026-03-31T15:01:04.669Z",
+  "duration_minutes": 1,
+  "user_message_count": 6,
+  "assistant_message_count": 4,
+  "tool_counts": {
+    "Bash": 1
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 10,
+  "output_tokens": 506,
+  "first_prompt": "The RealTime interpretation honeycomb board right now is a bit chaotic there's some left over boards and queries from how the pipeline used to work with realtime streaming and now we actually use the…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    3.234,
+    3.25,
+    3.248,
+    3.248,
+    27.985
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-03-31T15:01:04.669Z",
+    "2026-03-31T15:01:17.398Z",
+    "2026-03-31T15:01:17.414Z",
+    "2026-03-31T15:01:17.412Z",
+    "2026-03-31T15:01:17.412Z",
+    "2026-03-31T15:01:42.149Z"
+  ]
+}

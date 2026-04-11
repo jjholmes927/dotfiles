@@ -1,0 +1,81 @@
+{
+  "session_id": "6176c2f1-b603-4d93-8ee0-df26af1ccab4",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-03-04T10:40:25.738Z",
+  "duration_minutes": 15,
+  "user_message_count": 11,
+  "assistant_message_count": 41,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "Read": 9,
+    "mcp__linear-server__get_issue": 1,
+    "mcp__linear-server__save_issue": 2,
+    "Bash": 1,
+    "Glob": 1,
+    "Edit": 2,
+    "Task": 2,
+    "Write": 2,
+    "EnterPlanMode": 1,
+    "WebSearch": 1,
+    "WebFetch": 1,
+    "ExitPlanMode": 1
+  },
+  "languages": {
+    "Markdown": 3,
+    "JSON": 5,
+    "Ruby": 5
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 41781,
+  "output_tokens": 2716,
+  "first_prompt": "I want you to pick up this linear ticket in relation to the real time interpretation tool https://linear.app/beamazing/issue/INT-164/add-new-languages-to-be-evaluated, to our claude memory lets add th…",
+  "user_interruptions": 3,
+  "user_response_times": [
+    4.501,
+    24.457,
+    17.238,
+    49.967,
+    43.966,
+    75.566,
+    186.719
+  ],
+  "tool_errors": 5,
+  "tool_error_categories": {
+    "File Not Found": 2,
+    "User Rejected": 3
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": true,
+  "uses_web_fetch": true,
+  "lines_added": 87,
+  "lines_removed": 2,
+  "files_modified": 3,
+  "message_hours": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T10:40:26.033Z",
+    "2026-03-04T10:40:25.660Z",
+    "2026-03-04T10:40:26.033Z",
+    "2026-03-04T10:41:07.942Z",
+    "2026-03-04T10:41:26.301Z",
+    "2026-03-04T10:41:46.257Z",
+    "2026-03-04T10:42:33.164Z",
+    "2026-03-04T10:43:05.893Z",
+    "2026-03-04T10:45:20.185Z",
+    "2026-03-04T10:47:00.296Z",
+    "2026-03-04T10:55:05.055Z"
+  ]
+}

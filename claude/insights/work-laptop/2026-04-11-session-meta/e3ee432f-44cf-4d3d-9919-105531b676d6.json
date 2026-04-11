@@ -1,0 +1,40 @@
+{
+  "session_id": "e3ee432f-44cf-4d3d-9919-105531b676d6",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-02-24T13:40:57.015Z",
+  "duration_minutes": 2,
+  "user_message_count": 4,
+  "assistant_message_count": 3,
+  "tool_counts": {
+    "Task": 1
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 7,
+  "output_tokens": 315,
+  "first_prompt": "Hey team, we had lots of issues during Birmingham's pilot where staff were having to manually refresh the page in order for chat responses to come through.   The PM has informed me that they are still…",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    13,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-02-24T13:40:57.171Z",
+    "2026-02-24T13:40:57.012Z",
+    "2026-02-24T13:40:57.171Z",
+    "2026-02-24T13:41:06.128Z"
+  ]
+}

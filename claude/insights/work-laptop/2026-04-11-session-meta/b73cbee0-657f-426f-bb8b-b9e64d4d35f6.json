@@ -1,0 +1,44 @@
+{
+  "session_id": "b73cbee0-657f-426f-bb8b-b9e64d4d35f6",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-04-09T12:57:28.875Z",
+  "duration_minutes": 0,
+  "user_message_count": 4,
+  "assistant_message_count": 7,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "mcp__linear-server__get_issue": 1,
+    "mcp__linear-server__list_comments": 1,
+    "mcp__linear-server__get_project": 1,
+    "Bash": 1
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 13,
+  "output_tokens": 847,
+  "first_prompt": "/beam-claude-skills:pick-up-linear-ticket https://linear.app/beamazing/issue/INT-260/remove-the-twilio-phone-number-from-the-dial-in-panel",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    13,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-04-09T12:57:28.875Z",
+    "2026-04-09T12:57:28.479Z",
+    "2026-04-09T12:57:34.174Z",
+    "2026-04-09T12:57:34.174Z"
+  ]
+}

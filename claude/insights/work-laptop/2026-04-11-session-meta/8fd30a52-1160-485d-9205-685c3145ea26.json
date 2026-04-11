@@ -1,0 +1,59 @@
+{
+  "session_id": "8fd30a52-1160-485d-9205-685c3145ea26",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-04-07T08:42:37.238Z",
+  "duration_minutes": 15,
+  "user_message_count": 7,
+  "assistant_message_count": 88,
+  "tool_counts": {
+    "Bash": 38,
+    "Grep": 8,
+    "Read": 8,
+    "Glob": 1
+  },
+  "languages": {
+    "TypeScript": 3,
+    "Ruby": 2
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 101,
+  "output_tokens": 6750,
+  "first_prompt": "/beam-claude-skills:verify-ui that currently on a user with no phone number on their account when you create a phone interpret conversation it won't let you continue until you set a phone number in th…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    4.148,
+    4.15,
+    2.821
+  ],
+  "tool_errors": 7,
+  "tool_error_categories": {
+    "Command Failed": 6,
+    "User Rejected": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+  ],
+  "user_message_timestamps": [
+    "2026-04-07T08:42:37.238Z",
+    "2026-04-07T08:42:36.933Z",
+    "2026-04-07T08:51:00.976Z",
+    "2026-04-07T08:51:00.976Z",
+    "2026-04-07T08:55:46.407Z",
+    "2026-04-07T08:55:46.409Z",
+    "2026-04-07T08:57:47.926Z"
+  ]
+}

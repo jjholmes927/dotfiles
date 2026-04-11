@@ -1,0 +1,78 @@
+{
+  "session_id": "d58754f4-7989-4ac8-9dc3-3fec7db0354b",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-03-31T13:27:46.012Z",
+  "duration_minutes": 77,
+  "user_message_count": 13,
+  "assistant_message_count": 181,
+  "tool_counts": {
+    "Agent": 3,
+    "Read": 14,
+    "Edit": 44,
+    "Grep": 1,
+    "Bash": 54,
+    "Skill": 1
+  },
+  "languages": {
+    "Ruby": 5
+  },
+  "git_commits": 8,
+  "git_pushes": 10,
+  "input_tokens": 217,
+  "output_tokens": 28664,
+  "first_prompt": "I want to do some work to instrument and understand latency of the interpret pipeline right now anything created via the debug turns controller we should add something so we can distinguish as debuggi…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    114.252,
+    20.526,
+    19.407,
+    19.407,
+    141.505,
+    27.771,
+    100.846,
+    867.842
+  ],
+  "tool_errors": 5,
+  "tool_error_categories": {
+    "Other": 2,
+    "Command Failed": 2,
+    "File Too Large": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 150,
+  "lines_removed": 51,
+  "files_modified": 3,
+  "message_hours": [
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    15,
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-03-31T13:27:46.012Z",
+    "2026-03-31T13:27:45.667Z",
+    "2026-03-31T13:28:59.731Z",
+    "2026-03-31T13:42:09.217Z",
+    "2026-03-31T13:42:49.018Z",
+    "2026-03-31T13:43:30.196Z",
+    "2026-03-31T13:43:30.196Z",
+    "2026-03-31T13:44:09.836Z",
+    "2026-03-31T14:12:42.879Z",
+    "2026-03-31T14:14:15.863Z",
+    "2026-03-31T14:19:13.128Z",
+    "2026-03-31T14:25:44.815Z",
+    "2026-03-31T14:40:17.498Z"
+  ]
+}

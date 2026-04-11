@@ -1,0 +1,25 @@
+{
+  "underlying_goal": "Pick up a Linear ticket to prefill first speaker name and language in a form, implement the changes, ship a PR, fix CI failures, and address code review feedback",
+  "goal_categories": {
+    "feature_implementation": 1,
+    "ship_pr": 1,
+    "fix_ci": 1,
+    "address_code_review": 1,
+    "database_admin": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 3,
+    "satisfied": 1
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {
+    "wrong_approach": 1,
+    "buggy_code": 2
+  },
+  "friction_detail": "Linear MCP tools weren't initially available requiring user to auth, vitest tests had ResizeObserver and i18n translation issues requiring multiple CI fix cycles.",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User wanted to implement a Linear ticket for prefilling speaker name/language in a form, ship a PR, and fix CI issues — the PR was successfully shipped with all relevant checks passing.",
+  "session_id": "ef6132ac-df1e-4f59-bbc5-310f97549e4c"
+}

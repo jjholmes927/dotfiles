@@ -1,0 +1,52 @@
+{
+  "session_id": "b9fd9a16-3efd-4acc-8eb6-419e79b3da25",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/beam-claude-skills/.claude/worktrees/gallant-khayyam",
+  "start_time": "2026-04-09T09:15:48.905Z",
+  "duration_minutes": 95,
+  "user_message_count": 3,
+  "assistant_message_count": 34,
+  "tool_counts": {
+    "Glob": 3,
+    "Grep": 3,
+    "Read": 3,
+    "Bash": 12,
+    "Edit": 3,
+    "ExitWorktree": 1
+  },
+  "languages": {
+    "Markdown": 3,
+    "JSON": 3
+  },
+  "git_commits": 2,
+  "git_pushes": 1,
+  "input_tokens": 48,
+  "output_tokens": 3377,
+  "first_prompt": "From the beam-claude-skills repo remove the capybara inertia tests one i dont think its really used",
+  "user_interruptions": 0,
+  "user_response_times": [
+    2949.213,
+    311.542
+  ],
+  "tool_errors": 4,
+  "tool_error_categories": {
+    "Command Failed": 3,
+    "Other": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 1,
+  "lines_removed": 3,
+  "files_modified": 2,
+  "message_hours": [
+    10,
+    11,
+    11
+  ],
+  "user_message_timestamps": [
+    "2026-04-09T09:15:48.905Z",
+    "2026-04-09T10:05:50.490Z",
+    "2026-04-09T10:21:28.259Z"
+  ]
+}

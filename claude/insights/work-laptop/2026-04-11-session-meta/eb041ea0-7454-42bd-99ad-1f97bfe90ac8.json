@@ -1,0 +1,83 @@
+{
+  "session_id": "eb041ea0-7454-42bd-99ad-1f97bfe90ac8",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-03-04T11:42:59.140Z",
+  "duration_minutes": 128,
+  "user_message_count": 13,
+  "assistant_message_count": 148,
+  "tool_counts": {
+    "Read": 21,
+    "Write": 1,
+    "Edit": 14,
+    "Bash": 45,
+    "Agent": 3,
+    "Grep": 2
+  },
+  "languages": {
+    "Markdown": 7,
+    "JSON": 9,
+    "Ruby": 3
+  },
+  "git_commits": 6,
+  "git_pushes": 7,
+  "input_tokens": 197,
+  "output_tokens": 31476,
+  "first_prompt": "/beam-claude-skills:ship lets run this on our store scribe max connections work",
+  "user_interruptions": 1,
+  "user_response_times": [
+    27.289,
+    27.289,
+    65.44,
+    266.872,
+    19.087,
+    81.754,
+    53.794,
+    53.794,
+    999.28,
+    2624.221,
+    201.822,
+    427.884
+  ],
+  "tool_errors": 3,
+  "tool_error_categories": {
+    "User Rejected": 1,
+    "Command Failed": 2
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 415,
+  "lines_removed": 11,
+  "files_modified": 5,
+  "message_hours": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    12,
+    12,
+    12,
+    12,
+    12,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T11:42:59.143Z",
+    "2026-03-04T11:51:48.155Z",
+    "2026-03-04T11:51:48.155Z",
+    "2026-03-04T11:54:59.333Z",
+    "2026-03-04T11:59:52.981Z",
+    "2026-03-04T12:02:00.379Z",
+    "2026-03-04T12:03:03.046Z",
+    "2026-03-04T12:06:49.597Z",
+    "2026-03-04T12:06:49.597Z",
+    "2026-03-04T12:25:24.925Z",
+    "2026-03-04T13:28:29.712Z",
+    "2026-03-04T13:32:59.933Z",
+    "2026-03-04T13:40:11.467Z"
+  ]
+}

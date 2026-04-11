@@ -1,0 +1,49 @@
+{
+  "session_id": "7e53a1ea-0009-4edf-9bc5-5023a1bb5256",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-03-09T09:13:38.262Z",
+  "duration_minutes": 363,
+  "user_message_count": 7,
+  "assistant_message_count": 7,
+  "tool_counts": {},
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 19,
+  "output_tokens": 1186,
+  "first_prompt": "$ gcloud auth application-default set-quota-project beam-288508 ERROR: (gcloud.auth.application-default.set-quota-project) Cannot add the project \"beam-288508\" to application default credentials (ADC)…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    1757.732,
+    348.617,
+    138.256,
+    88.339
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    9,
+    9,
+    14,
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-03-09T09:13:39.539Z",
+    "2026-03-09T09:13:38.251Z",
+    "2026-03-09T14:37:27.843Z",
+    "2026-03-09T15:06:50.495Z",
+    "2026-03-09T15:12:43.264Z",
+    "2026-03-09T15:15:17.363Z",
+    "2026-03-09T15:16:54.479Z"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "underlying_goal": "Review and improve a company engineering onboarding document against a Linear ticket's goals, making necessary edits directly to the Google Doc",
+  "goal_categories": {
+    "document_review_and_analysis": 2,
+    "document_editing": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "dissatisfied": 1,
+    "likely_satisfied": 2
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "iterative_refinement",
+  "friction_counts": {
+    "misunderstood_request": 1,
+    "buggy_code": 2
+  },
+  "friction_detail": "Claude initially only fetched the main tab of the Google Doc missing other tabs the user had created, and encountered text matching/duplication issues during batch edits.",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User wanted Claude to review and edit a Google Doc onboarding document against a Linear ticket's requirements; Claude successfully reviewed, made edits across multiple tabs, but initially missed additional tabs and had some edit duplication issues.",
+  "session_id": "93434fe3-8146-4781-8941-061a830e9170"
+}

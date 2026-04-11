@@ -1,0 +1,17 @@
+{
+  "underlying_goal": "User attempted to invoke a 'dream' skill or command that doesn't exist",
+  "goal_categories": {
+    "warmup_minimal": 1
+  },
+  "outcome": "not_achieved",
+  "user_satisfaction_counts": {},
+  "claude_helpfulness": "slightly_helpful",
+  "session_type": "quick_question",
+  "friction_counts": {
+    "misunderstood_request": 1
+  },
+  "friction_detail": "User tried to use a 'dream' command/skill that doesn't exist, and Claude couldn't determine what they actually wanted.",
+  "primary_success": "none",
+  "brief_summary": "User attempted to use a non-existent 'dream' skill; Claude acknowledged it doesn't exist but couldn't help further.",
+  "session_id": "96261591-2556-4ded-9040-263a7048f358"
+}

@@ -1,0 +1,66 @@
+{
+  "session_id": "721eb77b-f094-443d-bfc2-3f33145e5c6f",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/beam-claude-skills",
+  "start_time": "2026-02-24T14:07:55.536Z",
+  "duration_minutes": 2852,
+  "user_message_count": 9,
+  "assistant_message_count": 86,
+  "tool_counts": {
+    "Task": 1,
+    "Read": 10,
+    "Bash": 24,
+    "Write": 6,
+    "Edit": 7,
+    "WebFetch": 1
+  },
+  "languages": {
+    "Markdown": 13,
+    "JSON": 10
+  },
+  "git_commits": 6,
+  "git_pushes": 6,
+  "input_tokens": 594,
+  "output_tokens": 13742,
+  "first_prompt": "Can you add the brag doc skill i have on my user to thius beam claud eskills marketplace plugin on a new branch please and create the PR",
+  "user_interruptions": 0,
+  "user_response_times": [
+    47.304,
+    18.881,
+    284.251,
+    43.318,
+    180.689
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": true,
+  "lines_added": 725,
+  "lines_removed": 5,
+  "files_modified": 5,
+  "message_hours": [
+    14,
+    15,
+    11,
+    12,
+    13,
+    13,
+    13,
+    13,
+    13
+  ],
+  "user_message_timestamps": [
+    "2026-02-24T14:08:36.303Z",
+    "2026-02-24T15:29:49.434Z",
+    "2026-02-26T11:57:01.379Z",
+    "2026-02-26T12:16:53.568Z",
+    "2026-02-26T13:24:52.571Z",
+    "2026-02-26T13:26:38.124Z",
+    "2026-02-26T13:31:24.955Z",
+    "2026-02-26T13:35:15.396Z",
+    "2026-02-26T13:39:22.867Z"
+  ]
+}

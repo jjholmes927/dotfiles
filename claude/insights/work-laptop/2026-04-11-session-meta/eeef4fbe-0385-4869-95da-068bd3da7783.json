@@ -1,0 +1,81 @@
+{
+  "session_id": "eeef4fbe-0385-4869-95da-068bd3da7783",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn5/magicnotes",
+  "start_time": "2026-03-05T15:53:12.138Z",
+  "duration_minutes": 54,
+  "user_message_count": 14,
+  "assistant_message_count": 77,
+  "tool_counts": {
+    "Skill": 3,
+    "ToolSearch": 2,
+    "mcp__linear-server__get_issue": 1,
+    "Agent": 4,
+    "Read": 4,
+    "Edit": 1,
+    "Bash": 27,
+    "Glob": 1
+  },
+  "languages": {
+    "TypeScript": 4
+  },
+  "git_commits": 2,
+  "git_pushes": 1,
+  "input_tokens": 112,
+  "output_tokens": 6214,
+  "first_prompt": "I want you to pick up this ticket https://linear.app/beamazing/issue/INT-153/alignment-issues-with-interpreting-loading-message you can ignore the second point about auto scrolling we fixed that one o…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    27.687,
+    5.516,
+    5.203,
+    15.806,
+    14.339,
+    5.616,
+    5.616,
+    55.187
+  ],
+  "tool_errors": 3,
+  "tool_error_categories": {
+    "User Rejected": 1,
+    "Command Failed": 2
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 2,
+  "lines_removed": 2,
+  "files_modified": 1,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-03-05T15:53:12.542Z",
+    "2026-03-05T15:53:12.086Z",
+    "2026-03-05T15:55:22.128Z",
+    "2026-03-05T15:55:25.837Z",
+    "2026-03-05T16:00:17.659Z",
+    "2026-03-05T16:00:25.737Z",
+    "2026-03-05T16:00:35.683Z",
+    "2026-03-05T16:00:46.286Z",
+    "2026-03-05T16:00:51.843Z",
+    "2026-03-05T16:01:11.853Z",
+    "2026-03-05T16:01:22.889Z",
+    "2026-03-05T16:01:22.889Z",
+    "2026-03-05T16:04:13.565Z",
+    "2026-03-05T16:45:45.138Z"
+  ]
+}

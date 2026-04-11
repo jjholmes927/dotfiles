@@ -1,0 +1,52 @@
+{
+  "session_id": "6f2a12a9-9bec-4da8-beee-b94d9fc1adce",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn4/magicnotes",
+  "start_time": "2026-04-07T14:02:38.433Z",
+  "duration_minutes": 4,
+  "user_message_count": 7,
+  "assistant_message_count": 8,
+  "tool_counts": {
+    "Agent": 3
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 21,
+  "output_tokens": 1669,
+  "first_prompt": "I want us to perform a really deep analysis of the real time interpretation pipeline, specifically where the main sources of latency are in the pipeline. Some users are saying its working really well…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    2.774,
+    5.101,
+    5.094,
+    5.094,
+    11.474
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    15
+  ],
+  "user_message_timestamps": [
+    "2026-04-07T14:02:38.433Z",
+    "2026-04-07T14:02:41.121Z",
+    "2026-04-07T14:02:50.131Z",
+    "2026-04-07T14:03:14.730Z",
+    "2026-04-07T14:03:14.723Z",
+    "2026-04-07T14:03:14.723Z",
+    "2026-04-07T14:03:21.103Z"
+  ]
+}

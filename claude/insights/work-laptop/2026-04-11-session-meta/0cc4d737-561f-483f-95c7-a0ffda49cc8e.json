@@ -1,0 +1,49 @@
+{
+  "session_id": "0cc4d737-561f-483f-95c7-a0ffda49cc8e",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-02-26T17:33:23.830Z",
+  "duration_minutes": 1363,
+  "user_message_count": 7,
+  "assistant_message_count": 18,
+  "tool_counts": {
+    "Task": 2,
+    "Bash": 6
+  },
+  "languages": {},
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 34,
+  "output_tokens": 5518,
+  "first_prompt": "What do you think of the e2e testing setup we currently have for front end stuff with magic notes and using capybara, is playwright for example a much faster option?",
+  "user_interruptions": 0,
+  "user_response_times": [
+    128.746
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    17,
+    17,
+    17,
+    17,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-26T17:33:23.931Z",
+    "2026-02-26T17:33:23.827Z",
+    "2026-02-26T17:33:23.931Z",
+    "2026-02-26T17:33:51.989Z",
+    "2026-02-27T16:12:23.012Z",
+    "2026-02-27T16:12:23.012Z",
+    "2026-02-27T16:15:58.467Z"
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "session_id": "3f011de8-4c24-4d9d-87d7-bdaa42498b88",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-03-05T14:32:33.618Z",
+  "duration_minutes": 149,
+  "user_message_count": 12,
+  "assistant_message_count": 124,
+  "tool_counts": {
+    "Skill": 2,
+    "ToolSearch": 2,
+    "mcp__linear-server__get_issue": 1,
+    "Agent": 5,
+    "Read": 15,
+    "Edit": 5,
+    "Grep": 4,
+    "Bash": 40
+  },
+  "languages": {
+    "TypeScript": 6,
+    "Ruby": 13
+  },
+  "git_commits": 3,
+  "git_pushes": 3,
+  "input_tokens": 154,
+  "output_tokens": 20551,
+  "first_prompt": "i want you to pick up the following linear ticket https://linear.app/beamazing/issue/INT-140/mobile-hamburger-menu-and-cancel-button this is related to basically when we are in progress we shouldnt be…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    85.65,
+    85.65,
+    460.859,
+    159.003,
+    137.8,
+    438.85,
+    438.85
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "File Too Large": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 30,
+  "lines_removed": 2,
+  "files_modified": 3,
+  "message_hours": [
+    14,
+    14,
+    15,
+    15,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    17,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-03-05T14:32:34.073Z",
+    "2026-03-05T14:32:33.555Z",
+    "2026-03-05T15:52:37.751Z",
+    "2026-03-05T15:52:41.468Z",
+    "2026-03-05T16:01:53.180Z",
+    "2026-03-05T16:01:53.180Z",
+    "2026-03-05T16:04:21.046Z",
+    "2026-03-05T16:25:02.524Z",
+    "2026-03-05T16:47:31.841Z",
+    "2026-03-05T16:53:56.153Z",
+    "2026-03-05T17:01:25.797Z",
+    "2026-03-05T17:01:25.797Z"
+  ]
+}

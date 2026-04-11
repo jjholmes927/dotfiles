@@ -1,0 +1,57 @@
+{
+  "session_id": "93434fe3-8146-4781-8941-061a830e9170",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/second-brain",
+  "start_time": "2026-03-09T15:41:55.763Z",
+  "duration_minutes": 81,
+  "user_message_count": 5,
+  "assistant_message_count": 83,
+  "tool_counts": {
+    "Skill": 2,
+    "Read": 2,
+    "Glob": 2,
+    "Bash": 35,
+    "ToolSearch": 1,
+    "mcp__linear-server__get_issue": 1,
+    "Agent": 1
+  },
+  "languages": {
+    "Markdown": 2
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 105,
+  "output_tokens": 28603,
+  "first_prompt": "Using the gws docs skills I want you top get the content of this document https://docs.google.com/document/d/1Mh4TGCPtGiiMo6ZtTAeUqdXNDb8Ntnezd9kD039HqNs/edit?tab=t.0 and review it we are picking up t…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    100.799,
+    222.652,
+    823.83
+  ],
+  "tool_errors": 4,
+  "tool_error_categories": {
+    "File Not Found": 3,
+    "Other": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    15,
+    15,
+    15,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-03-09T15:44:06.577Z",
+    "2026-03-09T15:44:10.125Z",
+    "2026-03-09T15:49:56.569Z",
+    "2026-03-09T16:03:49.746Z",
+    "2026-03-09T16:59:41.637Z"
+  ]
+}

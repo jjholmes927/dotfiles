@@ -1,0 +1,17 @@
+{
+  "underlying_goal": "Understand how far back they can see triaged issues in their Linear project, including historical triage data",
+  "goal_categories": {
+    "information_query": 2
+  },
+  "outcome": "partially_achieved",
+  "user_satisfaction_counts": {},
+  "claude_helpfulness": "moderately_helpful",
+  "session_type": "quick_question",
+  "friction_counts": {
+    "misunderstood_request": 1
+  },
+  "friction_detail": "Claude initially only showed currently-triaged issues when the user wanted to know about all issues that had ever been in triage.",
+  "primary_success": "good_explanations",
+  "brief_summary": "User wanted to know how far back they could see historically triaged Linear issues; Claude answered the current-state query but confirmed historical triage state queries aren't possible via the API.",
+  "session_id": "7e5d1b5a-37cf-4a33-8c7c-c79f7f62a28b"
+}

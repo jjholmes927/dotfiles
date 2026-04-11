@@ -1,0 +1,71 @@
+{
+  "session_id": "bc4b3a62-0754-4d4e-bbdb-139d482c6deb",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-23T11:46:39.098Z",
+  "duration_minutes": 33,
+  "user_message_count": 10,
+  "assistant_message_count": 103,
+  "tool_counts": {
+    "Read": 5,
+    "Grep": 9,
+    "TaskCreate": 3,
+    "TaskUpdate": 6,
+    "Edit": 8,
+    "Bash": 30,
+    "Skill": 1
+  },
+  "languages": {
+    "Ruby": 11
+  },
+  "git_commits": 4,
+  "git_pushes": 4,
+  "input_tokens": 136,
+  "output_tokens": 8729,
+  "first_prompt": "Implement the following plan:  # Plan: Reduce OTEL Span Volume  ## Context  We're hitting Honeycomb rate limits on our error budget due to high span volume (~19.5M spans/day after 20% sampling). Analy…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    201.639,
+    367.826,
+    167.48,
+    111.113,
+    83.171,
+    78.636,
+    393.552,
+    393.552
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "Command Failed": 2
+  },
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 54,
+  "lines_removed": 46,
+  "files_modified": 2,
+  "message_hours": [
+    11,
+    11,
+    11,
+    11,
+    12,
+    12,
+    12,
+    12,
+    12,
+    12
+  ],
+  "user_message_timestamps": [
+    "2026-02-23T11:46:38.987Z",
+    "2026-02-23T11:51:44.983Z",
+    "2026-02-23T11:58:55.076Z",
+    "2026-02-23T11:58:58.030Z",
+    "2026-02-23T12:06:48.514Z",
+    "2026-02-23T12:09:01.646Z",
+    "2026-02-23T12:10:38.988Z",
+    "2026-02-23T12:12:12.388Z",
+    "2026-02-23T12:19:26.782Z",
+    "2026-02-23T12:19:26.782Z"
+  ]
+}

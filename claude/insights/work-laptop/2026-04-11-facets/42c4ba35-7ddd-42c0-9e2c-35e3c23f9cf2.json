@@ -1,0 +1,25 @@
+{
+  "underlying_goal": "Pick up a Linear ticket to add a copy transcript button to the Magic Note interpret conversation sheet, implement it, ship a PR, and verify the UI",
+  "goal_categories": {
+    "feature_implementation": 1,
+    "ship_pr": 1,
+    "ui_verification": 1,
+    "skill_maintenance": 1,
+    "database_fix": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 3,
+    "dissatisfied": 2
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {
+    "wrong_approach": 3,
+    "misunderstood_request": 2
+  },
+  "friction_detail": "Claude struggled significantly with UI verification: tried local server instead of staging deploy, couldn't find deploy URL from PR, edited local skill file instead of beam-claude-skills source, and needed user guidance on database rename and agent-browser headed mode.",
+  "primary_success": "correct_code_edits",
+  "brief_summary": "User wanted to implement a copy transcript button, ship a PR, and verify the UI; the implementation and PR shipped smoothly but UI verification required extensive user hand-holding due to auth, test data, and tooling issues.",
+  "session_id": "42c4ba35-7ddd-42c0-9e2c-35e3c23f9cf2"
+}

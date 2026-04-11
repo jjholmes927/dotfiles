@@ -1,0 +1,18 @@
+{
+  "underlying_goal": "Pick up a Linear ticket (INT-223) to update the Interpret create conversation button to a new style, implement the change, and ship it as a PR",
+  "goal_categories": {
+    "implement_feature": 1,
+    "ship_pr": 1
+  },
+  "outcome": "fully_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 2
+  },
+  "claude_helpfulness": "essential",
+  "session_type": "single_task",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "multi_file_changes",
+  "brief_summary": "User picked up a Linear ticket to restyle a button component, Claude implemented the change, fixed a stale test selector found in review, and shipped a green PR.",
+  "session_id": "e0fb487f-023f-4950-ac0b-dbca629c60b0"
+}

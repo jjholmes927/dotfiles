@@ -1,0 +1,20 @@
+{
+  "underlying_goal": "Review multiple GitHub PRs for code quality, correctness, and suggestions using an automated code review workflow",
+  "goal_categories": {
+    "code_review": 10,
+    "question_answering": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 9
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {
+    "tool_error": 2
+  },
+  "friction_detail": "The review-pr skill plugin had intermittent 'Unknown skill' errors requiring reloads, and one review was interrupted by the user.",
+  "primary_success": "good_explanations",
+  "brief_summary": "User requested code reviews on ~10 PRs across a Rails/React codebase and received thorough, domain-aware reviews for each, with minor plugin loading friction.",
+  "session_id": "c7a05373-f430-482a-8e0a-83d507b1de6b"
+}

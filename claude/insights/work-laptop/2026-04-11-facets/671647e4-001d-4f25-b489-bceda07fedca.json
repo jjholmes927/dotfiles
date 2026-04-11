@@ -1,0 +1,22 @@
+{
+  "underlying_goal": "Pick up a Linear ticket, investigate it, and either implement or handle it appropriately",
+  "goal_categories": {
+    "ticket_management": 3,
+    "code_investigation": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {
+    "dissatisfied": 1,
+    "likely_satisfied": 1
+  },
+  "claude_helpfulness": "moderately_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {
+    "wrong_approach": 1,
+    "misunderstood_request": 1
+  },
+  "friction_detail": "Claude spent too long investigating the ticket before user interrupted, then set wrong status (Todo instead of Canceled) requiring user correction.",
+  "primary_success": "none",
+  "brief_summary": "User picked up a Linear ticket, realized it was infeasible due to no current_user context, and asked Claude to cancel it — which required multiple attempts to get the right status.",
+  "session_id": "671647e4-001d-4f25-b489-bceda07fedca"
+}

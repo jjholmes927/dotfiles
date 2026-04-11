@@ -1,0 +1,15 @@
+{
+  "underlying_goal": "User pasted a terminal error from a failed git command and likely wanted help navigating or fixing the repository structure",
+  "goal_categories": {
+    "warmup_minimal": 1
+  },
+  "outcome": "not_achieved",
+  "user_satisfaction_counts": {},
+  "claude_helpfulness": "slightly_helpful",
+  "session_type": "quick_question",
+  "friction_counts": {},
+  "friction_detail": "User interrupted Claude before it could finish exploring, suggesting the session was abandoned early.",
+  "primary_success": "none",
+  "brief_summary": "User shared a git error about a missing repository; Claude began exploring but was interrupted before providing a solution.",
+  "session_id": "2cbcef02-56c2-43a5-b218-422ec6cfa609"
+}

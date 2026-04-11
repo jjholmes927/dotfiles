@@ -1,0 +1,22 @@
+{
+  "underlying_goal": "Pick up a Linear ticket (INT-164) to add new language support for the real-time interpretation tool, configure permissions, save workflow preferences, and implement a feature flag for the new languages across config, Scribe real-time, and Azure TTS",
+  "goal_categories": {
+    "ticket_management": 1,
+    "configuration_setup": 2,
+    "feature_implementation": 1,
+    "research": 1
+  },
+  "outcome": "partially_achieved",
+  "user_satisfaction_counts": {
+    "likely_satisfied": 3
+  },
+  "claude_helpfulness": "very_helpful",
+  "session_type": "multi_task",
+  "friction_counts": {
+    "user_rejected_action": 3
+  },
+  "friction_detail": "User interrupted tool executions three times, once to redirect to permissions setup, once to question wildcard syntax correctness, and once after the plan was written.",
+  "primary_success": "proactive_help",
+  "brief_summary": "User wanted to pick up a Linear ticket for adding new languages, set up auto-approve permissions for Linear tools, save workflow memories, and begin implementing a feature flag for new language support; ticket management and permissions were completed but feature implementation was still in planning when the session ended.",
+  "session_id": "6176c2f1-b603-4d93-8ee0-df26af1ccab4"
+}

@@ -1,0 +1,63 @@
+{
+  "session_id": "893861a6-7e19-4d77-8012-7bd1ed450157",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn4",
+  "start_time": "2026-03-04T15:45:30.847Z",
+  "duration_minutes": 1501,
+  "user_message_count": 8,
+  "assistant_message_count": 53,
+  "tool_counts": {
+    "ToolSearch": 1,
+    "mcp__linear-server__get_issue": 1,
+    "Agent": 4,
+    "Read": 3,
+    "Edit": 2,
+    "Bash": 22,
+    "Skill": 1
+  },
+  "languages": {
+    "TypeScript": 4
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 1710,
+  "output_tokens": 6635,
+  "first_prompt": "I want us to pick up the following linear ticket https://linear.app/beamazing/issue/INT-165/tweak-alert-positioning-on-conversation-show-page to move the alert banenrs within the card on the show inte…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    36.098,
+    36.098,
+    434.843
+  ],
+  "tool_errors": 2,
+  "tool_error_categories": {
+    "Other": 1,
+    "File Too Large": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 61,
+  "lines_removed": 56,
+  "files_modified": 1,
+  "message_hours": [
+    15,
+    15,
+    15,
+    15,
+    15,
+    15,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-03-04T15:45:51.473Z",
+    "2026-03-04T15:45:51.473Z",
+    "2026-03-04T15:45:51.473Z",
+    "2026-03-05T15:50:46.329Z",
+    "2026-03-05T15:58:31.782Z",
+    "2026-03-05T15:58:31.782Z",
+    "2026-03-05T16:01:33.849Z",
+    "2026-03-05T16:24:41.398Z"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "session_id": "627bc8d6-c617-4be8-a593-f2f7eb6c5c62",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn5/magicnotes",
+  "start_time": "2026-03-30T11:55:20.157Z",
+  "duration_minutes": 1,
+  "user_message_count": 5,
+  "assistant_message_count": 17,
+  "tool_counts": {
+    "Skill": 1,
+    "Agent": 2,
+    "Bash": 3,
+    "Read": 6
+  },
+  "languages": {
+    "Markdown": 3,
+    "TypeScript": 1,
+    "Ruby": 2
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 22,
+  "output_tokens": 1890,
+  "first_prompt": "/beam-claude-skills:review-pr https://github.com/wearebeam/magicnotes/pull/6758/changes",
+  "user_interruptions": 0,
+  "user_response_times": [],
+  "tool_errors": 5,
+  "tool_error_categories": {
+    "File Not Found": 4,
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    12,
+    12,
+    12,
+    12,
+    12
+  ],
+  "user_message_timestamps": [
+    "2026-03-30T11:55:20.157Z",
+    "2026-03-30T11:55:19.826Z",
+    "2026-03-30T11:55:24.887Z",
+    "2026-03-30T11:55:24.887Z",
+    "2026-03-30T11:55:28.579Z"
+  ]
+}

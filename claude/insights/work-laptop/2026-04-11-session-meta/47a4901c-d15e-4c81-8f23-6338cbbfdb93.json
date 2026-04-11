@@ -1,0 +1,78 @@
+{
+  "session_id": "47a4901c-d15e-4c81-8f23-6338cbbfdb93",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn3/magicnotes",
+  "start_time": "2026-03-30T13:49:30.590Z",
+  "duration_minutes": 173,
+  "user_message_count": 14,
+  "assistant_message_count": 37,
+  "tool_counts": {
+    "Agent": 1,
+    "Read": 9,
+    "Bash": 4,
+    "Grep": 1,
+    "Glob": 2
+  },
+  "languages": {
+    "Ruby": 8
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 2063,
+  "output_tokens": 4510,
+  "first_prompt": "interpret isnt working in staging I think because we dont have workers in staging we just run on a different thread so we need to think about that with the shift to worker pools for interpret how we m…",
+  "user_interruptions": 1,
+  "user_response_times": [
+    33.369,
+    74.358,
+    116.242,
+    15.06,
+    9.97,
+    23.224,
+    19.101,
+    21.232
+  ],
+  "tool_errors": 4,
+  "tool_error_categories": {
+    "Command Failed": 1,
+    "Other": 3
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 0,
+  "lines_removed": 0,
+  "files_modified": 0,
+  "message_hours": [
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    14,
+    17,
+    17,
+    17,
+    17,
+    17,
+    17,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-03-30T13:49:30.590Z",
+    "2026-03-30T13:49:30.212Z",
+    "2026-03-30T13:52:56.148Z",
+    "2026-03-30T13:56:31.360Z",
+    "2026-03-30T13:56:44.722Z",
+    "2026-03-30T13:56:44.733Z",
+    "2026-03-30T13:58:45.997Z",
+    "2026-03-30T16:37:32.662Z",
+    "2026-03-30T16:39:44.491Z",
+    "2026-03-30T16:40:11.121Z",
+    "2026-03-30T16:40:31.709Z",
+    "2026-03-30T16:41:01.560Z",
+    "2026-03-30T16:41:27.168Z",
+    "2026-03-30T16:41:52.861Z"
+  ]
+}

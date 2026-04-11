@@ -1,0 +1,78 @@
+{
+  "session_id": "4df19306-bfae-475c-9851-6f4b29d733fb",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-02-17T14:03:35.625Z",
+  "duration_minutes": 166,
+  "user_message_count": 11,
+  "assistant_message_count": 59,
+  "tool_counts": {
+    "ToolSearch": 2,
+    "mcp__linear-server__get_issue": 2,
+    "WebFetch": 1,
+    "mcp__serena__read_memory": 2,
+    "Task": 2,
+    "Read": 17,
+    "Glob": 4,
+    "Grep": 2,
+    "EnterPlanMode": 1,
+    "AskUserQuestion": 2,
+    "Write": 1,
+    "ExitPlanMode": 1
+  },
+  "languages": {
+    "Ruby": 16,
+    "Markdown": 2
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 11723,
+  "output_tokens": 3237,
+  "first_prompt": "When saving an interpretation conversation in the enqueue save jobs where we combine audio we also want to haave a service which creates a transcrip object for an interpretation conversation https://l…",
+  "user_interruptions": 2,
+  "user_response_times": [
+    16.706,
+    21.91,
+    31.909,
+    31.909,
+    31.909,
+    38.302
+  ],
+  "tool_errors": 3,
+  "tool_error_categories": {
+    "Other": 1,
+    "User Rejected": 2
+  },
+  "uses_task_agent": true,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": true,
+  "lines_added": 174,
+  "lines_removed": 0,
+  "files_modified": 1,
+  "message_hours": [
+    14,
+    14,
+    14,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16,
+    16
+  ],
+  "user_message_timestamps": [
+    "2026-02-17T14:03:35.639Z",
+    "2026-02-17T14:03:35.599Z",
+    "2026-02-17T14:03:35.639Z",
+    "2026-02-17T16:33:30.453Z",
+    "2026-02-17T16:33:36.482Z",
+    "2026-02-17T16:33:51.379Z",
+    "2026-02-17T16:34:39.767Z",
+    "2026-02-17T16:34:49.766Z",
+    "2026-02-17T16:34:49.766Z",
+    "2026-02-17T16:34:49.766Z",
+    "2026-02-17T16:34:56.159Z"
+  ]
+}

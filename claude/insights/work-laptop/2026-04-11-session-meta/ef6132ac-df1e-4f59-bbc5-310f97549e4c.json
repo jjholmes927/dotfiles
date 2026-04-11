@@ -1,0 +1,74 @@
+{
+  "session_id": "ef6132ac-df1e-4f59-bbc5-310f97549e4c",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/magicnotes",
+  "start_time": "2026-03-26T11:36:03.857Z",
+  "duration_minutes": 41,
+  "user_message_count": 9,
+  "assistant_message_count": 67,
+  "tool_counts": {
+    "ToolSearch": 5,
+    "Bash": 9,
+    "WebFetch": 1,
+    "mcp__linear-server__get_issue": 1,
+    "mcp__linear-server__get_user": 1,
+    "mcp__linear-server__list_comments": 1,
+    "mcp__linear-server__save_issue": 1,
+    "Read": 9,
+    "Glob": 3,
+    "Grep": 8,
+    "Edit": 1,
+    "Write": 1
+  },
+  "languages": {
+    "TypeScript": 9,
+    "Ruby": 1
+  },
+  "git_commits": 0,
+  "git_pushes": 0,
+  "input_tokens": 292,
+  "output_tokens": 7407,
+  "first_prompt": "/beam-claude-skills:pick-up-linear-ticket https://linear.app/beamazing/issue/INT-209/prefill-first-speaker-name-and-language",
+  "user_interruptions": 1,
+  "user_response_times": [
+    211.795,
+    215.475,
+    27.393,
+    27.393,
+    27.393,
+    1172.408,
+    470.431
+  ],
+  "tool_errors": 1,
+  "tool_error_categories": {
+    "User Rejected": 1
+  },
+  "uses_task_agent": false,
+  "uses_mcp": true,
+  "uses_web_search": false,
+  "uses_web_fetch": true,
+  "lines_added": 83,
+  "lines_removed": 2,
+  "files_modified": 2,
+  "message_hours": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    11,
+    12,
+    12
+  ],
+  "user_message_timestamps": [
+    "2026-03-26T11:36:03.857Z",
+    "2026-03-26T11:36:03.857Z",
+    "2026-03-26T11:43:15.718Z",
+    "2026-03-26T11:43:19.398Z",
+    "2026-03-26T11:43:49.556Z",
+    "2026-03-26T11:43:49.556Z",
+    "2026-03-26T11:43:49.556Z",
+    "2026-03-26T12:02:54.571Z",
+    "2026-03-26T12:14:15.250Z"
+  ]
+}

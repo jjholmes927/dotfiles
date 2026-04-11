@@ -1,0 +1,62 @@
+{
+  "session_id": "ac45a983-4c34-49a6-9306-17bbc653b4f7",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn4/magicnotes",
+  "start_time": "2026-02-23T10:04:23.659Z",
+  "duration_minutes": 424,
+  "user_message_count": 11,
+  "assistant_message_count": 31,
+  "tool_counts": {
+    "Bash": 8,
+    "Glob": 4,
+    "Grep": 4,
+    "Read": 4,
+    "Edit": 2
+  },
+  "languages": {
+    "Ruby": 6
+  },
+  "git_commits": 2,
+  "git_pushes": 2,
+  "input_tokens": 103,
+  "output_tokens": 1912,
+  "first_prompt": "pull this prs branch jjholmes927-add-interpret-product-grant and hide avo global search on the interpretation conversation model too and push it up",
+  "user_interruptions": 0,
+  "user_response_times": [
+    203.055
+  ],
+  "tool_errors": 0,
+  "tool_error_categories": {},
+  "uses_task_agent": false,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 8,
+  "lines_removed": 7,
+  "files_modified": 1,
+  "message_hours": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    10,
+    17,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-02-23T10:04:23.670Z",
+    "2026-02-23T10:04:23.616Z",
+    "2026-02-23T10:04:23.670Z",
+    "2026-02-23T10:04:51.027Z",
+    "2026-02-23T10:04:51.026Z",
+    "2026-02-23T10:04:51.027Z",
+    "2026-02-23T10:05:24.026Z",
+    "2026-02-23T10:05:24.026Z",
+    "2026-02-23T10:05:24.026Z",
+    "2026-02-23T17:03:41.479Z",
+    "2026-02-23T17:08:13.006Z"
+  ]
+}

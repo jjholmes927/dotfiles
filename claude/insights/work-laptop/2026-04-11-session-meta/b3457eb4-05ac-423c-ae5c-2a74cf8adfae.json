@@ -1,0 +1,56 @@
+{
+  "session_id": "b3457eb4-05ac-423c-ae5c-2a74cf8adfae",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-02-23T16:47:50.408Z",
+  "duration_minutes": 18,
+  "user_message_count": 5,
+  "assistant_message_count": 114,
+  "tool_counts": {
+    "Task": 1,
+    "Read": 22,
+    "Grep": 12,
+    "Edit": 21,
+    "Bash": 20,
+    "Glob": 4
+  },
+  "languages": {
+    "TypeScript": 19,
+    "Ruby": 11,
+    "YAML": 12
+  },
+  "git_commits": 1,
+  "git_pushes": 1,
+  "input_tokens": 124,
+  "output_tokens": 8905,
+  "first_prompt": "when a realtime interpretation conversation is in saved mode and we are on the show page can we add the header  information from the image, speaker and their language seperated, the data nit was creat…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    306.86
+  ],
+  "tool_errors": 4,
+  "tool_error_categories": {
+    "Other": 3,
+    "Command Failed": 1
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 65,
+  "lines_removed": 6,
+  "files_modified": 12,
+  "message_hours": [
+    16,
+    16,
+    16,
+    16,
+    17
+  ],
+  "user_message_timestamps": [
+    "2026-02-23T16:47:50.498Z",
+    "2026-02-23T16:47:50.398Z",
+    "2026-02-23T16:47:50.498Z",
+    "2026-02-23T16:49:40.938Z",
+    "2026-02-23T17:02:19.817Z"
+  ]
+}

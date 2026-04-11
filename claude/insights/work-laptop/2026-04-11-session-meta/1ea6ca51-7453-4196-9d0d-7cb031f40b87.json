@@ -1,0 +1,68 @@
+{
+  "session_id": "1ea6ca51-7453-4196-9d0d-7cb031f40b87",
+  "project_path": "/Users/beamtempmacbookpro/Documents/repos/mn2/magicnotes",
+  "start_time": "2026-02-20T09:10:49.229Z",
+  "duration_minutes": 229,
+  "user_message_count": 9,
+  "assistant_message_count": 85,
+  "tool_counts": {
+    "EnterPlanMode": 1,
+    "Task": 3,
+    "Read": 12,
+    "Write": 2,
+    "ExitPlanMode": 1,
+    "Bash": 19,
+    "Edit": 11
+  },
+  "languages": {
+    "Markdown": 2,
+    "Ruby": 9
+  },
+  "git_commits": 3,
+  "git_pushes": 3,
+  "input_tokens": 25351,
+  "output_tokens": 9171,
+  "first_prompt": "I want you to update the big query data stream  with our new models for real time interpretation conversation etc, just skip PII so probably none of the transcribted text or translated text on turns o…",
+  "user_interruptions": 0,
+  "user_response_times": [
+    1866.163,
+    61.521,
+    1945.419,
+    189.732,
+    113.359
+  ],
+  "tool_errors": 3,
+  "tool_error_categories": {
+    "Command Failed": 1,
+    "Other": 2
+  },
+  "uses_task_agent": true,
+  "uses_mcp": false,
+  "uses_web_search": false,
+  "uses_web_fetch": false,
+  "lines_added": 310,
+  "lines_removed": 10,
+  "files_modified": 9,
+  "message_hours": [
+    9,
+    9,
+    9,
+    9,
+    12,
+    12,
+    12,
+    12,
+    12
+  ],
+  "user_message_timestamps": [
+    "2026-02-20T09:10:49.243Z",
+    "2026-02-20T09:10:49.171Z",
+    "2026-02-20T09:10:49.243Z",
+    "2026-02-20T09:12:19.077Z",
+    "2026-02-20T12:12:39.533Z",
+    "2026-02-20T12:13:52.908Z",
+    "2026-02-20T12:46:52.368Z",
+    "2026-02-20T12:50:14.623Z",
+    "2026-02-20T12:58:44.173Z"
+  ]
+}

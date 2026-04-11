@@ -1,0 +1,15 @@
+{
+  "underlying_goal": "Determine the specific WebSocket endpoint and port that Birmingham's IT team needs to whitelist so staff don't have to manually refresh for chat responses",
+  "goal_categories": {
+    "infrastructure_diagnosis": 1
+  },
+  "outcome": "mostly_achieved",
+  "user_satisfaction_counts": {},
+  "claude_helpfulness": "very_helpful",
+  "session_type": "quick_question",
+  "friction_counts": {},
+  "friction_detail": "",
+  "primary_success": "good_explanations",
+  "brief_summary": "User asked which specific WebSocket endpoint/port needs to be opened for a client's IT team, and Claude identified it as wss://magicnotes.ai/cable on port 443.",
+  "session_id": "e3ee432f-44cf-4d3d-9919-105531b676d6"
+}
