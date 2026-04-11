@@ -14,7 +14,6 @@ export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 # Added by `rbenv init` on Tue 17 Jun 2025 20:50:44 BST
 eval "$(rbenv init - --no-rehash bash)"
 
-. "$HOME/.local/bin/env"
 
 # Added by Antigravity
 export PATH="/Users/beamtempmacbookpro/.antigravity/antigravity/bin:$PATH"
