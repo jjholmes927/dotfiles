@@ -134,12 +134,13 @@ For bug fixes, add a **Steps to Reproduce** section.
 
 ## Step 6: Watch CI
 
-Wait a few seconds after PR creation for checks to register, then watch:
+Watch CI checks — GitHub needs a moment to register them, so retry on empty output:
 
 ```bash
-sleep 5
 gh pr checks <PR_NUMBER> --watch
 ```
+
+If the first call returns immediately with no checks listed, wait 2 seconds and try once more.
 
 This blocks until all checks complete.
 
@@ -187,20 +188,42 @@ After applying any Bugbot fixes, watch CI again to confirm nothing broke before 
 
 ## Step 8: Code Review
 
-Once CI is green and Bugbot is addressed, invoke the domain-aware code reviewer:
+Once CI is green and Bugbot is addressed, run the PR review:
 
 ```
-Invoke the /review-pr skill
+/review-pr <PR_NUMBER>
 ```
 
-The `/review-pr` skill handles the full review flow: loads domain docs, runs the review checklist, traces callers, and presents findings by severity. It replaces the generic `superpowers:code-reviewer` dispatch with domain-specific review knowledge.
+This launches four parallel reviewers (security, Rails patterns, code quality, product domain)
+and posts the combined review to the GitHub PR.
 
-If the `/review-pr` skill is not available, fall back to dispatching `superpowers:code-reviewer` as before.
+If `/review-pr` exits without emitting a `REVIEW_STATUS:` line (e.g. auth failure, no PR found, no diff), report the error to the user and stop — do not proceed to Done.
 
-Act on review feedback:
-- **Critical** → fix immediately, push, re-check CI
-- **Important** → fix before marking PR ready
-- **Minor** → note but don't block
+### If review returns REVIEW_STATUS: CRITICAL
+
+Show findings inline and prompt:
+```
+Critical issues found. Fix now? (y/n)
+```
+
+**If yes:**
+1. Address the findings locally
+2. Stage and commit (new commit, NOT amend)
+3. Push to existing PR
+4. Watch CI again (return to Step 6, then Step 7 if Bugbot hasn't reviewed the new commit)
+5. Re-run `/review-pr <PR_NUMBER>` after CI is green
+6. Repeat up to 3 review-fix iterations total — if Critical findings persist after 3 rounds, stop and report to user. The Step 6 CI iteration counter resets for each new set of committed fixes.
+
+**If no (skip fixes):**
+Continue to Done.
+
+### If review returns REVIEW_STATUS: OK
+
+Do not prompt or block — the developer decides independently. The findings are already displayed inline by `/review-pr`.
+
+### If review returns REVIEW_STATUS: CLEAN
+
+Proceed directly to Done.
 
 ## Red Flags — STOP
 
