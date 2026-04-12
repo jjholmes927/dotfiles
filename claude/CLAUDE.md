@@ -123,3 +123,6 @@ When creating new slash commands or skills, prefer placing them in the global do
 - For multi-step tasks, use TodoWrite to track progress
 - Commit frequently with clear messages
 - When processing multiple files, summarize what was done at the end
+# graphify
+- **graphify** (`~/.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
+When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
