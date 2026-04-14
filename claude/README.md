@@ -11,6 +11,8 @@ Personal configuration for [Claude Code](https://docs.anthropic.com/en/docs/clau
 | `commands/` | Custom slash commands available in all projects |
 | `hooks/tmux-alert.sh` | Sends a tmux bell when Claude needs attention (permission prompts, idle, input dialogs) |
 | `scripts/statusline.sh` | Status line script that shows git branch, context usage, and model info |
+| `mcp-servers.json` | Source-of-truth MCP server definitions shared with Codex |
+| `sync-mcps.sh` | Merges the MCP server list into `~/.claude.json` without overwriting other machine-local Claude state |
 
 ### Slash commands
 
@@ -34,7 +36,7 @@ Run the bootstrap script from the dotfiles repo root (or from inside `claude/`):
 ./claude/install.sh
 ```
 
-The script is idempotent — safe to re-run. It symlinks `CLAUDE.md`, `settings.json`, `commands/`, `scripts/statusline.sh`, and `hooks/tmux-alert.sh` into `~/.claude/`, and backs up anything it would overwrite to `~/.claude/backups/install-<timestamp>/`.
+The script is idempotent — safe to re-run. It symlinks `CLAUDE.md`, `settings.json`, `commands/`, `scripts/statusline.sh`, `hooks/tmux-alert.sh`, and `mcp-servers.json` into `~/.claude/`, then syncs the MCP server list into `~/.claude.json`. Anything it would overwrite is backed up to `~/.claude/backups/install-<timestamp>/`.
 
 ## Unified memory across parallel clones (GigMe only)
 
@@ -58,6 +60,7 @@ ln -sfn ~/.claude/shared-memory/gigme \
 
 - `settings.json` contains plugin references that may need adjusting per machine (e.g. if plugins aren't installed yet)
 - `settings.local.json` (permissions) is intentionally excluded — it's machine-specific
+- MCP auth remains machine-local — only the MCP server definitions are synced via dotfiles
 - Project-level `CLAUDE.md` files live in each repo, not here
 - `~/.claude/projects/` (session history and memory) is not touched by `install.sh` — too machine-specific and paths-based to sync via dotfiles
 - The tmux notification hook requires `monitor-bell on` and `bell-action any` in tmux (enabled by default in gpakosz/.tmux)

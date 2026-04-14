@@ -1,0 +1,24 @@
+{
+  "linear-server": {
+    "type": "http",
+    "url": "https://mcp.linear.app/mcp"
+  },
+  "sentry": {
+    "type": "http",
+    "url": "https://mcp.sentry.dev/mcp"
+  },
+  "honeycomb": {
+    "type": "http",
+    "url": "https://mcp.eu1.honeycomb.io/mcp"
+  },
+  "gws": {
+    "type": "stdio",
+    "command": "gws",
+    "args": [
+      "mcp",
+      "-s",
+      "drive,gmail,calendar"
+    ],
+    "env": {}
+  }
+}
