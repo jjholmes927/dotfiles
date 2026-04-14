@@ -1,6 +1,6 @@
 ---
 name: save-permissions
-description: Scan recent Codex shell activity, derive safe reusable command prefixes, and save them into Codex prefix rules. Use when the user says save permissions, save session permissions, or add command approvals.
+description: Scan recent Codex shell activity, derive safe reusable command prefixes, and save them into Codex prefix rules. Use when the user says save permissions, save session permissions, add command approvals, remember these approvals, persist shell approvals, or explicitly says use save-permissions.
 ---
 
 # Save Permissions

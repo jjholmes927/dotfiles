@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Create a concise handoff summary for continuing work in a fresh Codex session. Use when the user says handoff, create a handoff, or wants a summary to continue later.
+description: Create a concise handoff summary for continuing work in a fresh Codex session. Use when the user says handoff, create a handoff, write a session summary, help me continue later, give me something to paste into a new session, or explicitly says use handoff.
 ---
 
 # Handoff

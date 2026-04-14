@@ -1,6 +1,6 @@
 ---
 name: log-error
-description: Interview the user about a recent Codex or workflow mistake, identify what went wrong, and capture prevention strategies. Use when the user says log error, what went wrong, or wants to analyze a mistake.
+description: Interview the user about a recent Codex or workflow mistake, identify what went wrong, and capture prevention strategies. Use when the user says log error, what went wrong, analyze this mistake, help me learn from this failure, why did this go wrong, or explicitly says use log-error.
 ---
 
 # Log Error

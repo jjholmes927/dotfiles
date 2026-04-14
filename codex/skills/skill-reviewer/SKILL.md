@@ -1,6 +1,6 @@
 ---
 name: skill-reviewer
-description: Review a Codex skill or ported command for structural quality and domain accuracy. Use when the user says review this skill, check my skill, or asks about skill quality and best practices.
+description: Review a Codex skill or ported command for structural quality and domain accuracy. Use when the user says review this skill, check my skill, skill review, is this skill any good, improve this skill, or asks about skill quality and best practices, or explicitly says use skill-reviewer.
 ---
 
 # Skill Reviewer

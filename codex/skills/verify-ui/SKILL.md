@@ -1,6 +1,6 @@
 ---
 name: verify-ui
-description: Verify a UI flow against a live dev server using browser automation. Use when the user says verify ui, check the ui, verify a page, or wants a quick non-destructive browser sanity check.
+description: Verify a UI flow against a live dev server using browser automation. Use when the user says verify ui, check the ui, verify a page, test this screen, sanity check the frontend, inspect the login flow, or wants a quick non-destructive browser sanity check, or explicitly says use verify-ui.
 ---
 
 # Verify UI

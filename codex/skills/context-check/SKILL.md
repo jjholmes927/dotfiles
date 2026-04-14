@@ -1,6 +1,6 @@
 ---
 name: context-check
-description: Assess Codex session context health and recommend whether to continue, summarize, hand off, or start a fresh session. Use when the user says context check, asks if context is getting messy, or responses seem to be degrading.
+description: Assess Codex session context health and recommend whether to continue, summarize, hand off, or start a fresh session. Use when the user says context check, how is context looking, is context getting messy, should we start fresh, should we hand off, responses seem to be degrading, or explicitly says use context-check.
 ---
 
 # Context Check

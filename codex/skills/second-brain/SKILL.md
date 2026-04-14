@@ -1,6 +1,6 @@
 ---
 name: second-brain
-description: Manage a personal second brain or knowledge vault. Use when the user says process inbox, weekly review, what should I focus on, prep for 1:1, or asks about their second brain, vault, or PKM system.
+description: Manage a personal second brain or knowledge vault. Use when the user says process inbox, weekly review, what should I focus on, prep for 1:1, review my vault, work in my second brain, manage my notes, or asks about their second brain, vault, or PKM system, or explicitly says use second-brain.
 ---
 
 # Second Brain
