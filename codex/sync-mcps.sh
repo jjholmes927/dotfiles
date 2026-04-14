@@ -30,7 +30,34 @@ def exists(name):
     result = run("codex", "mcp", "get", name, "--json")
     return result.returncode == 0
 
+def remove(name):
+    result = run("codex", "mcp", "remove", name)
+    return result.returncode == 0, result
+
+def gws_mcp_supported():
+    result = run("gws", "mcp", "--help")
+    return result.returncode == 0
+
+skipped = []
+
 for name, config in source.items():
+    if (
+        config["type"] == "stdio"
+        and config.get("command") == "gws"
+        and config.get("args", [None])[0] == "mcp"
+        and not gws_mcp_supported()
+    ):
+        skipped.append(name)
+        if exists(name):
+            ok, result = remove(name)
+            if not ok:
+                print(result.stderr.strip() or result.stdout.strip(), file=sys.stderr)
+                raise SystemExit(result.returncode)
+            print(f"Removed unsupported Codex MCP server: {name}")
+        else:
+            print(f"Skipping unsupported Codex MCP server on this machine: {name}")
+        continue
+
     if exists(name):
         print(f"Already configured in Codex: {name}")
         continue
@@ -51,6 +78,10 @@ for name, config in source.items():
     print(f"Added Codex MCP server: {name}")
 
 print("MCP sync complete.")
+if skipped:
+    print("Skipped MCP servers without local support:")
+    for name in skipped:
+        print(f"  - {name}")
 print("Authenticate user-level HTTP MCPs as needed with:")
 for name, config in source.items():
     if config["type"] == "http":
