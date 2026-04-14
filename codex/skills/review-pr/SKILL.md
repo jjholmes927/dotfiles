@@ -1,6 +1,6 @@
 ---
 name: review-pr
-description: Review a pull request or branch diff across security, framework patterns, code quality, and product behavior. Use when the user asks to review a PR, review code changes, self-review before pushing, or check for issues before merging.
+description: Review a pull request or branch diff across security, framework patterns, code quality, and product behavior. Use when the user asks to review a PR, review this branch, self-review before pushing, check for issues before merging, review code changes, review the diff, or explicitly says use review-pr.
 ---
 
 # Review PR

@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Run an end-to-end ship workflow for a branch: format, commit, push, open or update a PR, watch CI, and self-review. Use when the user says ship it, open a PR, push this branch, or wants an end-to-end release workflow for current changes.
+description: Run an end-to-end ship workflow for a branch: format, commit, push, open or update a PR, watch CI, and self-review. Use when the user says ship it, open a PR, push this branch, get this ready to merge, take this through CI, finish this branch, or explicitly says use ship.
 ---
 
 # Ship

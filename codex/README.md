@@ -41,6 +41,18 @@ codex mcp login honeycomb
 
 `gws` is a stdio server, so it uses whatever local auth the `gws` CLI already has.
 
+## Using skills
+
+Codex skills are usually triggered automatically from the skill `description` when your request matches the wording.
+
+You can also invoke them intentionally by naming them in your prompt, for example:
+
+```text
+use verify-ui to check the login page
+use handoff for this session
+use pick-up-linear-ticket for INT-156
+```
+
 ## Notes
 
 - `~/.codex/config.toml` remains machine-local and is not overwritten here.

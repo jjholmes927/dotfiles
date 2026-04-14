@@ -1,6 +1,6 @@
 ---
 name: brag-doc
-description: Generate weekly brag doc entries from GitHub activity. Use when asked to create a brag doc, summarize weekly contributions, review GitHub activity, or promote highlights into a weekly accomplishments log.
+description: Generate weekly brag doc entries from GitHub activity. Use when the user asks to create a brag doc, write a weekly update, summarize weekly contributions, review GitHub activity, draft accomplishments, promote highlights, or explicitly says use brag-doc.
 ---
 
 # Brag Doc

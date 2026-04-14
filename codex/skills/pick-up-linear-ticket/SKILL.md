@@ -1,6 +1,6 @@
 ---
 name: pick-up-linear-ticket
-description: Fetch a Linear ticket, claim it, warm the context, and transition into implementation. Use when the user says pick up, start working on, grab ticket, claim ticket, or gives a Linear ticket URL or identifier such as INT-156 or COR-123.
+description: Fetch a Linear ticket, claim it, warm the context, and transition into implementation. Use when the user says pick up this ticket, start working on INT-156, grab ticket, claim ticket, work on COR-123, begin a Linear issue, or gives a Linear ticket URL or identifier such as INT-156 or COR-123, or explicitly says use pick-up-linear-ticket.
 ---
 
 # Pick Up Linear Ticket
