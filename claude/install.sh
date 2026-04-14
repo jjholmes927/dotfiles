@@ -70,6 +70,11 @@ header "Hooks"
 link "$SCRIPT_DIR/hooks/tmux-alert.sh" "$CLAUDE_HOME/hooks/tmux-alert.sh"
 chmod +x "$SCRIPT_DIR/hooks/tmux-alert.sh"
 
+header "MCP servers"
+link "$SCRIPT_DIR/mcp-servers.json" "$CLAUDE_HOME/mcp-servers.json"
+chmod +x "$SCRIPT_DIR/sync-mcps.sh"
+"$SCRIPT_DIR/sync-mcps.sh"
+
 header "Done"
 if [[ -d "$BACKUP_DIR" ]]; then
   echo "  Backups: $BACKUP_DIR"
@@ -79,3 +84,4 @@ fi
 echo
 echo "Note: settings.local.json (machine-specific permissions) is intentionally NOT symlinked."
 echo "Note: ~/.claude/projects/ (sessions + memory) is intentionally NOT touched."
+echo "Note: MCP auth remains machine-local. Only the server definitions are synced here."
