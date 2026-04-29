@@ -1,13 +1,24 @@
 {
-  "model": "claude-opus-4-6",
+  "permissions": {
+    "allow": [
+      "Read(**/.claude/**)",
+      "Read(~/.claude/**)",
+      "Bash(agent-browser)",
+      "Bash(agent-browser *)",
+      "Bash(gh pr create*)",
+      "Bash(diffocop*)",
+      "Bash(rubocop*)",
+      "Bash(gh api *)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Glob|Grep",
+        "matcher": "Agent",
         "hooks": [
           {
             "type": "command",
-            "command": "[ -f graphify-out/graph.json ] && echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"graphify: Knowledge graph exists. Read graphify-out/GRAPH_REPORT.md for god nodes and community structure before searching raw files.\"}}' || true"
+            "command": "jq '{hookSpecificOutput: {hookEventName: \"PreToolUse\", updatedInput: (.tool_input | if has(\"model\") then . else . + {model: \"opus\"} end)}}'"
           }
         ]
       }
@@ -51,18 +62,12 @@
     "guideline-refresher@jjholmes927-claude-skills": true,
     "beam-claude-skills-all@beam-claude-skills": true,
     "beam-claude-skills@beam-claude-skills": true,
-    "frontend-design@claude-code-plugins": true,
+    "claude-md-management@claude-plugins-official": true,
     "ruby-lsp@claude-plugins-official": true,
-    "mempalace@mempalace": true
+    "linear@claude-plugins-official": true
   },
-  "extraKnownMarketplaces": {
-    "mempalace": {
-      "source": {
-        "source": "github",
-        "repo": "milla-jovovich/mempalace"
-      }
-    }
-  },
-  "effortLevel": "max",
-  "skipDangerousModePermissionPrompt": true
+  "effortLevel": "high",
+  "autoDreamEnabled": true,
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark-daltonized"
 }
