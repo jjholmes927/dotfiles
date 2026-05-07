@@ -56,8 +56,9 @@ echo "  Target: $CLAUDE_HOME"
 ensure_dir "$CLAUDE_HOME"
 
 header "Global instructions and settings"
-link "$SCRIPT_DIR/CLAUDE.md"     "$CLAUDE_HOME/CLAUDE.md"
-link "$SCRIPT_DIR/settings.json" "$CLAUDE_HOME/settings.json"
+link "$SCRIPT_DIR/CLAUDE.md"        "$CLAUDE_HOME/CLAUDE.md"
+link "$SCRIPT_DIR/settings.json"    "$CLAUDE_HOME/settings.json"
+link "$SCRIPT_DIR/skill-feedback.md" "$CLAUDE_HOME/skill-feedback.md"
 
 header "Commands (directory-level symlink)"
 link "$SCRIPT_DIR/commands" "$CLAUDE_HOME/commands"
