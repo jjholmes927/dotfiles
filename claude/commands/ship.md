@@ -113,24 +113,42 @@ If no issues were found, proceed directly to push.
 git push -u origin <branch-name>
 ```
 
-If no PR exists yet, create one with `gh pr create`. Use a HEREDOC for the body:
+If no PR exists yet, create one with `gh pr create`. Use a HEREDOC for the body.
+
+### Writing the body
+
+Keep it terse and outcome-focused. Aim for ~5–10 lines total. Long bullet inventories duplicate the diff and bury the actual story.
+
+- **What** — 1–2 sentences describing the user-visible capability change in plain language. Don't list function names, constants, or "wired into X" — the diff covers that.
+- **Why** — motivation in real-world terms. Include real numbers when you have them (latency, cost, error rate, sample sizes). Link the report/ticket/dashboard that justifies the work.
+- **No "Fixes TICKET-ID" footer.** Linear auto-attaches via the ticket bracket in the PR title (e.g. `[INT-350]`). Linking the ticket inline in the Why section is fine if it adds context.
+- For bug fixes, add a **Steps to Reproduce** section.
+
+### Template
 
 ```bash
-gh pr create --title "feat: Title here" --body "$(cat <<'EOF'
+gh pr create --title "feat: Title here [TICKET-ID]" --body "$(cat <<'EOF'
 **What**
-
-- Bullet points describing changes
+One-or-two-sentence description of the capability change.
 
 **Why**
-
-- Context and reasoning
-
-Fixes TICKET-ID
+Motivation in real-world terms — why this matters, what it unblocks, what it improves. Include numbers (latency, cost, etc.) when relevant. Link [TICKET-ID](https://linear.app/...) or supporting docs inline if useful.
 EOF
 )"
 ```
 
-For bug fixes, add a **Steps to Reproduce** section.
+### Counter-example (too verbose — avoid)
+
+Don't write a bullet for every code change like this:
+```
+**What**
+- Add `Foo::Bar.baz(x:, y:)` that does X
+- Wire it into `Some::Service#do_thing`
+- Add `THING_CONSTANT` with the values from the report
+- Update `Some::Service` to use the new constant
+- Add 3 OTel span attributes: `foo.bar`, `foo.baz`, ...
+```
+This is just a worse version of the diff. The reviewer can see the diff. Tell them what *outcome* the changes produce.
 
 ## Step 6: Watch CI
 
