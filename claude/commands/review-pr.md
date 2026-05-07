@@ -101,14 +101,30 @@ Look for:
 - Unsafe or open redirects
 - Brakeman-class issues
 
-Output format — list findings as:
-CRITICAL: <description> [file:line if identifiable]
-IMPORTANT: <description> [file:line if identifiable]
-MINOR: <description> [file:line if identifiable]
-NONE: No security findings.
+Before flagging, sanity-check:
+- "Credentials shipped to browser" — many SDK keys (analytics, embedded clients) are public/client-distributable by vendor design. Flag for confirmation as MINOR unless there's clear evidence the key is server-only.
+- "By-design" behaviour — if the cited code has a comment, spec reference, or obvious intent (anti-flicker, state-machine terminal, etc.), raise as a question, not a bug.
 
-Only output findings at these severity levels. Be concise. One line per finding.
-Maximum 10 findings total. Prioritise the most significant.
+Severity calibration:
+- CRITICAL — observable security hole an attacker can exercise on a realistic path.
+- IMPORTANT — real risk that manifests under realistic conditions, not "if X and Y and Z all coincide."
+- MINOR — hardening, low-probability edge case, vendor confirmation, defence-in-depth.
+
+Skip findings where the failure mode requires the system to already be broken at a deeper level (e.g. "could exfiltrate if the sandboxed worker is itself compromised" — the worker is the layer we trust).
+
+Output format — one line per finding, pipe-delimited:
+CRITICAL | <finding> | <impact> | <file:line>
+IMPORTANT | <finding> | <impact> | <file:line>
+MINOR | <finding> | <impact> | <file:line>
+
+Where:
+- <finding> — what is wrong, ≤15 words. Lead with the symbol (method, class, attribute, file) in backticks when identifiable.
+- <impact> — why it matters / what breaks, one sentence.
+- <file:line> — location, e.g. `path/to/file.rb:42`. Use `model name` or `test suite` if no file applies. Multiple refs joined with ` · `.
+
+If no findings: output `NONE` on its own line.
+
+Be concise. Maximum 10 findings total. Prioritise the most significant.
 
 <diff>
 [INSERT FULL DIFF HERE]
@@ -136,14 +152,31 @@ Look for:
 - Missing database indexes on new foreign keys or frequently-queried columns
 - find_or_create_by vs create! race condition risks
 
-Output format:
-CRITICAL: <description> [file:line if identifiable]
-IMPORTANT: <description> [file:line if identifiable]
-MINOR: <description> [file:line if identifiable]
-NONE: No Rails pattern findings.
+Before flagging, sanity-check:
+- "Convention violation" claims — confirm the convention exists elsewhere in the same controller/file before calling something a violation. A divergent endpoint isn't a violation if no other endpoint in this file follows the supposed pattern.
+- "Should be extracted to a service" claims — only flag if the action does meaningful work beyond a single update. A 3-line `update!` controller action does not need a `Dry::Monads` service.
+- "Should rescue" claims — only flag if the unrescued exception will surface as a 500 to a real user request. If the input is typed and validated upstream (e.g. typed boolean from a TypeScript client), an unhandled `NotNullViolation` is acceptable telemetry.
 
-Only output findings at these severity levels. Be concise. One line per finding.
-Maximum 10 findings total. Prioritise the most significant.
+Severity calibration:
+- CRITICAL — production-affecting bug (data corruption, lost work, performance cliff under realistic load).
+- IMPORTANT — real risk that will manifest under realistic conditions, not just "could theoretically happen."
+- MINOR — stylistic, missing memoisation, missing `ransackable_attributes` for an attribute nothing currently filters on, deferred refactors.
+
+Skip findings where the cited issue is an existing pattern in the controller/file that isn't being newly introduced by this PR — note as "out of scope" rather than flagging the PR for it.
+
+Output format — one line per finding, pipe-delimited:
+CRITICAL | <finding> | <impact> | <file:line>
+IMPORTANT | <finding> | <impact> | <file:line>
+MINOR | <finding> | <impact> | <file:line>
+
+Where:
+- <finding> — what is wrong, ≤15 words. Lead with the symbol (method, class, attribute, file) in backticks when identifiable.
+- <impact> — why it matters / what breaks, one sentence.
+- <file:line> — location, e.g. `path/to/file.rb:42`. Use `model name` or `test suite` if no file applies. Multiple refs joined with ` · `.
+
+If no findings: output `NONE` on its own line.
+
+Be concise. Maximum 10 findings total. Prioritise the most significant.
 
 <diff>
 [INSERT FULL DIFF HERE]
@@ -166,14 +199,32 @@ Look for:
 - Methods doing too many things
 - Naming that obscures intent
 
-Output format:
-CRITICAL: <description> [file:line if identifiable]
-IMPORTANT: <description> [file:line if identifiable]
-MINOR: <description> [file:line if identifiable]
-NONE: No code quality findings.
+Before flagging, sanity-check:
+- Race / ordering claims — read the actual statement order at the cited lines. `setRefA(...); setStateB(...);` in the same effect is sequential, not racing. Only flag a race if the two operations are in *different* effects, callbacks, or async boundaries with no enforced ordering.
+- Stale-prop / stale-ref claims — check call frequency. A function called once at session start has no stale-prop problem. Only flag if the function is called repeatedly across renders and the captured value matters at each call.
+- "Unbounded queue / unbounded growth" claims — only flag if there's a realistic path to sustained imbalance between producer and consumer. If unbounded growth requires the underlying system to already be broken (e.g. `process()` not running), the queue cap isn't the right fix.
+- "Dead branch / unreachable fallback" — confirm the branch is genuinely unreachable, not just rarely hit. A defensive `?? performance.now()` may exist for type-narrowing reasons even if the runtime path is unreachable.
 
-Only output findings at these severity levels. Be concise. One line per finding.
-Maximum 10 findings total. Prioritise the most significant.
+Severity calibration:
+- CRITICAL — observable bug that breaks the feature for real users on a realistic path.
+- IMPORTANT — real bug or risk that will manifest under realistic conditions, not "could happen if X and Y and Z all coincide."
+- MINOR — stylistic, dead code, missing tests, low-probability edge case, hardening not blocking ship.
+
+Skip findings where the failure mode requires the system to already be broken at a deeper level. "Defensive" findings (could fail if an upstream invariant is violated) are MINOR at most, often skip.
+
+Output format — one line per finding, pipe-delimited:
+CRITICAL | <finding> | <impact> | <file:line>
+IMPORTANT | <finding> | <impact> | <file:line>
+MINOR | <finding> | <impact> | <file:line>
+
+Where:
+- <finding> — what is wrong, ≤15 words. Lead with the symbol (method, class, attribute, file) in backticks when identifiable.
+- <impact> — why it matters / what breaks, one sentence.
+- <file:line> — location, e.g. `path/to/file.rb:42`. Use `model name` or `test suite` if no file applies. Multiple refs joined with ` · `.
+
+If no findings: output `NONE` on its own line.
+
+Be concise. Maximum 10 findings total. Prioritise the most significant.
 
 <diff>
 [INSERT FULL DIFF HERE]
@@ -203,14 +254,28 @@ Look for:
 - Scope creep — the change does more than the PR description says
 - User-facing consequences not mentioned in the PR description
 
-Output format:
-CRITICAL: <description>
-IMPORTANT: <description>
-MINOR: <description>
-NONE: No product domain findings.
+Before flagging, sanity-check:
+- "Behaviour contradicts the vision" claims — quote or paraphrase the specific vision statement being violated. Vague "this might erode trust" without a concrete vision-doc anchor is noise.
+- "Scope creep" claims — only flag if a code change in the diff genuinely expands the PR's stated intent. Refactors and tightening incidental to the headline feature are not scope creep.
 
-Only output findings at these severity levels. Be concise. One line per finding.
-Maximum 10 findings total. Prioritise the most significant.
+Severity calibration:
+- CRITICAL — change that visibly degrades the user experience on a realistic path (e.g. silent data loss, broken core flow).
+- IMPORTANT — real product risk that will affect users in normal use, with a concrete vision-doc or product-knowledge anchor.
+- MINOR — copy / UX / scope nit, or a product question worth raising before merge.
+
+Output format — one line per finding, pipe-delimited:
+CRITICAL | <finding> | <impact> | <file:line>
+IMPORTANT | <finding> | <impact> | <file:line>
+MINOR | <finding> | <impact> | <file:line>
+
+Where:
+- <finding> — what is wrong, ≤15 words. Lead with the symbol (method, class, attribute, file) in backticks when identifiable.
+- <impact> — why it matters / what breaks, one sentence.
+- <file:line> — location, or `n/a` for product-domain findings that don't tie to a single file.
+
+If no findings: output `NONE` on its own line.
+
+Be concise. Maximum 10 findings total. Prioritise the most significant.
 
 <diff>
 [INSERT FULL DIFF HERE]
@@ -221,41 +286,64 @@ Maximum 10 findings total. Prioritise the most significant.
 
 After all four agents return, combine their outputs:
 
-1. Collect all lines starting with CRITICAL:, IMPORTANT:, MINOR: from all agents
-2. Deduplicate by topic — if two agents flag the same issue in different words, keep the
-   more descriptive one. Prefer false-positive duplicates over missed real findings.
-3. Group by severity. Prefix each finding with the agent tag in brackets:
-   `[security]`, `[rails]`, `[quality]`, `[product]`
-4. Format the final comment (omit sections with no findings):
+1. Collect all `CRITICAL | … | … | …`, `IMPORTANT | … | … | …`, `MINOR | … | … | …` lines from each agent.
+2. Deduplicate by topic — if two agents flag the same issue in different words, keep the more descriptive one. Prefer false-positive duplicates over missed real findings.
+3. Group by severity (Critical → Important → Minor). Number findings globally starting at 1 (so Critical takes 1..N, Important continues from there, Minor continues again).
+4. Format the final comment using the layout below. Omit any severity section that has 0 findings — but always include the headline counts.
+
+Layout:
 
 ```markdown
-## AI Code Review
+## AI Code Review &nbsp;·&nbsp; 🔴 N critical &nbsp;·&nbsp; 🟡 N important &nbsp;·&nbsp; 🟢 N minor
 
-### 🔴 Critical
-- [tag] description
+<details>
+<summary><b>🔴 Critical (N)</b></summary>
 
-### 🟡 Important
-- [tag] description
+| # | Finding | Impact |
+|---|---|---|
+| 1 | <finding text><br><sub><file:line></sub> | <impact text> |
+| 2 | … | … |
 
-### 🟢 Minor
-- [tag] description
+</details>
 
----
-*security · rails-patterns · code-quality · product-domain*
+<details>
+<summary><b>🟡 Important (N)</b></summary>
+
+| # | Finding | Impact |
+|---|---|---|
+| 3 | … | … |
+
+</details>
+
+<details>
+<summary><b>🟢 Minor (N)</b></summary>
+
+| # | Finding | Impact |
+|---|---|---|
+| 11 | … | … |
+
+</details>
+
+<sub>security · rails-patterns · code-quality · product-domain</sub>
 ```
+
+Cell rules (keep tables inside the comment width — long unbreakable code spans force horizontal scroll):
+- Finding cell: finding text on line 1, then `<br><sub>` wrapping the file ref on line 2, closed with `</sub>`.
+- Wrap symbols (method, class, attribute) in backticks but keep them short.
+- Multi-file refs: join with ` · `. For multiple lines in the same file, use `:42 · :108` shorthand.
+- Aim for finding ≤ 18 words and impact ≤ 25 words. Tighten prose if cells overflow.
 
 If all four agents returned NONE → output:
+
 ```markdown
-## AI Code Review
+## AI Code Review &nbsp;·&nbsp; ✅ No findings
 
-✅ No significant issues found.
-
----
-*security · rails-patterns · code-quality · product-domain*
+<sub>security · rails-patterns · code-quality · product-domain</sub>
 ```
 
-Note any agents that failed or timed out in the footer:
-`⚠️ rails-patterns timed out — skipped`
+If any agent failed, timed out, or was skipped (e.g. `docs/vision-and-ethos.md` not present), replace its tag in the footer with `⚠️ <tag> skipped — <reason>`. Example:
+
+`<sub>security · rails-patterns · code-quality · ⚠️ product-domain skipped — docs/vision-and-ethos.md not found</sub>`
 
 ## Step 5: Route output
 
