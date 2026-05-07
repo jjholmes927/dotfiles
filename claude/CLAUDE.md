@@ -74,41 +74,27 @@ Good comments capture:
 
 ## PR Descriptions
 
-Always structure PR descriptions with **What** and **Why** as bold headers:
+Keep them terse and outcome-focused. ~5–10 lines total. Long bullet inventories of every code change duplicate the diff and bury the actual story.
+
+Structure with **What** and **Why** as bold headers:
+
+- **What** — 1–2 sentences describing the user-visible capability change in plain language. Don't list function names, constants, or "wired into X" — the diff covers that.
+- **Why** — motivation in real-world terms. Include real numbers when you have them (latency, cost, error rate, sample sizes). Link supporting reports/dashboards inline if useful.
+- **No "Fixes TICKET-ID" footer.** Put the ticket reference in the PR title bracket (e.g. `[INT-350]`) — Linear attaches via the title. Linking the ticket inline in Why is fine if it adds context.
+- For bug fixes, add a **Steps to Reproduce** section after Why.
 
 ```markdown
 **What**
-
-- Bullet points describing the changes made
-
-**Why**
-
-- Explanation of the reason/context for these changes
-
-Fixes LINEAR-123
-```
-
-For bug fixes, add a **Steps to Reproduce** section:
-
-```markdown
-**What**
-
-- Description of the fix
+One-or-two-sentence description of the capability change.
 
 **Why**
+Motivation in real-world terms — why this matters, what it unblocks, what it improves. Include numbers when relevant.
 
-- Why this bug occurred / what was wrong
-
-**Steps to Reproduce**
-
+**Steps to Reproduce** (bug fixes only)
 1. Step one
 2. Step two
 3. Observe the issue
-
-Fixes LINEAR-123
 ```
-
-Include the Linear ticket reference in the PR title or description body.
 
 ## Commands and Skills
 
