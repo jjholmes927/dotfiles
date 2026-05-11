@@ -118,4 +118,5 @@
       "editor.formatOnSave": true
     },
     "typescript.updateImportsOnFileMove.enabled": "always",
+    "window.autoDetectColorScheme": false,
   }
