@@ -43,34 +43,16 @@ Before committing, always run the appropriate formatters/linters:
 
 ## Code Comments
 
-Code should be self-descriptive and readable without comments. Only add comments that provide context for **why** the code exists, not **what** it does.
+**NEVER write code comments unless I explicitly ask for them.** This is a hard rule, not a preference. Default to zero comments. Code should be self-descriptive through naming and structure.
 
-**Bad comments** (don't write these):
-```typescript
-// Audio should play when autoplay is enabled AND not muted
-const shouldPlayAudio = autoplayEnabled && !isMuted
-```
+This applies to all comments: explanatory `//` / `#` lines, block comments, class/method doc comments, "what this does" annotations, and rationale/"why" notes. Do not add them proactively — not even for non-obvious workarounds or edge cases. If something genuinely needs explaining, surface it in your chat response or the PR description instead, and let me decide whether it belongs in the code.
 
-**Good comments** (capture hidden knowledge):
-```typescript
-} catch {
-  // localStorage may be unavailable in private browsing mode
-}
-```
+The only exceptions are comments that are not prose you are choosing to add:
+- A comment I explicitly request, or one I ask you to keep/restore.
+- Comments already present in code you're editing (don't strip those unless asked).
+- Machine-required directives that aren't optional (e.g. `# frozen_string_literal: true`, `# rubocop:disable ...`, `eslint-disable`, codegen markers, shebangs).
 
-```ruby
-# Why do we check recording_sources.empty?
-# Recordings are lenient: eligible if at least one has a valid transcript.
-# Silent or short recordings may produce empty transcripts (e.g. extra context recordings).
-# Previously we checked recording_sources.all? have a transcript, but different transcription
-# services handle silent recordings differently - some have no transcript, which meant adding
-# silent recordings to working reports would break them.
-```
-
-Good comments capture:
-- Business logic or domain context that would otherwise be lost
-- Non-obvious reasons why code exists (workarounds, edge cases)
-- External constraints or dependencies not evident from the code
+When in doubt, leave the comment out.
 
 ## PR Descriptions
 
