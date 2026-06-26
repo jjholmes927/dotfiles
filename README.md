@@ -15,15 +15,31 @@ Personal configuration files, symlinked into `~/`. Each top-level directory hold
 | `vim/` | Vim config |
 | `vscode/` | VS Code settings and keybindings |
 
+## Prerequisites
+
+On a fresh Mac, install Homebrew and core tools first:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install tmux gh
+```
+
+Then authenticate with GitHub:
+
+```bash
+gh auth login
+```
+
 ## Claude Code
 
 The `claude/` directory is managed by a dedicated bootstrap script — see [`claude/README.md`](claude/README.md) for details. On a new machine:
 
 ```bash
+npm install -g @anthropic-ai/claude-code
 ./claude/install.sh
 ```
 
-It symlinks `CLAUDE.md`, `settings.json`, `commands/`, `scripts/statusline.sh`, and `hooks/tmux-alert.sh` into `~/.claude/`. Idempotent and safe to re-run.
+The `npm install` gives you the `claude` CLI. The install script symlinks `CLAUDE.md`, `settings.json`, `commands/`, `scripts/statusline.sh`, and `hooks/tmux-alert.sh` into `~/.claude/`. Idempotent and safe to re-run.
 
 Note: project-level `CLAUDE.md` files live in each project repo, not here.
 
@@ -32,7 +48,8 @@ Note: project-level `CLAUDE.md` files live in each project repo, not here.
 The `codex/` directory is managed by a dedicated bootstrap script — see [`codex/README.md`](codex/README.md) for details. On a new machine:
 
 ```bash
+npm install -g @openai/codex
 ./codex/install.sh
 ```
 
-It symlinks `AGENTS.md` and the global skills into `~/.codex/`, then adds the shared MCP server definitions at the user level so you can authenticate the MCPs you want on that machine.
+The `npm install` gives you the `codex` CLI (required for the MCP sync step). The install script symlinks `AGENTS.md` and the global skills into `~/.codex/`, then adds the shared MCP server definitions at the user level so you can authenticate the MCPs you want on that machine.
