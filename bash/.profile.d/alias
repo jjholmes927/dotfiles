@@ -17,6 +17,10 @@ alias gkillmerged="git branch --merged master | egrep -v '^\s*\*?\s*master$' | x
 alias ll="ls -a"
 alias fixt="stty sane"
 
+
+#
+alias klaude="claude --dangerously-skip-permissions"
+
 ### Ruby
 alias yaml_ok?="ruby -ryaml -e 'p YAML.load(STDIN.read)' < $1"
 alias rspec-format-test="rspec ./spec/rspec/ci/prettify_spec.rb --require ./lib/rspec/ci/prettify.rb --format RSpec::Ci::Prettify::Formatter"

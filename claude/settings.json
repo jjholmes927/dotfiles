@@ -67,6 +67,14 @@
     "ruby-lsp@claude-plugins-official": true,
     "linear@claude-plugins-official": true
   },
+  "extraKnownMarketplaces": {
+    "beam-claude-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/wearebeam/beam-claude-skills.git"
+      }
+    }
+  },
   "effortLevel": "xhigh",
   "autoDreamEnabled": true,
   "skipDangerousModePermissionPrompt": true,
