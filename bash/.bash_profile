@@ -14,11 +14,11 @@ export PATH="/opt/homebrew/opt/libpq/bin:$PATH"
 # Added by `rbenv init` on Tue 17 Jun 2025 20:50:44 BST
 eval "$(rbenv init - --no-rehash bash)"
 
-[ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
-
-# Added by Antigravity
-export PATH="/Users/beamtempmacbookpro/.antigravity/antigravity/bin:$PATH"
+export PATH="$PATH:$HOME/.local/bin"
 
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+
+# mempalace: make python3 -m mempalace work for Claude Code hooks
+export PYTHONPATH="/Users/jjholmes/.local/pipx/venvs/mempalace/lib/python3.14/site-packages${PYTHONPATH:+:$PYTHONPATH}"
