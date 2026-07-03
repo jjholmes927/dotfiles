@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+#
+# claude-tmux-resume — in-place supervisor for a LIVE interactive Claude Code
+# session running in a tmux pane. Watches the pane; when the session stalls on a
+# 5-hour usage limit, it parses the reset time, waits, and types "continue" into
+# the pane — so the session keeps going WITHOUT being stopped/restarted.
+#
+# Triggers ONLY on the usage-limit state (never on a normal idle or a question),
+# so it can't answer "continue" to something you were being asked.
+#
+# Usage:
+#   claude-tmux-resume <pane>            # e.g. claude-tmux-resume %5
+#   claude-tmux-resume <pane> --watch-only   # detect + log only, never sends keys
+#
+# RECOMMENDED: run --watch-only first. Until a real limit is seen, detection uses
+# a best-guess regex; watch-only logs the exact on-screen text so it can be tuned
+# before you trust it to type.
+#
+# Config via env (all optional):
+#   CLAUDE_TMUX_TARGET   pane id/target (if <pane> arg omitted)
+#   CLAUDE_TMUX_PROMPT   text to send                 (default: "continue")
+#   CLAUDE_TMUX_CHECK    seconds between watch polls   (default: 60)
+#   CLAUDE_TMUX_MAX      max nudges before giving up   (default: 12)
+#   CLAUDE_TMUX_POLL     fallback wait if no reset time parsed (default: 1200 = 20m)
+#   CLAUDE_TMUX_MAXWAIT  bail if reset > this away     (default: 21600 = 6h → weekly limit)
+#   CLAUDE_TMUX_BUFFER   seconds added after reset     (default: 60)
+#   CLAUDE_TMUX_LOG      log file                      (default: /tmp/claude-tmux-resume.log)
+#
+# Exit: 0 clean stop · 2 bad/missing pane · 3 hit nudge cap · 4 reset too far (weekly)
+set -uo pipefail
+
+TARGET="${1:-${CLAUDE_TMUX_TARGET:-}}"
+WATCH_ONLY=0
+for a in "$@"; do [ "$a" = "--watch-only" ] && WATCH_ONLY=1; done
+case "${TARGET:-}" in --watch-only|"") TARGET="${CLAUDE_TMUX_TARGET:-}";; esac
+
+PROMPT="${CLAUDE_TMUX_PROMPT:-continue}"
+CHECK="${CLAUDE_TMUX_CHECK:-60}"
+MAX="${CLAUDE_TMUX_MAX:-12}"
+POLL="${CLAUDE_TMUX_POLL:-1200}"
+MAXWAIT="${CLAUDE_TMUX_MAXWAIT:-21600}"
+BUFFER="${CLAUDE_TMUX_BUFFER:-60}"
+LOG="${CLAUDE_TMUX_LOG:-/tmp/claude-tmux-resume.log}"
+
+# Anchored to the DISTINCTIVE limit-message phrasings so it can't false-positive on
+# incidental "rate-limit"/"reset" text in normal work (e.g. architecture docs).
+limit_re='usage limit|limit will reset|approaching[^.]{0,20}limit|5-?hour limit|resets?( +at| +by)? +[0-9]{1,2}(:[0-9]{2}| *[ap]\.?m\.?)'
+
+log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "$LOG" >&2; }
+capture() { tmux capture-pane -p -t "$TARGET" 2>/dev/null; }
+
+parse_reset_secs() {
+  local text tok now target fmt val
+  text="$(cat)"
+  tok="$(printf '%s' "$text" | grep -oiE 'reset[a-z ]*(at|by)? *[0-9]{1,2}(:[0-9]{2})? *[ap]\.?m\.?' \
+        | grep -oiE '[0-9]{1,2}(:[0-9]{2})? *[ap]\.?m\.?' | head -1)"
+  [ -z "$tok" ] && tok="$(printf '%s' "$text" | grep -oiE 'reset[a-z ]*(at|by)? *[0-2]?[0-9]:[0-9]{2}' \
+        | grep -oiE '[0-2]?[0-9]:[0-9]{2}' | head -1)"
+  [ -z "$tok" ] && return 1
+  tok="$(printf '%s' "$tok" | tr 'a-z' 'A-Z' | tr -d ' .')"
+  if printf '%s' "$tok" | grep -qE '[AP]M$'; then
+    printf '%s' "$tok" | grep -q ':' || tok="$(printf '%s' "$tok" | sed -E 's/([0-9]+)([AP]M)/\1:00\2/')"
+    fmt="%I:%M%p"; val="$tok"
+  else
+    fmt="%H:%M"; val="$tok"
+  fi
+  now="$(date +%s)"
+  target="$(date -j -f "$fmt" "$val" +%s 2>/dev/null)" || return 1
+  [ "$target" -le "$now" ] && target=$((target + 86400))
+  echo $((target - now))
+}
+
+# limited-and-stable? capture twice; both must match the limit regex AND be identical
+limited_stable() {
+  local a b
+  a="$(capture)"; printf '%s' "$a" | grep -qiE "$limit_re" || return 1
+  sleep 2
+  b="$(capture)"; printf '%s' "$b" | grep -qiE "$limit_re" || return 1
+  [ "$a" = "$b" ] || return 1
+  printf '%s' "$b"
+}
+
+[ -z "$TARGET" ] && { echo "usage: claude-tmux-resume <pane> [--watch-only]" >&2; exit 2; }
+tmux has-session 2>/dev/null && tmux display -p -t "$TARGET" '' >/dev/null 2>&1 || {
+  log "FATAL: tmux pane '$TARGET' not found"; exit 2; }
+
+log "watching pane $TARGET (check=${CHECK}s, watch_only=${WATCH_ONLY}) — target prompt: '${PROMPT}'"
+nudges=0
+while :; do
+  if snap="$(limited_stable)"; then
+    log "LIMIT detected on $TARGET. On-screen tail:"
+    printf '%s\n' "$snap" | grep -iE "$limit_re" | tail -3 | sed 's/^/    | /' | tee -a "$LOG" >&2
+
+    secs="$(printf '%s' "$snap" | parse_reset_secs)" || secs=""
+    if [ -n "$secs" ]; then
+      if [ "$secs" -gt "$MAXWAIT" ]; then
+        log "reset ~${secs}s away (> ${MAXWAIT}s) — looks like a WEEKLY limit; stopping"; exit 4
+      fi
+      wait_for=$((secs + BUFFER))
+      log "reset in ~$((secs / 60))m; waiting ${wait_for}s"
+    else
+      wait_for="$POLL"
+      log "no parseable reset time; waiting ${wait_for}s then re-checking"
+    fi
+
+    sleep "$wait_for"
+
+    # re-confirm it's STILL limited right before typing, so we never type over you
+    if ! printf '%s' "$(capture)" | grep -qiE "$limit_re"; then
+      log "limit cleared during wait (or pane changed) — not sending; resuming watch"
+      continue
+    fi
+
+    nudges=$((nudges + 1))
+    if [ "$WATCH_ONLY" = "1" ]; then
+      log "[watch-only] would send '${PROMPT}' to $TARGET now (nudge ${nudges}/${MAX})"
+    else
+      log "sending '${PROMPT}' to $TARGET (nudge ${nudges}/${MAX})"
+      tmux send-keys -t "$TARGET" -l "$PROMPT"
+      sleep 0.4
+      tmux send-keys -t "$TARGET" Enter
+    fi
+
+    if [ "$nudges" -ge "$MAX" ]; then
+      log "hit nudge cap (${MAX}); stopping to protect the weekly quota"; exit 3
+    fi
+    # let the session resume before watching again
+    sleep "$CHECK"
+  else
+    sleep "$CHECK"
+  fi
+done
