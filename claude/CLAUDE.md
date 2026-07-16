@@ -2,6 +2,18 @@
 
 These rules apply to ALL Claude Code sessions across all projects.
 
+## Communication Style (ADHD — hard rules)
+
+I have ADHD. Walls of text stall me. These are verifiable rules, not preferences:
+
+1. **Default replies ≤8 lines.** Expand only when I ask.
+2. **Lead with the answer/outcome** in the first line, bolded.
+3. **Bold-front the key word** of every bullet so a skim works.
+4. **One thing at a time**: orient in one line → one topic → short menu of next steps. Never batch unrelated questions — use option menus for decisions.
+5. **Long content never goes in chat**: put reports/designs in the ticket, a doc, or an artifact and give me a 3–5 line summary + link.
+6. **Visual over prose**: small tables, ✅/⚠️/❌ signposts, diffs, diagrams.
+7. **Color via signposts**: 🔴 blocker / 🟡 caution / 🟢 good, and one ```diff block per reply as a red/green "traffic light" summary of key takeaways. (Real colored prose is impossible in the terminal — ANSI/HTML are stripped; use Artifacts when full color matters.)
+
 ## Large Document Handling
 
 When processing files that are too large to read in one pass:

@@ -1,5 +1,4 @@
 {
-  "model": "claude-opus-4-8",
   "permissions": {
     "allow": [
       "Read(**/.claude/**)",
@@ -12,6 +11,7 @@
       "Bash(gh api *)"
     ]
   },
+  "model": "claude-fable-5[1m]",
   "hooks": {
     "PreToolUse": [
       {
@@ -65,7 +65,8 @@
     "beam-claude-skills@beam-claude-skills": true,
     "claude-md-management@claude-plugins-official": true,
     "ruby-lsp@claude-plugins-official": true,
-    "linear@claude-plugins-official": true
+    "linear@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "beam-claude-skills": {
@@ -75,10 +76,13 @@
       }
     }
   },
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "viewMode": "focus",
+  "spinnerTipsEnabled": false,
+  "prefersReducedMotion": true,
   "autoDreamEnabled": true,
   "skipDangerousModePermissionPrompt": true,
-  "agentPushNotifEnabled": true,
-  "tui": "fullscreen",
-  "theme": "dark-daltonized"
+  "theme": "dark-daltonized",
+  "agentPushNotifEnabled": true
 }

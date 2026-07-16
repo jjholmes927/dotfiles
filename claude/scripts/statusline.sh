@@ -94,6 +94,60 @@ if [[ -n "$DEV_PORT" ]]; then
     PORT_DISPLAY=$(printf "%b:%s%b" "$GREEN" "$DEV_PORT" "$RESET")
 fi
 
+tmux_colour_for() {
+    case "$1" in
+        red) echo "colour203" ;;
+        orange) echo "colour215" ;;
+        yellow) echo "colour221" ;;
+        green) echo "colour114" ;;
+        cyan) echo "colour80" ;;
+        blue) echo "colour75" ;;
+        magenta | purple) echo "colour176" ;;
+        pink) echo "colour211" ;;
+        *) echo "" ;;
+    esac
+}
+
+tmux_sync() {
+    [[ -z "$TMUX" || -z "$TMUX_PANE" ]] && return
+    local session_name
+    session_name=$(echo "$INPUT" | jq -r '.session_name // empty')
+    [[ -z "$session_name" ]] && return
+
+    local colour_token tab_name clone fg agent_colour transcript
+    colour_token=$(echo "$session_name" | grep -oE '#[a-z]+ *$' | tr -d '# ')
+    tab_name=$(echo "$session_name" | sed -E 's/ *#[a-z]+ *$//')
+
+    clone=$(basename "$CWD" 2>/dev/null | grep -oE '^mn[0-9]+')
+    if [[ -n "$clone" && "$tab_name" != "$clone"* ]]; then
+        tab_name="$clone: $tab_name"
+    fi
+
+    transcript=$(echo "$INPUT" | jq -r '.transcript_path // empty')
+    if [[ -f "$transcript" ]]; then
+        agent_colour=$(tail -c 500000 "$transcript" | grep -o '"agentColor":"[a-z]*"' | tail -1 | cut -d'"' -f4)
+        if [[ -z "$agent_colour" ]]; then
+            agent_colour=$(grep -o '"agentColor":"[a-z]*"' "$transcript" | tail -1 | cut -d'"' -f4)
+        fi
+    fi
+
+    fg=$(tmux_colour_for "$agent_colour")
+    [[ -z "$fg" ]] && fg=$(tmux_colour_for "$colour_token")
+    if [[ -z "$fg" ]]; then
+        local palette=(203 215 221 114 80 75 176 211)
+        local hash
+        hash=$(printf '%s' "$tab_name" | cksum | cut -d' ' -f1)
+        fg="colour${palette[$((hash % 8))]}"
+    fi
+
+    local current
+    current=$(tmux display-message -p -t "$TMUX_PANE" '#{window_name}' 2>/dev/null)
+    [[ "$current" != "$tab_name" ]] && tmux rename-window -t "$TMUX_PANE" "$tab_name" 2>/dev/null
+    tmux set-option -w -t "$TMUX_PANE" window-status-format "#[fg=#080808,bg=$fg,none]#{?window_bell_flag,#[fg=#ffffff]#[bg=#d70000],} #I #W " 2>/dev/null
+    tmux set-option -w -t "$TMUX_PANE" window-status-current-format "#[fg=#080808,bg=$fg,bold,underscore] ▶ #I #W " 2>/dev/null
+}
+tmux_sync
+
 # Output styled status line
 if [[ -n "$PORT_DISPLAY" ]]; then
     printf "%b%s%b %b%s%b %b%s%b %b%s%b %s\n" "$RED" "$TIME" "$RESET" "$GREEN" "$USER" "$RESET" "$CYAN" "$LOCATION" "$RESET" "$YELLOW" "$BRANCH" "$RESET" "$PORT_DISPLAY"
