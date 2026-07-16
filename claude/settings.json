@@ -82,10 +82,10 @@
       }
     }
   },
-  "effortLevel": "high",
-  "tui": "fullscreen",
   "viewMode": "focus",
   "spinnerTipsEnabled": false,
+  "effortLevel": "high",
+  "tui": "fullscreen",
   "prefersReducedMotion": true,
   "autoDreamEnabled": true,
   "skipDangerousModePermissionPrompt": true,
