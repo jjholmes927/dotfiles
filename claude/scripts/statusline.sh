@@ -14,6 +14,7 @@ DEEP_RED='\033[38;5;160m'
 
 # Read JSON input from stdin
 INPUT=$(cat)
+echo "$INPUT" > "/tmp/claude-statusline-$(echo "$INPUT" | jq -r '.session_id // "unknown"').json"
 
 # Get git branch (skip optional locks for speed)
 git_branch() {
@@ -108,14 +109,24 @@ tmux_colour_for() {
     esac
 }
 
+resolve_tmux_pane() {
+    if [[ -n "$TMUX_PANE" ]]; then
+        echo "$TMUX_PANE"
+        return
+    fi
+    tmux list-panes -a -F $'#{pane_id}\t#{pane_current_command}\t#{pane_current_path}' 2>/dev/null |
+        awk -F'\t' -v cwd="$CWD" '$2 ~ /claude/ && $3 == cwd {print $1; exit}'
+}
+
 tmux_sync() {
-    [[ -z "$TMUX" || -z "$TMUX_PANE" ]] && return
+    local pane
+    pane=$(resolve_tmux_pane)
+    [[ -z "$pane" ]] && return
     local session_name
-    session_name=$(echo "$INPUT" | jq -r '.session_name // empty')
+    session_name=$(echo "$INPUT" | jq -r '.session_name // .session_title // empty')
     [[ -z "$session_name" ]] && return
 
-    local colour_token tab_name clone fg agent_colour transcript
-    colour_token=$(echo "$session_name" | grep -oE '#[a-z]+ *$' | tr -d '# ')
+    local tab_name clone fg agent_colour transcript
     tab_name=$(echo "$session_name" | sed -E 's/ *#[a-z]+ *$//')
 
     clone=$(basename "$CWD" 2>/dev/null | grep -oE '^mn[0-9]+')
@@ -123,16 +134,22 @@ tmux_sync() {
         tab_name="$clone: $tab_name"
     fi
 
+    local colour_cache
+    colour_cache="/tmp/claude-agentcolour-$(echo "$INPUT" | jq -r '.session_id // "unknown"')"
     transcript=$(echo "$INPUT" | jq -r '.transcript_path // empty')
     if [[ -f "$transcript" ]]; then
         agent_colour=$(tail -c 500000 "$transcript" | grep -o '"agentColor":"[a-z]*"' | tail -1 | cut -d'"' -f4)
-        if [[ -z "$agent_colour" ]]; then
+        if [[ -n "$agent_colour" ]]; then
+            echo "$agent_colour" > "$colour_cache"
+        elif [[ -f "$colour_cache" ]]; then
+            agent_colour=$(cat "$colour_cache")
+        else
             agent_colour=$(grep -o '"agentColor":"[a-z]*"' "$transcript" | tail -1 | cut -d'"' -f4)
+            [[ -n "$agent_colour" ]] && echo "$agent_colour" > "$colour_cache"
         fi
     fi
 
     fg=$(tmux_colour_for "$agent_colour")
-    [[ -z "$fg" ]] && fg=$(tmux_colour_for "$colour_token")
     if [[ -z "$fg" ]]; then
         local palette=(203 215 221 114 80 75 176 211)
         local hash
@@ -141,10 +158,10 @@ tmux_sync() {
     fi
 
     local current
-    current=$(tmux display-message -p -t "$TMUX_PANE" '#{window_name}' 2>/dev/null)
-    [[ "$current" != "$tab_name" ]] && tmux rename-window -t "$TMUX_PANE" "$tab_name" 2>/dev/null
-    tmux set-option -w -t "$TMUX_PANE" window-status-format "#[fg=#080808,bg=$fg,none]#{?window_bell_flag,#[fg=#ffffff]#[bg=#d70000],} #I #W " 2>/dev/null
-    tmux set-option -w -t "$TMUX_PANE" window-status-current-format "#[fg=#080808,bg=$fg,bold,underscore] ▶ #I #W " 2>/dev/null
+    current=$(tmux display-message -p -t "$pane" '#{window_name}' 2>/dev/null)
+    [[ "$current" != "$tab_name" ]] && tmux rename-window -t "$pane" "$tab_name" 2>/dev/null
+    tmux set-option -w -t "$pane" window-status-format "#[fg=#080808,bg=$fg,none]#{?window_bell_flag,#[fg=#ffffff]#[bg=#d70000],} #I #W " 2>/dev/null
+    tmux set-option -w -t "$pane" window-status-current-format "#[fg=#080808,bg=$fg,bold,underscore] ▶ #I #W " 2>/dev/null
 }
 tmux_sync
 

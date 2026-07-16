@@ -19,15 +19,13 @@ Personal configuration for [Claude Code](https://docs.anthropic.com/en/docs/clau
 
 | Command | Description |
 |---------|-------------|
-| `/brag-doc` | Generate weekly brag doc entries from GitHub activity |
 | `/context-check` | Assess context health and recommend action (continue, compact, handoff, clear) |
 | `/handoff` | Create a handoff summary for continuing work in a fresh session |
 | `/log-error` | Interview-style error logging to identify prompting/context mistakes |
 | `/save-permissions` | Scan recent sessions and save missing Bash permission patterns to `.claude/settings.local.json` |
 | `/second-brain` | Process second brain inbox and run vault commands |
-| `/ship` | End-to-end ship workflow: format, commit, push, PR, CI watch, code review |
-| `/skill-reviewer` | Review a Claude Code skill for structural and domain quality |
-| `/verify-ui` | Verify a UI flow using agent-browser against the live dev server |
+
+Workflow commands (`/ship`, `/review-pr`, `/verify-ui`, `/pick-up-linear-ticket`, `/brag-doc`, `/skill-reviewer`) live in the `joel-workflow` plugin from the [jjholmes927-claude-skills](https://github.com/jjholmes927/jjholmes927-claude-skills) marketplace, registered via `settings.json`.
 
 ## Setup on a new machine
 
@@ -47,7 +45,7 @@ Cloud sessions (claude.ai/code, and coding sessions started from Slack) never se
 git clone --depth 1 https://github.com/jjholmes927/dotfiles /tmp/jj-dotfiles && bash /tmp/jj-dotfiles/claude/cloud-setup.sh || true
 ```
 
-`cloud-setup.sh` copies `CLAUDE.md` and `commands/` into the sandbox's `~/.claude` before the session starts. It intentionally skips `settings.json` — the model override, plugin list, and permission settings would be surprising inside a cloud sandbox. A stray local run is harmless: `cp` no-ops onto the symlinks `install.sh` created.
+`cloud-setup.sh` copies `CLAUDE.md` and `commands/` into the sandbox's `~/.claude` before the session starts, plus the `joel-workflow` commands cloned from the public [jjholmes927-claude-skills](https://github.com/jjholmes927/jjholmes927-claude-skills) repo. It intentionally skips `settings.json` — the model override, plugin list, and permission settings would be surprising inside a cloud sandbox. A stray local run is harmless: `cp` no-ops onto the symlinks `install.sh` created.
 
 ## Unified memory across parallel clones (GigMe only)
 
