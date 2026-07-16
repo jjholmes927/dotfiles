@@ -60,7 +60,7 @@
   },
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true,
-    "guideline-refresher@jjholmes927-claude-skills": true,
+    "joel-workflow@jjholmes927-claude-skills": true,
     "beam-claude-skills-all@beam-claude-skills": true,
     "beam-claude-skills@beam-claude-skills": true,
     "claude-md-management@claude-plugins-official": true,
@@ -73,6 +73,12 @@
       "source": {
         "source": "git",
         "url": "https://github.com/wearebeam/beam-claude-skills.git"
+      }
+    },
+    "jjholmes927-claude-skills": {
+      "source": {
+        "source": "github",
+        "repo": "jjholmes927/jjholmes927-claude-skills"
       }
     }
   },
