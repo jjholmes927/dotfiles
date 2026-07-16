@@ -13,6 +13,7 @@ Personal configuration for [Claude Code](https://docs.anthropic.com/en/docs/clau
 | `scripts/statusline.sh` | Status line script that shows git branch, context usage, and model info |
 | `mcp-servers.json` | Source-of-truth MCP server definitions shared with Codex |
 | `sync-mcps.sh` | Merges the MCP server list into `~/.claude.json` without overwriting other machine-local Claude state |
+| `cloud-setup.sh` | Installs `CLAUDE.md` + `commands/` into Claude Code web sandboxes (see below) |
 
 ### Slash commands
 
@@ -37,6 +38,16 @@ Run the bootstrap script from the dotfiles repo root (or from inside `claude/`):
 ```
 
 The script is idempotent — safe to re-run. It symlinks `CLAUDE.md`, `settings.json`, `commands/`, `scripts/statusline.sh`, `hooks/tmux-alert.sh`, and `mcp-servers.json` into `~/.claude/`, then syncs the MCP server list into `~/.claude.json`. Anything it would overwrite is backed up to `~/.claude/backups/install-<timestamp>/`.
+
+## Claude Code on the web (cloud sandboxes)
+
+Cloud sessions (claude.ai/code, and coding sessions started from Slack) never see the local `~/.claude`. To carry the global instructions there, set this as the environment's setup script in the Claude Code web environment settings:
+
+```bash
+git clone --depth 1 https://github.com/jjholmes927/dotfiles /tmp/jj-dotfiles && bash /tmp/jj-dotfiles/claude/cloud-setup.sh || true
+```
+
+`cloud-setup.sh` copies `CLAUDE.md` and `commands/` into the sandbox's `~/.claude` before the session starts. It intentionally skips `settings.json` — the model override, plugin list, and permission settings would be surprising inside a cloud sandbox. A stray local run is harmless: `cp` no-ops onto the symlinks `install.sh` created.
 
 ## Unified memory across parallel clones (GigMe only)
 
