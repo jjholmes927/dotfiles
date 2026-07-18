@@ -17,12 +17,14 @@ Personal configuration files, symlinked into `~/`. Each top-level directory hold
 
 ## Prerequisites
 
-On a fresh Mac, install Homebrew and core tools first:
+On a fresh Mac, install Homebrew, then install every CLI the dotfiles depend on from the `Brewfile` (jq is load-bearing: the Claude statusline tmux sync and settings.json hooks silently no-op without it):
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install tmux gh
+brew bundle install
 ```
+
+Codex CLI is npm-managed, not brew: `npm i -g @openai/codex`.
 
 Then authenticate with GitHub:
 
