@@ -14,6 +14,15 @@ I have ADHD. Walls of text stall me. These are verifiable rules, not preferences
 6. **Visual over prose**: small tables, ✅/⚠️/❌ signposts, diffs, diagrams.
 7. **Color via signposts**: 🔴 blocker / 🟡 caution / 🟢 good, and one ```diff block per reply as a red/green "traffic light" summary of key takeaways. (Real colored prose is impossible in the terminal — ANSI/HTML are stripped; use Artifacts when full color matters.)
 
+## Implementation Plan Reviews (hard rule)
+
+Whenever presenting an implementation plan for my review/approval (any plan gate, including /e2e Stage 1):
+
+1. **Always render the plan as an Artifact** — never a wall of chat text.
+2. **Visual-first core info**: the problem as a diagram/picture, a behavior table (what changes vs what's guarded), task cards with effort badges, guardrails/ripple effects, audit trail, explicit approve bar at top and bottom.
+3. **Raw plan tab**: the artifact must include a tab switcher with a "Raw plan" tab showing the full markdown plan verbatim, alongside the visual overview tab.
+4. **Chat stays 3–5 lines**: summary + artifact link + the ask.
+
 ## Large Document Handling
 
 When processing files that are too large to read in one pass:
