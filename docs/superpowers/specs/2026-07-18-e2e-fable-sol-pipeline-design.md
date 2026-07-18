@@ -9,7 +9,7 @@ One command that takes a Linear ticket or ad-hoc prompt through: Fable plan → 
 
 ## Entry Point
 
-New command file `claude/commands/e2e.md` in dotfiles (auto-available via the `~/.claude/commands` symlink; promote to the jjholmes927-claude-skills marketplace later once stable).
+New skill `skills/e2e/` in the **jjholmes927-claude-skills repo** (joel-workflow plugin, version bump to 2.1.0) so it syncs to the work setup through the marketplace already wired into settings.json. The skill bundles its helper script (`skills/e2e/scripts/e2e-codex.sh`) alongside SKILL.md.
 
 - `/e2e INT-123` — invokes `joel-workflow:pick-up-linear-ticket` for ticket context, branch naming, and status moves.
 - `/e2e "add rate limiting to X"` — ad-hoc; same pipeline, no Linear coupling.
@@ -33,8 +33,8 @@ New command file `claude/commands/e2e.md` in dotfiles (auto-available via the `~
 - Failure policy: non-zero exit or no diff produced → retry once with the error appended; second failure surfaces to the user (pipeline pauses, does not silently skip).
 
 ### 4. Sol self-review
-- `codex exec review` (native Codex review subcommand) against the worktree after each task.
-- Sol fixes its own findings via `codex exec resume --last` before Fable ever sees the diff.
+- The orchestrator makes a checkpoint commit in the worktree after each task, then runs `codex exec review --commit <sha>` so Sol reviews exactly that task's diff (not the accumulated branch).
+- Sol fixes its own findings via `codex exec resume <session>`; fixes are amended into the task's checkpoint commit before Fable ever sees the diff.
 
 ### 5. Fable review + arbitration
 - Dispatch a code-reviewer subagent on the task diff → structured findings (file, line, summary, severity).
@@ -49,7 +49,7 @@ New command file `claude/commands/e2e.md` in dotfiles (auto-available via the `~
 - Same fix-loop rules apply once at branch level.
 
 ### 8. Ship (unattended — plan gate already passed)
-- Mirrors the existing Codex `ship` skill steps: run formatters per changed file types (`diffocop -A` / `pnpm run format:fix && lint:fix`), commit (imperative, no AI attribution), push, open PR with **What**/**Why** body, unresolved findings posted as PR comments, `gh pr checks --watch`.
+- Delegates to the existing joel-workflow `/ship` command (format, commit any leftovers, push, PR with **What**/**Why**, CI watch, fix-fast loop); unresolved findings from the review loops are posted as PR comments.
 - CI failure → failure log handed to `codex exec resume` to fix, push, re-watch (max 2 rounds, then surface).
 
 ## Roles
@@ -78,3 +78,6 @@ New command file `claude/commands/e2e.md` in dotfiles (auto-available via the `~
 
 1. Sol 5.6 model id is `gpt-5.6-sol` (verified via `codex exec -m gpt-5.6-sol`); now the default `model` in `~/.codex/config.toml`, so the pipeline omits `-m` and inherits the config default.
 2. Worktree paths won't be in codex `projects.*.trust_level = "trusted"` — rely on `--full-auto` sandbox (workspace-write), which needs no trust entry.
+3. Session-id capture: `codex exec --json` emits `{"type":"thread.started","thread_id":"<uuid>"}` as its first JSONL event (verified on codex-cli 0.144.5); the wrapper script parses that and `codex exec resume <thread_id>` accepts it.
+4. Per-task review scope: orchestrator checkpoint-commits each task in the worktree and reviews with `--commit <sha>`, avoiding the `codex exec review` default (committed-only) silently reviewing nothing and avoiding cumulative-diff re-review.
+5. Distribution: joel-workflow plugin skill (not a dotfiles command) so the work machine gets it via `claude plugin update`.
