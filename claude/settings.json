@@ -78,7 +78,8 @@
       "source": {
         "source": "github",
         "repo": "jjholmes927/jjholmes927-claude-skills"
-      }
+      },
+      "autoUpdate": true
     },
     "superpowers-marketplace": {
       "source": {
@@ -89,7 +90,7 @@
   },
   "viewMode": "focus",
   "spinnerTipsEnabled": false,
-  "effortLevel": "high",
+  "effortLevel": "xhigh",
   "tui": "fullscreen",
   "prefersReducedMotion": true,
   "autoDreamEnabled": true,
