@@ -42,6 +42,12 @@ When logging errors or learning from mistakes:
 | General Claude Code usage (prompting, context) | This file (~/.claude/CLAUDE.md) |
 | Personal learnings about AI workflows | Second brain (if using one) |
 
+## Slack MCP Usage
+
+- `slack_read_channel` returns **newest-first** with cursor pagination. Never conclude a channel is quiet/dormant without a no-cursor call showing the actual newest messages.
+- When sweeping a time window, follow cursors until pages run out or the `oldest` boundary is reached, then report the earliest/latest timestamps actually covered.
+- When delegating Slack sweeps to subagents, include explicit pagination instructions and require a coverage report (earliest/latest ts seen); spot-check any "channel went quiet" claim with a direct read.
+
 ## Git Branch Naming
 
 When creating branches, always prefix with: `jjholmes927-`
@@ -77,27 +83,13 @@ When in doubt, leave the comment out.
 
 ## PR Descriptions
 
-Keep them terse and outcome-focused. ~5–10 lines total. Long bullet inventories of every code change duplicate the diff and bury the actual story.
+Whenever writing or editing a PR description, invoke the **`writing-pr-descriptions`** skill (joel-workflow plugin) — it owns the full rules. The essentials, in case the skill is unavailable:
 
-Structure with **What** and **Why** as bold headers:
-
-- **What** — 1–2 sentences describing the user-visible capability change in plain language. Don't list function names, constants, or "wired into X" — the diff covers that.
-- **Why** — motivation in real-world terms. Include real numbers when you have them (latency, cost, error rate, sample sizes). Link supporting reports/dashboards inline if useful.
-- **No "Fixes TICKET-ID" footer.** Put the ticket reference in the PR title bracket (e.g. `[INT-350]`) — Linear attaches via the title. Linking the ticket inline in Why is fine if it adds context.
-- For bug fixes, add a **Steps to Reproduce** section after Why.
-
-```markdown
-**What**
-One-or-two-sentence description of the capability change.
-
-**Why**
-Motivation in real-world terms — why this matters, what it unblocks, what it improves. Include numbers when relevant.
-
-**Steps to Reproduce** (bug fixes only)
-1. Step one
-2. Step two
-3. Observe the issue
-```
+- **What** / **Why** as bold headers, plus an optional **Worth noting** section (repro steps for bug fixes, deploy notes, deferred follow-ups).
+- **Each section: max 3 bullets or 2–3 short sentences.** One idea per sentence or bullet — never a dense mega-sentence to dodge the cap.
+- **Outcome, not inventory** — no function-name listings; the diff covers that.
+- **No "Fixes TICKET-ID" footer** — ticket goes in the title bracket (e.g. `[INT-350]`).
+- Stacked PRs: one line pointing at the PR that carries the big picture; never retell the story per layer.
 
 ## Commands and Skills
 
