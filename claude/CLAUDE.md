@@ -85,7 +85,7 @@ When in doubt, leave the comment out.
 
 Whenever writing or editing a PR description, invoke the **`writing-pr-descriptions`** skill (joel-workflow plugin) — it owns the full rules. The essentials, in case the skill is unavailable:
 
-- **What** / **Why** as bold headers, plus an optional **Worth noting** section (repro steps for bug fixes, deploy notes, deferred follow-ups).
+- **What** / **Why** as bold headers — nothing else.
 - **Each section: max 3 bullets or 2–3 short sentences.** One idea per sentence or bullet — never a dense mega-sentence to dodge the cap.
 - **Outcome, not inventory** — no function-name listings; the diff covers that.
 - **No "Fixes TICKET-ID" footer** — ticket goes in the title bracket (e.g. `[INT-350]`).
