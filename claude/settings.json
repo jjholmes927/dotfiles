@@ -12,6 +12,14 @@
     ]
   },
   "model": "claude-fable-5[1m]",
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "OTEL_LOGS_EXPORTER": "otlp",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "https://api.eu1.honeycomb.io",
+    "OTEL_RESOURCE_ATTRIBUTES": "host.name=joel-work-mbp"
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -20,6 +28,17 @@
           {
             "type": "command",
             "command": "jq '{hookSpecificOutput: {hookEventName: \"PreToolUse\", updatedInput: (.tool_input | if has(\"model\") then . else . + {model: \"opus\"} end)}}'"
+          }
+        ]
+      },
+      {
+        "matcher": "Skill|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/otel-workflow-ledger.sh",
+            "async": true,
+            "timeout": 10
           }
         ]
       }
@@ -72,7 +91,8 @@
       "source": {
         "source": "git",
         "url": "https://github.com/wearebeam/beam-claude-skills.git"
-      }
+      },
+      "autoUpdate": true
     },
     "jjholmes927-claude-skills": {
       "source": {
@@ -96,5 +116,6 @@
   "autoDreamEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark-daltonized",
+  "inputNeededNotifEnabled": true,
   "agentPushNotifEnabled": true
 }

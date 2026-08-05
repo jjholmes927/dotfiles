@@ -1,0 +1,12 @@
+# Claude Code OTel export headers — the ingest key lives in the macOS Keychain,
+# never in this repo. One-time setup per machine:
+#   security add-generic-password -a "$USER" -s honeycomb-agent-traces -w '<INGEST_KEY>' -U
+# The non-secret OTEL_* vars live in claude/settings.json (env block); this header
+# var intentionally comes from the shell so the key stays out of the public repo.
+if command -v security >/dev/null 2>&1; then
+  _hc_key=$(security find-generic-password -s honeycomb-agent-traces -w 2>/dev/null)
+  if [ -n "$_hc_key" ]; then
+    export OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=${_hc_key},x-honeycomb-dataset=claude-code-metrics"
+  fi
+  unset _hc_key
+fi

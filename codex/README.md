@@ -53,6 +53,23 @@ use handoff for this session
 use pick-up-linear-ticket for INT-156
 ```
 
+## Telemetry (OTel → Honeycomb)
+
+Codex exports natively to Honeycomb (dataset `codex_exec` in the Agent Traces team). Because `config.toml` is machine-local, add this block manually on each machine, substituting the ingest key from the Keychain (`security find-generic-password -s honeycomb-agent-traces -w`):
+
+```toml
+[otel]
+environment = "prod"
+log_user_prompt = false
+exporter = { otlp-http = { endpoint = "https://api.eu1.honeycomb.io/v1/logs", protocol = "binary", headers = { "x-honeycomb-team" = "<INGEST_KEY>" } } }
+```
+
+The matching Claude Code exporter is wired via `claude/settings.json` (non-secret env vars) + `bash/.profile.d/otel` (reads the key from the Keychain). One-time Keychain setup per machine:
+
+```bash
+security add-generic-password -a "$USER" -s honeycomb-agent-traces -w '<INGEST_KEY>' -U
+```
+
 ## Notes
 
 - `~/.codex/config.toml` remains machine-local and is not overwritten here.
