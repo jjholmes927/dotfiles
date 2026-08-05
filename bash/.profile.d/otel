@@ -10,3 +10,11 @@ if command -v security >/dev/null 2>&1; then
   fi
   unset _hc_key
 fi
+
+# Per-machine host alias so work vs personal split cleanly in Honeycomb.
+case "$(hostname -s)" in
+  Joel-Holmes-Product-Engineering) _hc_host="joel-work-mbp" ;;
+  *) _hc_host="joel-personal-mbp" ;;
+esac
+export OTEL_RESOURCE_ATTRIBUTES="host.name=${_hc_host}"
+unset _hc_host
