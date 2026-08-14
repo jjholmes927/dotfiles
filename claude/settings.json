@@ -1,4 +1,11 @@
 {
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "OTEL_LOGS_EXPORTER": "otlp",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "https://api.eu1.honeycomb.io"
+  },
   "permissions": {
     "allow": [
       "Read(**/.claude/**)",
@@ -9,18 +16,25 @@
       "Bash(diffocop*)",
       "Bash(rubocop*)",
       "Bash(gh api *)"
+    ],
+    "ask": [
+      "mcp__claude_ai_Slack__slack_send_message",
+      "mcp__claude_ai_Slack__slack_schedule_message"
     ]
   },
   "model": "claude-fable-5[1m]",
-  "env": {
-    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
-    "OTEL_METRICS_EXPORTER": "otlp",
-    "OTEL_LOGS_EXPORTER": "otlp",
-    "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
-    "OTEL_EXPORTER_OTLP_ENDPOINT": "https://api.eu1.honeycomb.io"
-  },
   "hooks": {
     "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/confirm-github-posts.sh",
+            "timeout": 10
+          }
+        ]
+      },
       {
         "matcher": "Agent",
         "hooks": [
@@ -36,8 +50,8 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/otel-workflow-ledger.sh",
-            "async": true,
-            "timeout": 10
+            "timeout": 10,
+            "async": true
           }
         ]
       }
@@ -109,7 +123,7 @@
   },
   "viewMode": "focus",
   "spinnerTipsEnabled": false,
-  "effortLevel": "xhigh",
+  "effortLevel": "medium",
   "tui": "fullscreen",
   "prefersReducedMotion": true,
   "autoDreamEnabled": true,
