@@ -63,6 +63,9 @@ link "$SCRIPT_DIR/skill-feedback.md" "$CLAUDE_HOME/skill-feedback.md"
 header "Commands (directory-level symlink)"
 link "$SCRIPT_DIR/commands" "$CLAUDE_HOME/commands"
 
+header "Output styles (directory-level symlink)"
+link "$SCRIPT_DIR/output-styles" "$CLAUDE_HOME/output-styles"
+
 header "Scripts"
 link "$SCRIPT_DIR/scripts/statusline.sh" "$CLAUDE_HOME/scripts/statusline.sh"
 chmod +x "$SCRIPT_DIR/scripts/statusline.sh"
