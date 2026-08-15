@@ -55,11 +55,15 @@ else:
 
 previous = target_data.get("mcpServers", {})
 
-if previous == filtered_servers:
+merged = {**previous, **filtered_servers}
+for name in skipped:
+    merged.pop(name, None)
+
+if previous == merged:
     print("Claude MCP config already up to date.")
     raise SystemExit(0)
 
-target_data["mcpServers"] = filtered_servers
+target_data["mcpServers"] = merged
 
 if target_path.exists():
     backup = target_path.with_name(
@@ -69,9 +73,14 @@ if target_path.exists():
     print(f"Backed up {target_path} to {backup}")
 
 target_path.write_text(json.dumps(target_data, indent=2) + "\n")
-print(f"Synced {len(filtered_servers)} Claude MCP servers into {target_path}")
+print(f"Synced {len(filtered_servers)} repo-defined Claude MCP servers into {target_path}")
 for name in filtered_servers:
     print(f"  - {name}")
+machine_local = sorted(set(merged) - set(filtered_servers))
+if machine_local:
+    print("Preserved machine-local servers:")
+    for name in machine_local:
+        print(f"  - {name}")
 if skipped:
     print("Skipped MCP servers without local support:")
     for name in skipped:

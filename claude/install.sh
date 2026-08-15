@@ -75,6 +75,8 @@ link "$SCRIPT_DIR/hooks/tmux-alert.sh" "$CLAUDE_HOME/hooks/tmux-alert.sh"
 chmod +x "$SCRIPT_DIR/hooks/tmux-alert.sh"
 link "$SCRIPT_DIR/hooks/otel-workflow-ledger.sh" "$CLAUDE_HOME/hooks/otel-workflow-ledger.sh"
 chmod +x "$SCRIPT_DIR/hooks/otel-workflow-ledger.sh"
+link "$SCRIPT_DIR/hooks/confirm-github-posts.sh" "$CLAUDE_HOME/hooks/confirm-github-posts.sh"
+chmod +x "$SCRIPT_DIR/hooks/confirm-github-posts.sh"
 
 header "MCP servers"
 link "$SCRIPT_DIR/mcp-servers.json" "$CLAUDE_HOME/mcp-servers.json"
