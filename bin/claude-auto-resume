@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+#
+# claude-auto-resume — supervise a Claude Code session: resume the most recent
+# conversation in a repo, and when it stops on a 5-hour usage limit, wait out
+# the reset and continue. There is NO Claude Code hook for "usage limit reached"
+# and a rate-limited session can't resume itself, so this runs OUTSIDE the
+# session and re-invokes headless resume (`claude -c -p "continue"`).
+#
+# Timing model (this is the important part):
+#   On a detected limit it tries to PARSE the "resets at 3pm" time from the
+#   message and sleeps until then (+buffer) — one clean wait, waking right at
+#   reset. If the time can't be parsed it falls back to a fixed poll interval.
+#   Total fallback coverage (POLL x MAX) must exceed the ~5h window, so the
+#   defaults are POLL=20m x MAX=18 = 6h. If a parsed reset is more than MAXWAIT
+#   (default 6h) away it's treated as a WEEKLY limit and we stop rather than
+#   sleep for days.
+#
+# Config via env (all optional):
+#   CLAUDE_AUTO_RESUME_DIR      repo to resume in         (default: script's repo, else cwd)
+#   CLAUDE_AUTO_RESUME_PROMPT   message to send           (default: "continue")
+#   CLAUDE_AUTO_RESUME_MAX      absolute attempt cap      (default: 18)
+#   CLAUDE_AUTO_RESUME_POLL     fallback poll seconds     (default: 1200 = 20m)
+#   CLAUDE_AUTO_RESUME_MAXWAIT  bail if reset > this away (default: 21600 = 6h)
+#   CLAUDE_AUTO_RESUME_BUFFER   seconds added after reset (default: 60)
+#   CLAUDE_AUTO_RESUME_LOG      log file                  (default: <dir>/tmp/claude-auto-resume.log or /tmp)
+#   CLAUDE_AUTO_RESUME_YOLO     "1" adds --dangerously-skip-permissions (default: off)
+#   CLAUDE_CMD                  claude binary (swap for a mock in tests) (default: claude)
+#
+# Exit: 0 completed · 2 bad dir · 3 hit attempt cap · 4 reset too far (weekly) · other = claude rc
+set -uo pipefail
+
+# --- reset-time parser: reads text on stdin, prints seconds-until-reset or fails ---
+parse_reset_secs() {
+  local text tok now target
+  text="$(cat)"
+  tok="$(printf '%s' "$text" | grep -oiE 'reset[a-z ]*(at|by)? *[0-9]{1,2}(:[0-9]{2})? *[ap]\.?m\.?' \
+        | grep -oiE '[0-9]{1,2}(:[0-9]{2})? *[ap]\.?m\.?' | head -1)"
+  [ -z "$tok" ] && tok="$(printf '%s' "$text" | grep -oiE 'reset[a-z ]*(at|by)? *[0-2]?[0-9]:[0-9]{2}' \
+        | grep -oiE '[0-2]?[0-9]:[0-9]{2}' | head -1)"
+  [ -z "$tok" ] && return 1
+  tok="$(printf '%s' "$tok" | tr 'a-z' 'A-Z' | tr -d ' .')"
+  local fmt val
+  if printf '%s' "$tok" | grep -qE '[AP]M$'; then
+    printf '%s' "$tok" | grep -q ':' || tok="$(printf '%s' "$tok" | sed -E 's/([0-9]+)([AP]M)/\1:00\2/')"
+    fmt="%I:%M%p"; val="$tok"
+  else
+    fmt="%H:%M"; val="$tok"
+  fi
+  now="$(date +%s)"
+  target="$(date -j -f "$fmt" "$val" +%s 2>/dev/null)" || return 1
+  [ "$target" -le "$now" ] && target=$((target + 86400))   # already past today -> tomorrow
+  echo $((target - now))
+}
+
+if [ "${1:-}" = "--parse-reset" ]; then parse_reset_secs; exit $?; fi
+
+self_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="${CLAUDE_AUTO_RESUME_DIR:-$PWD}"
+PROMPT="${CLAUDE_AUTO_RESUME_PROMPT:-continue}"
+MAX_RETRIES="${CLAUDE_AUTO_RESUME_MAX:-18}"
+POLL_SECS="${CLAUDE_AUTO_RESUME_POLL:-1200}"
+MAX_WAIT="${CLAUDE_AUTO_RESUME_MAXWAIT:-21600}"
+BUFFER="${CLAUDE_AUTO_RESUME_BUFFER:-60}"
+CLAUDE_CMD="${CLAUDE_CMD:-claude}"
+if [ -n "${CLAUDE_AUTO_RESUME_LOG:-}" ]; then LOG="$CLAUDE_AUTO_RESUME_LOG"
+elif [ -d "$REPO_DIR/tmp" ] || mkdir -p "$REPO_DIR/tmp" 2>/dev/null; then LOG="$REPO_DIR/tmp/claude-auto-resume.log"
+else LOG="/tmp/claude-auto-resume.log"; fi
+
+mkdir -p "$(dirname "$LOG")" 2>/dev/null
+log() { printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "$LOG" >&2; }
+
+cd "$REPO_DIR" 2>/dev/null || { log "FATAL: cannot cd to $REPO_DIR"; exit 2; }
+
+yolo=()
+[ "${CLAUDE_AUTO_RESUME_YOLO:-}" = "1" ] && yolo=(--dangerously-skip-permissions)
+
+limit_re='"subtype"[[:space:]]*:[[:space:]]*"[^"]*(usage|rate|limit)[^"]*"|usage limit|limit reached|resets? (at|by)|rate.?limit|5-?hour limit'
+
+attempt=0
+while :; do
+  attempt=$((attempt + 1))
+  log "attempt ${attempt}/${MAX_RETRIES}: resuming in ${REPO_DIR}"
+
+  out="$("$CLAUDE_CMD" -c -p "$PROMPT" --output-format json ${yolo[@]+"${yolo[@]}"} 2>&1)"
+  rc=$?
+  printf '%s\n' "$out" >>"$LOG"
+
+  if printf '%s' "$out" | grep -qiE "$limit_re"; then
+    if [ "$attempt" -ge "$MAX_RETRIES" ]; then
+      log "hit attempt cap (${MAX_RETRIES}); stopping to protect the weekly quota"; exit 3
+    fi
+    wait_secs="$(printf '%s' "$out" | parse_reset_secs)" || wait_secs=""
+    if [ -n "$wait_secs" ]; then
+      if [ "$wait_secs" -gt "$MAX_WAIT" ]; then
+        log "reset is ${wait_secs}s away (> ${MAX_WAIT}s) — looks like a WEEKLY limit, not the 5h window; stopping"; exit 4
+      fi
+      wait_secs=$((wait_secs + BUFFER))
+      log "usage limit; message says reset in ~$(( (wait_secs - BUFFER) / 60 ))m — sleeping ${wait_secs}s until reset"
+    else
+      wait_secs="$POLL_SECS"
+      log "usage limit; no parseable reset time — polling again in ${wait_secs}s"
+    fi
+    sleep "$wait_secs"; continue
+  fi
+
+  if [ "$rc" -ne 0 ]; then
+    log "claude exited ${rc} with no limit signal; stopping"; exit "$rc"
+  fi
+
+  log "completed normally"; exit 0
+done
