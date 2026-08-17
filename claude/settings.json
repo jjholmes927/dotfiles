@@ -84,6 +84,19 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/update-jjholmes927-plugins.sh",
+            "timeout": 300,
+            "async": true,
+            "statusMessage": "Checking jjholmes927 plugins for updates"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -121,9 +134,10 @@
       }
     }
   },
+  "outputStyle": "Attention-kind",
   "viewMode": "focus",
   "spinnerTipsEnabled": false,
-  "effortLevel": "medium",
+  "effortLevel": "high",
   "tui": "fullscreen",
   "prefersReducedMotion": true,
   "autoDreamEnabled": true,

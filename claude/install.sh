@@ -77,6 +77,8 @@ link "$SCRIPT_DIR/hooks/otel-workflow-ledger.sh" "$CLAUDE_HOME/hooks/otel-workfl
 chmod +x "$SCRIPT_DIR/hooks/otel-workflow-ledger.sh"
 link "$SCRIPT_DIR/hooks/confirm-github-posts.sh" "$CLAUDE_HOME/hooks/confirm-github-posts.sh"
 chmod +x "$SCRIPT_DIR/hooks/confirm-github-posts.sh"
+link "$SCRIPT_DIR/hooks/update-jjholmes927-plugins.sh" "$CLAUDE_HOME/hooks/update-jjholmes927-plugins.sh"
+chmod +x "$SCRIPT_DIR/hooks/update-jjholmes927-plugins.sh"
 
 header "MCP servers"
 link "$SCRIPT_DIR/mcp-servers.json" "$CLAUDE_HOME/mcp-servers.json"
