@@ -1,3 +1,10 @@
+_lane_default_branch() {
+  local b
+  b=$(git -C "$1" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  b=${b#origin/}
+  echo "${b:-main}"
+}
+
 _lane_live() {
   claude agents --json 2>/dev/null | python3 -c '
 import json,sys
@@ -10,12 +17,13 @@ lane-sweep() {
   local lane=$1 root=${ENG_ROOT:-$HOME/engineering}/$1
   if [ ! -d "$root" ]; then echo "no such lane: $lane" >&2; return 1; fi
   if [ "$(_lane_live "$root")" != "0" ]; then echo "SKIP $lane: live claude session in lane root" >&2; return 2; fi
-  local branch dirty
+  local branch dirty base
+  base=$(_lane_default_branch "$root")
   branch=$(git -C "$root" branch --show-current)
   dirty=$(git -C "$root" status --porcelain | wc -l | tr -d ' ')
-  if [ "$branch" = "main" ] && [ "$dirty" = "0" ]; then return 0; fi
-  git -C "$root" fetch origin main --quiet
-  if [ "$branch" = "main" ]; then
+  if [ "$branch" = "$base" ] && [ "$dirty" = "0" ]; then return 0; fi
+  git -C "$root" fetch origin "$base" --quiet
+  if [ "$branch" = "$base" ]; then
     branch="jjholmes927-lane-sweep-$lane-$(date +%Y%m%d)"
     git -C "$root" branch "$branch" || return 1
   fi
@@ -24,7 +32,7 @@ lane-sweep() {
     git -C "$root" stash push -u -m "lane-sweep $lane $branch $(date +%F)" || return 1
     stashed=1
   fi
-  git -C "$root" checkout main --quiet || return 1
+  git -C "$root" checkout "$base" --quiet || return 1
   if [ ! -d "$root/.worktrees/$branch" ]; then
     git -C "$root" worktree add "$root/.worktrees/$branch" "$branch" --quiet || return 1
   fi
@@ -44,11 +52,11 @@ gmp-all() {
   for lane in ${LANES:-mn1 mn2 mn3 mn4 mn5}; do
     root=${ENG_ROOT:-$HOME/engineering}/$lane
     [ -d "$root" ] || continue
-    if [ "$(git -C "$root" branch --show-current)" != "main" ] || [ -n "$(git -C "$root" status --porcelain | head -1)" ]; then
+    if [ "$(git -C "$root" branch --show-current)" != "$(_lane_default_branch "$root")" ] || [ -n "$(git -C "$root" status --porcelain | head -1)" ]; then
       lane-sweep "$lane"; rc=$?
       if [ "$rc" != "0" ]; then echo "SKIP $lane: needs sweep but $([ "$rc" = "2" ] && echo "a live session is in the lane root" || echo "sweep failed")"; continue; fi
     fi
-    git -C "$root" fetch origin main --quiet
+    git -C "$root" fetch origin "$(_lane_default_branch "$root")" --quiet
     if git -C "$root" pull --ff-only --quiet 2>/dev/null; then
       echo "$lane: main @ $(git -C "$root" log --oneline -1 | cut -c1-60)"
     else
@@ -63,10 +71,10 @@ clone-status() {
   for lane in ${LANES:-mn1 mn2 mn3 mn4 mn5}; do
     root=${ENG_ROOT:-$HOME/engineering}/$lane
     [ -d "$root" ] || continue
-    git -C "$root" fetch origin main --quiet 2>/dev/null
+    git -C "$root" fetch origin "$(_lane_default_branch "$root")" --quiet 2>/dev/null
     branch=$(git -C "$root" branch --show-current)
     dirty=$(git -C "$root" status --porcelain | wc -l | tr -d ' ')
-    behind=$(git -C "$root" rev-list --count "main..origin/main" 2>/dev/null || echo '?')
+    behind=$(git -C "$root" rev-list --count "$(_lane_default_branch "$root")..origin/$(_lane_default_branch "$root")" 2>/dev/null || echo '?')
     wts=$(git -C "$root" worktree list | grep -c worktrees)
     live=$(_lane_live "$root")
     printf '%-5s %-42s %6s %7s %4s %5s\n' "$lane" "$branch" "$dirty" "$behind" "$wts" "$live"

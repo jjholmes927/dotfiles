@@ -1,3 +1,10 @@
+_repo_default_branch() {
+  local b
+  b=$(git -C "$1" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  b=${b#origin/}
+  echo "${b:-main}"
+}
+
 new-agent() {
   local lane=$1 name=$2; shift 2
   local effort=high
@@ -6,15 +13,26 @@ new-agent() {
   local root=${ENG_ROOT:-$HOME/engineering}/$lane
   if [ ! -d "$root" ]; then echo "no such lane: $lane" >&2; return 1; fi
   if [ -z "$prompt" ]; then echo "usage: new-agent <lane> <branch-name> [--effort high|low] <prompt>" >&2; return 1; fi
-  git -C "$root" fetch origin main --quiet || echo "warn: fetch failed, basing on last-known origin/main" >&2
+  local base; base=$(_repo_default_branch "$root")
+  git -C "$root" fetch origin "$base" --quiet || echo "warn: fetch failed, basing on last-known origin/$base" >&2
   local made_branch=0
-  if ! git -C "$root" show-ref --verify --quiet "refs/heads/$name" \
-     && ! git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$name"; then
-    git -C "$root" branch "$name" origin/main || return 1
+  if ! git -C "$root" show-ref --verify --quiet "refs/heads/$name"; then
+    if git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$name"; then
+      git -C "$root" branch --track "$name" "origin/$name" || return 1
+    else
+      git -C "$root" branch "$name" "origin/$base" || return 1
+    fi
     made_branch=1
   fi
-  if ! (cd "$root" && bin/create_worktree "$name"); then
-    if [ "$made_branch" = 1 ]; then git -C "$root" branch -D "$name" >/dev/null 2>&1; fi
+  local ok=1
+  if [ -x "$root/bin/create_worktree" ]; then
+    (cd "$root" && bin/create_worktree "$name") || ok=0
+  else
+    mkdir -p "$root/.worktrees"
+    git -C "$root" worktree add "$root/.worktrees/$name" "$name" --quiet || ok=0
+  fi
+  if [ "$ok" = "0" ]; then
+    if [ "$made_branch" = "1" ]; then git -C "$root" branch -D "$name" >/dev/null 2>&1; fi
     return 1
   fi
   (cd "$root/.worktrees/$name" && claude --bg --name "${name#jjholmes927-}" --effort "$effort" "$prompt")
