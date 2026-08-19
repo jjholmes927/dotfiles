@@ -3,7 +3,7 @@ new-agent() {
   local effort=high
   if [ "$1" = "--effort" ]; then effort=$2; shift 2; fi
   local prompt="$*"
-  local root=$HOME/engineering/$lane
+  local root=${ENG_ROOT:-$HOME/engineering}/$lane
   if [ ! -d "$root" ]; then echo "no such lane: $lane" >&2; return 1; fi
   if [ -z "$prompt" ]; then echo "usage: new-agent <lane> <branch-name> [--effort high|low] <prompt>" >&2; return 1; fi
   git -C "$root" fetch origin main --quiet || echo "warn: fetch failed, basing on last-known origin/main" >&2

@@ -7,7 +7,7 @@ print(sum(1 for r in rows if r.get("kind")=="interactive" and r.get("cwd")==sys.
 }
 
 lane-sweep() {
-  local lane=$1 root=$HOME/engineering/$1
+  local lane=$1 root=${ENG_ROOT:-$HOME/engineering}/$1
   if [ ! -d "$root" ]; then echo "no such lane: $lane" >&2; return 1; fi
   if [ "$(_lane_live "$root")" != "0" ]; then echo "SKIP $lane: live claude session in lane root" >&2; return 2; fi
   local branch dirty
@@ -41,8 +41,8 @@ lane-sweep() {
 
 gmp-all() {
   local lane root rc
-  for lane in mn1 mn2 mn3 mn4 mn5; do
-    root=$HOME/engineering/$lane
+  for lane in ${LANES:-mn1 mn2 mn3 mn4 mn5}; do
+    root=${ENG_ROOT:-$HOME/engineering}/$lane
     [ -d "$root" ] || continue
     if [ "$(git -C "$root" branch --show-current)" != "main" ] || [ -n "$(git -C "$root" status --porcelain | head -1)" ]; then
       lane-sweep "$lane"; rc=$?
@@ -60,8 +60,8 @@ gmp-all() {
 clone-status() {
   local lane root branch dirty behind wts live
   printf '%-5s %-42s %6s %7s %4s %5s\n' LANE BRANCH DIRTY BEHIND WTS LIVE
-  for lane in mn1 mn2 mn3 mn4 mn5; do
-    root=$HOME/engineering/$lane
+  for lane in ${LANES:-mn1 mn2 mn3 mn4 mn5}; do
+    root=${ENG_ROOT:-$HOME/engineering}/$lane
     [ -d "$root" ] || continue
     git -C "$root" fetch origin main --quiet 2>/dev/null
     branch=$(git -C "$root" branch --show-current)
