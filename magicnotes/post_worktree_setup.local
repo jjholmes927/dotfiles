@@ -1,0 +1,16 @@
+link_agent_memory() {
+    local projects_dir="$HOME/.claude/projects"
+    local main_slug worktree_slug main_memory dest target
+    main_slug=$(printf '%s' "$MAIN_WORKTREE" | sed 's/[^a-zA-Z0-9]/-/g')
+    worktree_slug=$(printf '%s' "$WORKTREE_PATH" | sed 's/[^a-zA-Z0-9]/-/g')
+    main_memory="$projects_dir/$main_slug/memory"
+    dest="$projects_dir/$worktree_slug/memory"
+    [ -e "$main_memory" ] || return 0
+    if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+        rmdir "$dest" 2>/dev/null || return 0
+    fi
+    target="$(cd "$main_memory" 2>/dev/null && pwd -P)" || return 0
+    mkdir -p "$projects_dir/$worktree_slug"
+    ln -sfn "$target" "$dest" 2>/dev/null || true
+}
+link_agent_memory
