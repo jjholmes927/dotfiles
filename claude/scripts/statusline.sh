@@ -173,11 +173,28 @@ else
     printf "%b%s%b %b%s%b %b%s%b %b%s%b\n" "$RED" "$TIME" "$RESET" "$GREEN" "$USER" "$RESET" "$CYAN" "$LOCATION" "$RESET" "$YELLOW" "$BRANCH" "$RESET"
 fi
 
+RATE=""
+rl_5h=$(echo "$INPUT" | jq -r '.rate_limits.five_hour.used_percentage // empty' 2>/dev/null)
+rl_7d=$(echo "$INPUT" | jq -r '.rate_limits.seven_day.used_percentage // empty' 2>/dev/null)
+if [[ -n "$rl_5h" || -n "$rl_7d" ]]; then
+    rl_col="$GREEN"
+    if [[ "${rl_5h%.*}" -ge 80 || "${rl_7d%.*}" -ge 80 ]] 2>/dev/null; then rl_col="$DEEP_RED"; fi
+    RATE=$(printf "%b5h %s%% · 7d %s%%%b" "$rl_col" "${rl_5h:-?}" "${rl_7d:-?}" "$RESET")
+fi
+
 # Second line: model and context
 if [[ -n "$MODEL" && -n "$CONTEXT" ]]; then
-    printf "%b%s%b | %s\n" "$LIGHT_BLUE" "$MODEL" "$RESET" "$CONTEXT"
+    if [[ -n "$RATE" ]]; then
+        printf "%b%s%b | %s | %b\n" "$LIGHT_BLUE" "$MODEL" "$RESET" "$CONTEXT" "$RATE"
+    else
+        printf "%b%s%b | %s\n" "$LIGHT_BLUE" "$MODEL" "$RESET" "$CONTEXT"
+    fi
 elif [[ -n "$MODEL" ]]; then
-    printf "%b%s%b\n" "$LIGHT_BLUE" "$MODEL" "$RESET"
+    if [[ -n "$RATE" ]]; then
+        printf "%b%s%b | %b\n" "$LIGHT_BLUE" "$MODEL" "$RESET" "$RATE"
+    else
+        printf "%b%s%b\n" "$LIGHT_BLUE" "$MODEL" "$RESET"
+    fi
 elif [[ -n "$CONTEXT" ]]; then
     printf "%s\n" "$CONTEXT"
 fi

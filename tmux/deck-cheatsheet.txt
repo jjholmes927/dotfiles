@@ -8,6 +8,7 @@
  clone-status        lane table
  gmp-all             sync lanes, sweep dirty
  lane-sweep <lane>   park WIP -> worktree
+ closure-sweep       aged PRs + blocked rows
 
  FLEET (window 0)
  Space    peek: read + reply, 1-9 answers
@@ -27,6 +28,7 @@
 
  THE DAY LOOP
  morning  deck -> s:blocked -> gmp-all
+          -> closure-sweep
  start    new-agent mnN br "/e2e INT-X"
  gate     bell -> Space -> press 1
  deep     pair window: claude attach <id>

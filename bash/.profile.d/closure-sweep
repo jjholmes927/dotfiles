@@ -1,0 +1,33 @@
+closure-sweep() {
+  local repos="${CLOSURE_REPOS:-wearebeam/magicnotes wearebeam/infrastructure}"
+  local repo
+  echo "── closure sweep $(date +%F) ──"
+  for repo in $repos; do
+    gh pr list --repo "$repo" --author "@me" --state open \
+      --json number,title,updatedAt,mergeable,isDraft 2>/dev/null | python3 -c '
+import json, sys, datetime
+repo = sys.argv[1]
+now = datetime.datetime.now(datetime.timezone.utc)
+for pr in json.load(sys.stdin):
+    updated = datetime.datetime.fromisoformat(pr["updatedAt"].replace("Z", "+00:00"))
+    age = (now - updated).total_seconds() / 86400
+    n = pr["number"]; t = pr["title"][:58]
+    if pr["mergeable"] == "CONFLICTING" and age >= 1:
+        print(f"[RED] CONFLICTING {age:.0f}d  {repo}#{n}  {t}")
+    elif not pr["isDraft"] and age >= 2:
+        print(f"[AMB] quiet {age:.0f}d       {repo}#{n}  {t}")
+    elif pr["isDraft"] and age >= 7:
+        print(f"[AMB] stale draft {age:.0f}d {repo}#{n}  {t}")
+' "$repo"
+  done
+  claude agents --json --all 2>/dev/null | python3 -c '
+import json, sys
+try: rows = json.load(sys.stdin)
+except Exception: rows = []
+for r in rows:
+    if r.get("kind") == "background" and r.get("state") == "blocked":
+        name = r.get("name", "?"); w = r.get("waitingFor", "input"); cwd = r.get("cwd", "")
+        print(f"[RED] blocked stream  {name}  waiting: {w}  ({cwd})")
+'
+  echo "── every line above needs a next action, a hand-off, or a park ──"
+}
