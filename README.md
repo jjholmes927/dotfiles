@@ -7,7 +7,7 @@ Personal configuration files, symlinked into `~/`. Each top-level directory hold
 | Directory | Purpose |
 |-----------|---------|
 | `alacritty/` | Alacritty terminal config |
-| `bash/` | Bash shell config |
+| `bash/` | Bash shell config — includes the operator-workflow helpers (`deck`, `new-agent`, `lanes`); see [docs/operator-workflow.md](docs/operator-workflow.md) |
 | `claude/` | Claude Code global config — `CLAUDE.md`, settings, commands, hooks, scripts |
 | `codex/` | Codex global config — `AGENTS.md`, skills, installer, MCP bootstrap |
 | `git/` | Git config |

@@ -1,0 +1,68 @@
+# The operator workflow
+
+How development runs day to day: parallel agent streams in isolated worktrees, one fleet inbox, one human gate per stream. This documents the whole system from the operating model down to each script, so it survives machine moves and memory loss. Written 2026-08-19; mechanics were live-verified on Claude Code v2.1.235 that day.
+
+Deep background lives in two artifacts (private, share from the page menu):
+- **The Missing Control Plane** — the analysis that produced this design: https://claude.ai/code/artifact/47ee05f0-a679-4f27-bb67-6f7e17189bb2
+- **The Operator's Day** — the flows, keystroke by keystroke: https://claude.ai/code/artifact/c9a87c0d-b768-41c7-a983-539105bde546
+
+## 1. The operating model (high level)
+
+Three nouns:
+
+- **Lane** — a durable clone of a repo with a fixed identity: its own Postgres/ports/Redis block (magicnotes: `WORKTREE_OFFSET` in `.env.local`, lanes `mn1`–`mn5`), warm caches, and any physical singletons (mn1 owns the telephony tunnel + Twilio webhook). Lanes are hosts, not workplaces: their roots stay parked clean on the default branch.
+- **Stream** — one unit of work (usually a ticket) running as a *background* Claude session inside a worktree under a lane. Streams are dispatched, run unattended, and ask for the human exactly once (the /e2e plan gate).
+- **Fleet** — all streams, viewed and answered from one inbox: `claude agents`.
+
+The day loop: `deck` → work the `s:blocked` queue with Space-peeks → `new-agent` to start streams → attach only for deliberate deep work → `claude rm` + memory line to close. Concurrency cap: 3–4 streams (quota is the binding constraint; background sessions bill like interactive ones and inherit effort settings).
+
+The tmux session has three windows, not one per stream:
+
+| Window | Runs | Job |
+|--------|------|-----|
+| `fleet` | `claude agents --cwd $ENG_ROOT` | The inbox. Never closes — needs-input/completed notifications only fire while it is open. |
+| `pair` | whatever you attach | The one session you steer live. Statusline renames/colours the tab. |
+| `ops` | bash + cheat-sheet pane | `new-agent`, `clone-status`, `gmp-all`, `claude rm`, git surgery. |
+
+## 2. Components and where they live
+
+| Piece | Location | What it does |
+|-------|----------|--------------|
+| `deck [name]` | `bash/.profile.d/deck` | Creates-or-attaches the fleet/pair/ops tmux session. Fleet auto-runs the scoped agent view; ops shows `tmux/deck-cheatsheet.txt` in a 44-col pane. |
+| `new-agent <lane> <branch> [--effort low] "<prompt>"` | `bash/.profile.d/new-agent` | Provision + dispatch: fetches the repo's default branch, bases new branches on **fresh origin/<default>** (existing local/origin branches used as-is), provisions via the repo's `bin/create_worktree` when present (else plain `git worktree add` under `.worktrees/`), then dispatches `claude --bg` from inside the worktree. Effort defaults to `high`, never inherits the global setting. Cleans up its pre-created branch on failure. |
+| `clone-status` / `gmp-all` / `lane-sweep` | `bash/.profile.d/lanes` | Lane upkeep. `gmp-all`: clean lanes pull; a dirty/parked lane is swept — WIP moved onto its own branch in a worktree, root returned to the default branch. A live Claude session in a lane root always blocks its sweep (checked via `claude agents --json`). |
+| Cheat sheet | `tmux/deck-cheatsheet.txt` | The command + fleet-key reference shown in the ops pane. |
+| Notification hook | `claude/hooks/tmux-alert.sh` + matchers in `claude/settings.json` | Rings the tmux tab red on `permission_prompt`, `idle_prompt`, `elicitation_dialog`, `agent_needs_input`, `agent_completed`. Falls back to a `terminalSequence` BEL when there is no pane tty (background/agent-view contexts). |
+| Statusline sync | `claude/scripts/statusline.sh` | Renames/recolours the tmux tab for attached sessions. Bails out when `CLAUDE_JOB_DIR` is set so background sessions can't rename live windows. |
+| magicnotes worktree hook | `magicnotes/post_worktree_setup.local` → symlinked into each lane's `bin/` | Sourced by `bin/create_worktree`: links the worktree's Claude project dir to the parent checkout's agent memory (full non-alphanumeric slug encoding; leaves a non-empty real memory dir untouched). |
+| /e2e pipeline | `jjholmes927/jjholmes927-claude-skills` plugin (joel-workflow) | The ticket→PR pipeline streams run. Stage 2 is isolation-aware since 2.12.1: reuse a bg job's worktree → `bin/create_worktree` → generic skill. |
+| tmux keys | `tmux/.tmux.conf` | `extended-keys on` + `xterm*:extkeys` so Shift+Enter works in agent view. Prefix2 `C-s` eats agent view's grouping key — use `C-s C-s`. |
+
+## 3. Per-machine configuration
+
+All helpers read two env vars, overridden in a gitignored `~/.profile.d/local`:
+
+```bash
+export ENG_ROOT="$HOME/code"          # default: ~/engineering
+export LANES="myproject otherproject" # default: mn1 mn2 mn3 mn4 mn5
+```
+
+Default branches are resolved per repo from `origin/HEAD` (fallback `main`); run `git remote set-head origin -a` once in repos whose default is `master`.
+
+## 4. Verified landmines (do not relearn these)
+
+- **Answering a blocked background session works ONLY from the agent-view peek panel** (Space; numbered questions answer with a keypress). Every programmatic path dead-ends: SendMessage reports success while held or lands unsubmitted in the input box; `claude -p --resume` is refused for live bg sessions; `--fork-session` answers a copy while the original stays blocked.
+- **Scripts must poll `state` (`working`/`blocked`/`done`/`stopped`) + `waitingFor`, never `status`** — and read a session's final text from its JSONL transcript (`~/.claude/projects/<slug>/<sessionId>.jsonl`, last assistant row). `claude logs` is raw ANSI scrollback. A blocked session flushes no assistant row, so the pending question exists only on screen.
+- **Background sessions inherit the launcher's effort** — a one-word answer cost $0.73 at xhigh. Always dispatch with `--effort` (new-agent does).
+- **bg worktree isolation is lazy (before first edit)** and `.worktreeinclude` must never list `.env.local`: the env var beats `lib/worktree_offset.rb`'s path resolution, so a copied file pins the worktree to its parent lane's DB/ports. Env values are written fresh by provisioning.
+- **Two id namespaces**: CLI short ids (for `attach/logs/stop/rm`) ≠ ListAgents refs. `claude kill` is an alias of `stop`. View-delete (Ctrl+X ×2) removes worktrees *including uncommitted changes*; `claude rm` refuses.
+- **Agent teams stay OFF** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) — named subagents launch as teammates that never return results, stalling /e2e.
+- **Non-pinned idle background sessions stop after ~1h**; sessions survive sleep and terminal close, not reboot. Pin overnight work (Ctrl+T).
+- **The fleet verbs are hidden top-level commands** (`claude attach|logs|stop|rm|respawn|daemon`) absent from `claude --help`.
+
+## 5. New machine bootstrap
+
+1. Follow the README prerequisites, run `claude/install.sh` and the codex installer.
+2. Create `~/.profile.d/local` with this machine's `ENG_ROOT`/`LANES`.
+3. In each lane repo with provisioning, symlink the worktree hook: `ln -s <dotfiles>/magicnotes/post_worktree_setup.local <lane>/bin/`.
+4. `deck` — and confirm the fleet tab title reads `claude agents`, the cheat pane renders, and a throwaway `new-agent` dispatch appears as a row.
