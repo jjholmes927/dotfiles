@@ -14,7 +14,27 @@ Three nouns:
 - **Stream** — one unit of work (usually a ticket) running as a *background* Claude session inside a worktree under a lane. Streams are dispatched, run unattended, and ask for the human exactly once (the /e2e plan gate).
 - **Fleet** — all streams, viewed and answered from one inbox: `claude agents`.
 
+```
+$ENG_ROOT/
+├── mn1/                     lane · telephony singleton · root parked clean on main
+│   └── .worktrees/
+│       ├── jjholmes927-a-INT-100/   ← stream: bg claude, own DB/ports/env/memory
+│       └── jjholmes927-b-INT-200/   ← stream: fully parallel with the one above
+├── mn2/                     lane
+│   └── .worktrees/…
+└── mn3/ mn4/ mn5/           lanes
+
+          every stream = one row in the fleet inbox
+```
+
 The day loop: `deck` → work the `s:blocked` queue with Space-peeks → `new-agent` to start streams → attach only for deliberate deep work → `claude rm` + memory line to close. Concurrency cap: 3–4 streams (quota is the binding constraint; background sessions bill like interactive ones and inherit effort settings).
+
+```
+tmux "interpret"                                (deck builds this)
+├── 0 fleet   claude agents --cwd $ENG_ROOT     ← live here: the inbox
+├── 1 pair    claude attach <id>                ← the ONE deep-work session
+└── 2 ops     bash · clone-status ┆ cheat pane  ← launch + reap
+```
 
 The tmux session has three windows, not one per stream:
 
@@ -23,6 +43,22 @@ The tmux session has three windows, not one per stream:
 | `fleet` | `claude agents --cwd $ENG_ROOT` | The inbox. Never closes — needs-input/completed notifications only fire while it is open. |
 | `pair` | whatever you attach | The one session you steer live. Statusline renames/colours the tab. |
 | `ops` | bash + cheat-sheet pane | `new-agent`, `clone-status`, `gmp-all`, `claude rm`, git surgery. |
+
+A stream's life:
+
+```
+new-agent mn3 <branch> "/e2e INT-X"
+     │  provision (env·DB·keys·memory)  →  dispatch claude --bg --effort high
+     ▼
+ [working] ──plan ready──▶ [blocked] ──bell · Space · press 1──▶ [working]
+     │                        ▲                                     │ /e2e → /ship
+     │   (attach with →,      └── every later question repeats ◀────┤
+     │    detach with ← —                                           ▼
+     │    session keeps running)                            [done] + PR #NNNN
+     ▼                                                              │ merge
+ s:blocked shows it whenever it waits on you                        ▼
+                                              claude rm  →  worktree + branch reaped
+```
 
 ## 2. Components and where they live
 
