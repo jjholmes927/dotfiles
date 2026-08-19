@@ -1,0 +1,33 @@
+ DECK CHEAT SHEET
+ ──────────────────────────────────────
+ deck [name]         layout + attach
+ new-agent <lane> <branch> \
+   [--effort low] "<prompt>"
+                     provision + dispatch
+                     (base: FRESH origin/main)
+ clone-status        lane table
+ gmp-all             sync lanes, sweep dirty
+ lane-sweep <lane>   park WIP -> worktree
+
+ FLEET (window 0)
+ Space    peek: read + reply, 1-9 answers
+ Enter    attach row / dispatch input
+ <-       detach (on empty prompt)
+ s:blocked   only whats waiting on YOU
+ @mn3 <prompt>   dispatch into a lane
+ #9350    jump to that PR's session
+ C-s C-s  toggle grouping
+ Ctrl+T   pin (survives 1h idle stop)
+ Ctrl+X   stop (x2 deletes + worktree!)
+
+ SESSIONS (any shell)
+ claude attach|logs|stop|rm <id>
+ claude rm = remove worktree + branch
+             (refuses uncommitted work)
+
+ THE DAY LOOP
+ morning  deck -> s:blocked -> gmp-all
+ start    new-agent mnN br "/e2e INT-X"
+ gate     bell -> Space -> press 1
+ deep     pair window: claude attach <id>
+ close    merge -> claude rm -> memory line

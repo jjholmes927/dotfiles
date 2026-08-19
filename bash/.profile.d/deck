@@ -6,6 +6,8 @@ deck() {
     tmux send-keys -t "=$name:fleet" 'claude agents' C-m
     tmux new-window -t "=$name" -n pair -c "$HOME/engineering"
     tmux new-window -t "=$name" -n ops -c "$HOME/engineering"
+    tmux split-window -h -l 44 -t "=$name:ops" -c "$HOME/engineering" "bash -c 'cat $HOME/engineering/dotfiles/tmux/deck-cheatsheet.txt; exec bash'"
+    tmux select-pane -L -t "=$name:ops"
     tmux send-keys -t "=$name:ops" 'clone-status' C-m
     tmux select-window -t "=$name:fleet"
   fi
