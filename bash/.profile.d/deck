@@ -1,13 +1,16 @@
 deck() {
-  local name=${1:-interpret} root="${ENG_ROOT:-$HOME/engineering}"
+  local name=${1:-interpret} root="${ENG_ROOT:-$HOME/engineering}" cheat
+  cheat="$(dirname "$(readlink "$HOME/.tmux.conf" 2>/dev/null)")/deck-cheatsheet.txt"
   if ! tmux has-session -t "=$name" 2>/dev/null; then
     tmux new-session -d -s "$name" -c "$root" -n fleet
     tmux set-option -w -t "=$name:fleet" automatic-rename off
-    tmux send-keys -t "=$name:fleet" 'claude agents --cwd "$root"' C-m
+    tmux send-keys -t "=$name:fleet" "claude agents --cwd \"$root\"" C-m
     tmux new-window -t "=$name" -n pair -c "$root"
     tmux new-window -t "=$name" -n ops -c "$root"
-    tmux split-window -h -l 44 -t "=$name:ops" -c "$root" "bash -c 'cat $HOME/engineering/dotfiles/tmux/deck-cheatsheet.txt; exec bash'"
-    tmux select-pane -L -t "=$name:ops"
+    if [ -f "$cheat" ]; then
+      tmux split-window -h -l 44 -t "=$name:ops" -c "$root" "bash -c 'cat \"$cheat\"; exec bash'"
+      tmux select-pane -L -t "=$name:ops"
+    fi
     tmux send-keys -t "=$name:ops" 'clone-status' C-m
     tmux select-window -t "=$name:fleet"
   fi
