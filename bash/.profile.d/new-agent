@@ -1,0 +1,21 @@
+new-agent() {
+  local lane=$1 name=$2; shift 2
+  local effort=high
+  if [ "$1" = "--effort" ]; then effort=$2; shift 2; fi
+  local prompt="$*"
+  local root=$HOME/engineering/$lane
+  if [ ! -d "$root" ]; then echo "no such lane: $lane" >&2; return 1; fi
+  if [ -z "$prompt" ]; then echo "usage: new-agent <lane> <branch-name> [--effort high|low] <prompt>" >&2; return 1; fi
+  git -C "$root" fetch origin main --quiet || echo "warn: fetch failed, basing on last-known origin/main" >&2
+  local made_branch=0
+  if ! git -C "$root" show-ref --verify --quiet "refs/heads/$name" \
+     && ! git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$name"; then
+    git -C "$root" branch "$name" origin/main || return 1
+    made_branch=1
+  fi
+  if ! (cd "$root" && bin/create_worktree "$name"); then
+    if [ "$made_branch" = 1 ]; then git -C "$root" branch -D "$name" >/dev/null 2>&1; fi
+    return 1
+  fi
+  (cd "$root/.worktrees/$name" && claude --bg --name "${name#jjholmes927-}" --effort "$effort" "$prompt")
+}
