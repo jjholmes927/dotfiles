@@ -3,7 +3,7 @@ deck() {
   if ! tmux has-session -t "=$name" 2>/dev/null; then
     tmux new-session -d -s "$name" -c "$HOME/engineering" -n fleet
     tmux set-option -w -t "=$name:fleet" automatic-rename off
-    tmux send-keys -t "=$name:fleet" 'claude agents' C-m
+    tmux send-keys -t "=$name:fleet" 'claude agents --cwd "$HOME/engineering"' C-m
     tmux new-window -t "=$name" -n pair -c "$HOME/engineering"
     tmux new-window -t "=$name" -n ops -c "$HOME/engineering"
     tmux split-window -h -l 44 -t "=$name:ops" -c "$HOME/engineering" "bash -c 'cat $HOME/engineering/dotfiles/tmux/deck-cheatsheet.txt; exec bash'"
