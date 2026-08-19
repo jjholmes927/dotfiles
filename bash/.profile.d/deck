@@ -1,0 +1,13 @@
+deck() {
+  local name=${1:-interpret}
+  if ! tmux has-session -t "=$name" 2>/dev/null; then
+    tmux new-session -d -s "$name" -c "$HOME/engineering" -n fleet
+    tmux set-option -w -t "=$name:fleet" automatic-rename off
+    tmux send-keys -t "=$name:fleet" 'claude agents' C-m
+    tmux new-window -t "=$name" -n pair -c "$HOME/engineering"
+    tmux new-window -t "=$name" -n ops -c "$HOME/engineering"
+    tmux send-keys -t "=$name:ops" 'clone-status' C-m
+    tmux select-window -t "=$name:fleet"
+  fi
+  if [ -n "$TMUX" ]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi
+}
