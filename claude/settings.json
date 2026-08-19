@@ -83,6 +83,24 @@
             "command": "~/.claude/hooks/tmux-alert.sh"
           }
         ]
+      },
+      {
+        "matcher": "agent_needs_input",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-alert.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "agent_completed",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/tmux-alert.sh"
+          }
+        ]
       }
     ],
     "SessionStart": [

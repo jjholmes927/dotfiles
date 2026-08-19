@@ -4,5 +4,7 @@ if command -v tmux &>/dev/null && [ -n "$TMUX" ] && [ -n "$TMUX_PANE" ]; then
   pane_tty=$(tmux display-message -p -t "$TMUX_PANE" '#{pane_tty}')
   if [ -n "$pane_tty" ]; then
     printf '\a' > "$pane_tty"
+    exit 0
   fi
 fi
+printf '{"terminalSequence":"\\u0007"}\n'

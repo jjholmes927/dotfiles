@@ -119,6 +119,7 @@ resolve_tmux_pane() {
 }
 
 tmux_sync() {
+    [[ -n "${CLAUDE_JOB_DIR:-}" ]] && return
     local pane
     pane=$(resolve_tmux_pane)
     [[ -z "$pane" ]] && return
