@@ -8,15 +8,15 @@ argument-hint: [command or question]
 
 **User request:** $ARGUMENTS
 
-**Vault location:** `~/Documents/repos/second-brain/`
+**Vault location:** `~/engineering/second-brain/`
 
 ## Load Instructions
 
-1. First verify `~/Documents/repos/second-brain/` exists. If not, STOP and tell the user the vault path was not found.
-2. Use the Read tool to read `~/Documents/repos/second-brain/CLAUDE.md` and follow all instructions defined there.
+1. First verify `~/engineering/second-brain/` exists. If not, STOP and tell the user the vault path was not found.
+2. Use the Read tool to read `~/engineering/second-brain/CLAUDE.md` and follow all instructions defined there.
 
 ## Critical Rules
-- Always use absolute paths: `~/Documents/repos/second-brain/...`
+- Always use absolute paths: `~/engineering/second-brain/...`
 - Never edit files in `raw/`
 - For large docs (>500 lines): chunk and confirm coverage
 - Move inbox items to `raw/` (never delete)

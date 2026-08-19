@@ -18,8 +18,8 @@ Parse from user input:
 ## Paths
 
 ```bash
-BRAG_ROOT=~/Documents/repos/second-brain/05-reflections/brag
-PEOPLE_DIR=~/Documents/repos/second-brain/02-people
+BRAG_ROOT=~/engineering/second-brain/04-reflections/brag
+PEOPLE_DIR=~/engineering/second-brain/03-people
 ```
 
 ## Workflow

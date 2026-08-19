@@ -8,13 +8,13 @@ description: Manage a personal second brain or knowledge vault. Use when the use
 Work against the personal knowledge vault at:
 
 ```text
-~/Documents/repos/second-brain/
+~/engineering/second-brain/
 ```
 
 ## Workflow
 
 1. Verify that the vault exists.
-2. Read `~/Documents/repos/second-brain/CLAUDE.md` and follow the repository-specific instructions there.
+2. Read `~/engineering/second-brain/CLAUDE.md` and follow the repository-specific instructions there.
 3. Use absolute paths throughout the workflow.
 
 ## Critical rules
