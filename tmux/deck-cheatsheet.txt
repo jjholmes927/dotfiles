@@ -7,6 +7,7 @@
        base: FRESH origin/<default>
        no branch -> detached worktree;
        agent names it from the ticket
+ pair [name|id]    attach in pair window
  clone-status      lane table
  gmp-all           sync lanes, sweep dirty
  lane-sweep <lane> park WIP -> worktree
@@ -25,6 +26,8 @@
 
  SESSIONS (any shell)
  claude attach|logs|stop|rm <id>
+ <id> = FIRST 8 CHARS of sessionId
+        (not the name, not the uuid)
  claude rm = remove worktree + branch
             (refuses uncommitted work)
 
@@ -33,5 +36,5 @@
          -> closure-sweep
  start   new-agent mnN "/e2e INT-X"
  gate    bell -> Space -> press 1
- deep    pair window: claude attach <id>
+ deep    pair <name>  (or Enter in fleet)
  close   merge -> claude rm -> memory

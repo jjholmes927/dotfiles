@@ -66,12 +66,14 @@ new-agent() {
   local slug wt name provisional=""
   if [ -n "$branch" ]; then
     slug="${branch#jjholmes927-}"
+    name="$slug"
   else
     slug=$(_slugify "$prompt")
     [ -z "$slug" ] && slug="agent"
+    name="$lane/$(printf '%s' "$slug" | cut -d- -f1-4)"
     slug="${slug}-$(date +%H%M%S)"
   fi
-  name="$slug"
+  name=$(printf '%s' "$name" | cut -c1-30)
   wt="$root/.worktrees/$slug"
 
   if [ -e "$wt" ]; then echo "worktree already exists: $wt" >&2; return 1; fi

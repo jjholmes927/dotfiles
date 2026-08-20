@@ -431,4 +431,4 @@ set -g pane-border-format " #T "
 
 # deck cheat sheet popup — available from every window, including fleet,
 # where the ops pane isn't visible. Any key dismisses.
-bind-key ? display-popup -w 46 -h 42 -T ' deck cheat sheet ' -E 'cat "$(dirname "$(readlink ~/.tmux.conf)")/deck-cheatsheet.txt"; read -rsn1'
+bind-key ? display-popup -w 46 -h 44 -T ' deck cheat sheet ' -E 'cat "$(dirname "$(readlink ~/.tmux.conf)")/deck-cheatsheet.txt"; read -rsn1'
