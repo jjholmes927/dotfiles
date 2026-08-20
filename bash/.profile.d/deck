@@ -59,6 +59,7 @@ pair() {
     bash|zsh|sh) ;;
     *) echo "pair window is busy running '$cmd' — detach it first (<-)"; return 1 ;;
   esac
+  tmux send-keys -t ':pair' C-u
   tmux send-keys -t ':pair' "claude attach $id" C-m
   tmux select-window -t ':pair'
   echo "pair -> $id  $nm"
