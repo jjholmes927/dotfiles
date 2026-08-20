@@ -431,7 +431,7 @@ set -g pane-border-format " #T "
 
 # deck cheat sheet popup — available from every window, including fleet,
 # where the ops pane isn't visible. Any key dismisses.
-bind-key ? display-popup -w 46 -h 44 -T ' deck cheat sheet ' -E 'cat "$(dirname "$(readlink ~/.tmux.conf)")/deck-cheatsheet.txt"; read -rsn1'
+bind-key ? display-popup -w 46 -h 48 -T ' deck cheat sheet ' -E '"$(dirname "$(readlink ~/.tmux.conf)")/deck-cheat"; read -rsn1'
 
 # prefix P — attach a session into the pair window from any window, including
 # fleet (which is a TUI with no shell to type `pair` into).
