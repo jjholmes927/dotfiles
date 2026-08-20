@@ -45,19 +45,19 @@ pair() {
   local res; res=$(_agent_pick "$1")
   local verdict; verdict=$(printf '%s' "$res" | head -1 | awk '{print $1}')
   if [ "$verdict" != "OK" ]; then
-    printf '%s\n' "$res" | sed '1s/^NONE$/no match — running sessions:/;1s/^AMBIGUOUS$/more than one match:/' >&2
+    printf '%s\n' "$res" | sed '1s/^NONE$/no match — running sessions:/;1s/^AMBIGUOUS$/more than one match:/'
     return 1
   fi
   local id; id=$(printf '%s' "$res" | head -1 | awk '{print $2}')
   local nm; nm=$(printf '%s' "$res" | head -1 | cut -d' ' -f3-)
   if [ -z "$TMUX" ]; then claude attach "$id"; return; fi
   if ! tmux list-windows -F '#W' | grep -qx pair; then
-    echo "no 'pair' window in this session — run deck first" >&2; return 1
+    echo "no 'pair' window in this session — run deck first"; return 1
   fi
   local cmd; cmd=$(tmux display-message -p -t ':pair' '#{pane_current_command}')
   case "$cmd" in
     bash|zsh|sh) ;;
-    *) echo "pair window is busy running '$cmd' — detach it first (<-)" >&2; return 1 ;;
+    *) echo "pair window is busy running '$cmd' — detach it first (<-)"; return 1 ;;
   esac
   tmux send-keys -t ':pair' "claude attach $id" C-m
   tmux select-window -t ':pair'

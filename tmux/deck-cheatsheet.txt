@@ -1,4 +1,4 @@
- DECK CHEAT SHEET       prefix ? = popup
+ DECK CHEAT SHEET  ? = this  P = pair
  ──────────────────────────────────────
  deck [name]       layout + attach
  new-agent <lane> [branch] \
@@ -8,6 +8,7 @@
        no branch -> detached worktree;
        agent names it from the ticket
  pair [name|id]    attach in pair window
+                   (prefix P from any window)
  clone-status      lane table
  gmp-all           sync lanes, sweep dirty
  lane-sweep <lane> park WIP -> worktree
