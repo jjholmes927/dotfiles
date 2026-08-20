@@ -47,7 +47,7 @@ The tmux session has three windows, not one per stream:
 A stream's life:
 
 ```
-new-agent mn3 <branch> "/e2e INT-X"
+new-agent mn3 [branch] "/e2e INT-X"
      │  provision (env·DB·keys·memory)  →  dispatch claude --bg --effort high
      ▼
  [working] ──plan ready──▶ [blocked] ──bell · Space · press 1──▶ [working]
@@ -65,7 +65,7 @@ new-agent mn3 <branch> "/e2e INT-X"
 | Piece | Location | What it does |
 |-------|----------|--------------|
 | `deck [name]` | `bash/.profile.d/deck` | Creates-or-attaches the fleet/pair/ops tmux session. Fleet auto-runs the scoped agent view; ops shows `tmux/deck-cheatsheet.txt` in a 44-col pane. |
-| `new-agent <lane> <branch> [--effort low] "<prompt>"` | `bash/.profile.d/new-agent` | Provision + dispatch: fetches the repo's default branch, bases new branches on **fresh origin/<default>** (existing local/origin branches used as-is), provisions via the repo's `bin/create_worktree` when present (else plain `git worktree add` under `.worktrees/`), then dispatches `claude --bg` from inside the worktree. Effort defaults to `high`, never inherits the global setting. Cleans up its pre-created branch on failure. |
+| `new-agent <lane> [branch] [--effort low] "<prompt>"` | `bash/.profile.d/new-agent` | Provision + dispatch: fetches the repo's default branch, bases new branches on **fresh origin/<default>** (existing local/origin branches used as-is), provisions via the repo's `bin/create_worktree` when present (else plain `git worktree add` under `.worktrees/`), then dispatches `claude --bg` from inside the worktree. **Branch is optional**: omit it and the worktree is created detached on `origin/<default>` (provisional branch instead when `bin/create_worktree` exists, since it requires one), with a note appended to the prompt telling the agent to name the branch `jjholmes927-<slug>[-TICKET]` per /e2e Stage 2 before its first commit. Effort defaults to `high`, never inherits the global setting; `--effort low` and `--effort=low` both parse. Cleans up its pre-created branch on failure. |
 | `closure-sweep` | `bash/.profile.d/closure-sweep` | The aging detector with a human at the end: flags authored PRs that are CONFLICTING ≥1d, quiet ≥2d, or stale drafts ≥7d (repos from `CLOSURE_REPOS`), plus any blocked background stream. Run it every morning; every line gets a next action, a hand-off, or a park. |
 | `clone-status` / `gmp-all` / `lane-sweep` | `bash/.profile.d/lanes` | Lane upkeep. `gmp-all`: clean lanes pull; a dirty/parked lane is swept — WIP moved onto its own branch in a worktree, root returned to the default branch. A live Claude session in a lane root always blocks its sweep (checked via `claude agents --json`). |
 | Cheat sheet | `tmux/deck-cheatsheet.txt` | The command + fleet-key reference shown in the ops pane. |
@@ -119,4 +119,4 @@ Default branches are resolved per repo from `origin/HEAD` (fallback `main`); run
 5. Repos without `bin/create_worktree` are fine — `new-agent` falls back to plain `git worktree add` (no DB provisioning, which simpler projects don't need). Lane repos WITH provisioning also get the memory hook: `ln -s <dotfiles>/magicnotes/post_worktree_setup.local <lane>/bin/`.
 6. If tmux is already running, `tmux source-file ~/.tmux.conf` picks up the extended-keys settings.
 7. Expect two silent no-ops on a personal machine: the workflow-ledger hook exits quietly without the `honeycomb-agent-traces` keychain item, and Beam MCPs simply aren't configured. Agent memory is per-machine and per-project — nothing ports, nothing needs to.
-8. Smoke test: `deck` (fleet tab title reads `claude agents`, cheat pane renders) → `new-agent <lane> test-smoke --effort low "reply OK and finish"` → row appears, goes done → peek it → `claude rm` it and delete the test branch.
+8. Smoke test: `deck` (fleet tab title reads `claude agents`, cheat pane renders) → `new-agent <lane> test-smoke --effort low "reply OK and finish"` (and once without the branch arg, to check the detached path) → row appears, goes done → peek it → `claude rm` it and delete the test branch.

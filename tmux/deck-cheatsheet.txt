@@ -1,10 +1,12 @@
  DECK CHEAT SHEET
  ──────────────────────────────────────
  deck [name]         layout + attach
- new-agent <lane> <branch> \
+ new-agent <lane> [branch] \
    [--effort low] "<prompt>"
                      provision + dispatch
                      (base: FRESH origin/main)
+                     (no branch -> detached;
+                      agent names it)
  clone-status        lane table
  gmp-all             sync lanes, sweep dirty
  lane-sweep <lane>   park WIP -> worktree
@@ -29,7 +31,7 @@
  THE DAY LOOP
  morning  deck -> s:blocked -> gmp-all
           -> closure-sweep
- start    new-agent mnN br "/e2e INT-X"
+ start    new-agent mnN "/e2e INT-X"
  gate     bell -> Space -> press 1
  deep     pair window: claude attach <id>
  close    merge -> claude rm -> memory line

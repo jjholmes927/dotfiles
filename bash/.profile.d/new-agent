@@ -5,35 +5,118 @@ _repo_default_branch() {
   echo "${b:-main}"
 }
 
+_slugify() {
+  printf '%s' "$1" \
+    | tr '[:upper:]' '[:lower:]' \
+    | tr -c 'a-z0-9' '-' \
+    | tr -s '-' \
+    | sed -e 's/^-//' -e 's/-$//' \
+    | cut -c1-40 \
+    | sed -e 's/-$//'
+}
+
+_new_agent_branch_note() {
+  cat <<'NOTE'
+
+---
+Workspace note: you are already inside a dedicated git worktree. Do not create another one.
+No branch has been chosen yet. Before your first commit, name the branch using the
+project branch convention (jjholmes927-<slug>[-TICKET], slug derived from the Linear
+ticket title where one exists):
+  - detached HEAD  -> git switch -c <branch>
+  - already on a provisional branch -> git branch -m <branch>
+NOTE
+}
+
 new-agent() {
-  local lane=$1 name=$2; shift 2
-  local effort=high
-  if [ "$1" = "--effort" ]; then effort=$2; shift 2; fi
-  local prompt="$*"
+  local lane="" branch="" effort=high
+  local -a positional=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --effort=*) effort="${1#*=}"; shift ;;
+      --effort)   effort="$2"; shift 2 ;;
+      --)         shift; while [ $# -gt 0 ]; do positional+=("$1"); shift; done ;;
+      -*)         echo "unknown flag: $1" >&2; return 1 ;;
+      *)          positional+=("$1"); shift ;;
+    esac
+  done
+
+  case "$effort" in high|low|medium|xhigh|max) ;; *) echo "bad --effort: $effort" >&2; return 1 ;; esac
+
+  local usage="usage: new-agent <lane> [branch-name] [--effort high|low] <prompt>"
+  if [ "${#positional[@]}" -lt 2 ]; then echo "$usage" >&2; return 1; fi
+
+  lane="${positional[0]}"
+  local prompt
+  if [ "${#positional[@]}" -ge 3 ]; then
+    branch="${positional[1]}"
+    prompt="${positional[*]:2}"
+  else
+    prompt="${positional[1]}"
+  fi
+
   local root=${ENG_ROOT:-$HOME/engineering}/$lane
   if [ ! -d "$root" ]; then echo "no such lane: $lane" >&2; return 1; fi
-  if [ -z "$prompt" ]; then echo "usage: new-agent <lane> <branch-name> [--effort high|low] <prompt>" >&2; return 1; fi
+  if [ -z "$prompt" ]; then echo "$usage" >&2; return 1; fi
+
   local base; base=$(_repo_default_branch "$root")
   git -C "$root" fetch origin "$base" --quiet || echo "warn: fetch failed, basing on last-known origin/$base" >&2
+
+  local slug wt name provisional=""
+  if [ -n "$branch" ]; then
+    slug="${branch#jjholmes927-}"
+  else
+    slug=$(_slugify "$prompt")
+    [ -z "$slug" ] && slug="agent"
+    slug="${slug}-$(date +%H%M%S)"
+  fi
+  name="$slug"
+  wt="$root/.worktrees/$slug"
+
+  if [ -e "$wt" ]; then echo "worktree already exists: $wt" >&2; return 1; fi
+
   local made_branch=0
-  if ! git -C "$root" show-ref --verify --quiet "refs/heads/$name"; then
-    if git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$name"; then
-      git -C "$root" branch --track "$name" "origin/$name" || return 1
-    else
-      git -C "$root" branch "$name" "origin/$base" || return 1
+  if [ -n "$branch" ]; then
+    if ! git -C "$root" show-ref --verify --quiet "refs/heads/$branch"; then
+      if git -C "$root" show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+        git -C "$root" branch --track "$branch" "origin/$branch" || return 1
+      else
+        git -C "$root" branch "$branch" "origin/$base" || return 1
+      fi
+      made_branch=1
     fi
+  elif [ -x "$root/bin/create_worktree" ]; then
+    provisional="jjholmes927-$slug"
+    git -C "$root" branch "$provisional" "origin/$base" || return 1
     made_branch=1
   fi
+
   local ok=1
   if [ -x "$root/bin/create_worktree" ]; then
-    (cd "$root" && bin/create_worktree "$name") || ok=0
+    (cd "$root" && bin/create_worktree "${branch:-$provisional}") || ok=0
+    if [ "$ok" = "1" ] && [ ! -d "$wt" ]; then
+      wt=$(git -C "$root" worktree list --porcelain \
+           | awk -v b="refs/heads/${branch:-$provisional}" '/^worktree /{w=$2} $0=="branch "b{print w; exit}')
+      [ -n "$wt" ] || ok=0
+    fi
   else
     mkdir -p "$root/.worktrees"
-    git -C "$root" worktree add "$root/.worktrees/$name" "$name" --quiet || ok=0
+    if [ -n "$branch" ]; then
+      git -C "$root" worktree add "$wt" "$branch" --quiet || ok=0
+    else
+      git -C "$root" worktree add --detach "$wt" "origin/$base" --quiet || ok=0
+    fi
   fi
+
   if [ "$ok" = "0" ]; then
-    if [ "$made_branch" = "1" ]; then git -C "$root" branch -D "$name" >/dev/null 2>&1; fi
+    [ "$made_branch" = "1" ] && git -C "$root" branch -D "${branch:-$provisional}" >/dev/null 2>&1
     return 1
   fi
-  (cd "$root/.worktrees/$name" && claude --bg --name "${name#jjholmes927-}" --effort "$effort" "$prompt")
+
+  if [ -z "$branch" ]; then
+    prompt="$prompt$(_new_agent_branch_note)"
+  fi
+
+  (cd "$wt" && claude --bg --name "$name" --effort "$effort" "$prompt")
 }
