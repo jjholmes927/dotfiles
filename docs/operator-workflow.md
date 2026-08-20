@@ -97,9 +97,26 @@ Default branches are resolved per repo from `origin/HEAD` (fallback `main`); run
 - **Non-pinned idle background sessions stop after ~1h**; sessions survive sleep and terminal close, not reboot. Pin overnight work (Ctrl+T).
 - **The fleet verbs are hidden top-level commands** (`claude attach|logs|stop|rm|respawn|daemon`) absent from `claude --help`.
 
-## 5. New machine bootstrap
+## 5. New / second machine bootstrap
 
-1. Follow the README prerequisites, run `claude/install.sh` and the codex installer.
-2. Create `~/.profile.d/local` with this machine's `ENG_ROOT`/`LANES`.
-3. In each lane repo with provisioning, symlink the worktree hook: `ln -s <dotfiles>/magicnotes/post_worktree_setup.local <lane>/bin/`.
-4. `deck` — and confirm the fleet tab title reads `claude agents`, the cheat pane renders, and a throwaway `new-agent` dispatch appears as a row.
+1. `git -C <dotfiles> pull`, then run `claude/install.sh` (idempotent, backs up anything it would overwrite) and, if codex is used on this machine, the codex installer. `claude update` to ≥ 2.1.235 (agent view, `--bg`, cross-session messaging).
+2. Create the machine-local override — gitignored, sourced automatically:
+   ```bash
+   cat > ~/.profile.d/local <<'EOF'
+   export ENG_ROOT="$HOME/code"
+   export LANES="myproject otherproject"
+   export CLOSURE_REPOS="me/myproject me/otherproject"
+   EOF
+   ```
+3. `gh auth login` (closure-sweep and PR flows need it). Claude and codex auth are per-machine too.
+4. Per repo, once: `git remote set-head origin -a` (default-branch resolution), and ignore worktree dirs globally rather than per-repo:
+   ```bash
+   git config --global core.excludesfile ~/.gitignore
+   printf '.worktrees/
+.claude/
+' >> ~/.gitignore
+   ```
+5. Repos without `bin/create_worktree` are fine — `new-agent` falls back to plain `git worktree add` (no DB provisioning, which simpler projects don't need). Lane repos WITH provisioning also get the memory hook: `ln -s <dotfiles>/magicnotes/post_worktree_setup.local <lane>/bin/`.
+6. If tmux is already running, `tmux source-file ~/.tmux.conf` picks up the extended-keys settings.
+7. Expect two silent no-ops on a personal machine: the workflow-ledger hook exits quietly without the `honeycomb-agent-traces` keychain item, and Beam MCPs simply aren't configured. Agent memory is per-machine and per-project — nothing ports, nothing needs to.
+8. Smoke test: `deck` (fleet tab title reads `claude agents`, cheat pane renders) → `new-agent <lane> test-smoke --effort low "reply OK and finish"` → row appears, goes done → peek it → `claude rm` it and delete the test branch.
