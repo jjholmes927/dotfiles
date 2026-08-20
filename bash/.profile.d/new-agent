@@ -29,13 +29,15 @@ NOTE
 }
 
 new-agent() {
-  local lane="" branch="" effort=high
+  local lane="" branch="" effort=high perm=bypassPermissions
   local -a positional=()
 
   while [ $# -gt 0 ]; do
     case "$1" in
       --effort=*) effort="${1#*=}"; shift ;;
       --effort)   effort="$2"; shift 2 ;;
+      --safe)     perm=auto; shift ;;
+      --perm=*)   perm="${1#*=}"; shift ;;
       --)         shift; while [ $# -gt 0 ]; do positional+=("$1"); shift; done ;;
       -*)         echo "unknown flag: $1" >&2; return 1 ;;
       *)          positional+=("$1"); shift ;;
@@ -44,7 +46,7 @@ new-agent() {
 
   case "$effort" in high|low|medium|xhigh|max) ;; *) echo "bad --effort: $effort" >&2; return 1 ;; esac
 
-  local usage="usage: new-agent <lane> [branch-name] [--effort high|low] <prompt>"
+  local usage="usage: new-agent <lane> [branch-name] [--effort high|low] [--safe] <prompt>"
   if [ "${#positional[@]}" -lt 2 ]; then echo "$usage" >&2; return 1; fi
 
   lane="${positional[0]}"
@@ -120,5 +122,5 @@ new-agent() {
     prompt="$prompt$(_new_agent_branch_note)"
   fi
 
-  (cd "$wt" && claude --bg --name "$name" --effort "$effort" "$prompt")
+  (cd "$wt" && claude --bg --name "$name" --effort "$effort" --permission-mode "$perm" "$prompt")
 }

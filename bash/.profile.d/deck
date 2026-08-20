@@ -4,7 +4,7 @@ deck() {
   if ! tmux has-session -t "=$name" 2>/dev/null; then
     tmux new-session -d -s "$name" -c "$root" -n fleet
     tmux set-option -w -t "=$name:fleet" automatic-rename off
-    tmux send-keys -t "=$name:fleet" "claude agents --cwd \"$root\"" C-m
+    tmux send-keys -t "=$name:fleet" "claude agents --cwd \"$root\" --dangerously-skip-permissions" C-m
     tmux new-window -t "=$name" -n pair -c "$root"
     tmux new-window -t "=$name" -n ops -c "$root"
     if [ -f "$cheat" ]; then

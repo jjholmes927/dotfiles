@@ -2,8 +2,9 @@
  ──────────────────────────────────────
  deck [name]       layout + attach
  new-agent <lane> [branch] \
-   [--effort low|high] "<prompt>"
-       provision + dispatch
+   [--effort low|high] [--safe] "<prompt>"
+       provision + dispatch (BYPASS
+       perms; --safe = auto mode)
        base: FRESH origin/<default>
        no branch -> detached worktree;
        agent names it from the ticket
