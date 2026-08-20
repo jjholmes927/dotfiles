@@ -9,6 +9,7 @@
 	helper = !/opt/homebrew/bin/gh auth git-credential
 [core]
 pager = delta
+	excludesfile = /Users/jjholmes/.gitignore
 [interactive]
 diffFilter = delta --color-only
 [delta]
