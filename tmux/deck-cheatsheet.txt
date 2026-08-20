@@ -1,37 +1,37 @@
- DECK CHEAT SHEET
+ DECK CHEAT SHEET       prefix ? = popup
  ──────────────────────────────────────
- deck [name]         layout + attach
+ deck [name]       layout + attach
  new-agent <lane> [branch] \
-   [--effort low] "<prompt>"
-                     provision + dispatch
-                     (base: FRESH origin/main)
-                     (no branch -> detached;
-                      agent names it)
- clone-status        lane table
- gmp-all             sync lanes, sweep dirty
- lane-sweep <lane>   park WIP -> worktree
- closure-sweep       aged PRs + blocked rows
+   [--effort low|high] "<prompt>"
+       provision + dispatch
+       base: FRESH origin/<default>
+       no branch -> detached worktree;
+       agent names it from the ticket
+ clone-status      lane table
+ gmp-all           sync lanes, sweep dirty
+ lane-sweep <lane> park WIP -> worktree
+ closure-sweep     aged PRs + blocked rows
 
  FLEET (window 0)
- Space    peek: read + reply, 1-9 answers
- Enter    attach row / dispatch input
- <-       detach (on empty prompt)
- s:blocked   only whats waiting on YOU
- @mn3 <prompt>   dispatch into a lane
- #9350    jump to that PR's session
- C-s C-s  toggle grouping
- Ctrl+T   pin (survives 1h idle stop)
- Ctrl+X   stop (x2 deletes + worktree!)
+ Space   peek: read + reply, 1-9 answers
+ Enter   attach row / dispatch input
+ <-      detach (on empty prompt)
+ s:blocked     only whats waiting on YOU
+ @mn3 <prompt> dispatch into a lane
+ #9350   jump to that PR's session
+ C-s C-s toggle grouping
+ Ctrl+T  pin (survives 1h idle stop)
+ Ctrl+X  stop (x2 deletes + worktree!)
 
  SESSIONS (any shell)
  claude attach|logs|stop|rm <id>
  claude rm = remove worktree + branch
-             (refuses uncommitted work)
+            (refuses uncommitted work)
 
  THE DAY LOOP
- morning  deck -> s:blocked -> gmp-all
-          -> closure-sweep
- start    new-agent mnN "/e2e INT-X"
- gate     bell -> Space -> press 1
- deep     pair window: claude attach <id>
- close    merge -> claude rm -> memory line
+ morning deck -> s:blocked -> gmp-all
+         -> closure-sweep
+ start   new-agent mnN "/e2e INT-X"
+ gate    bell -> Space -> press 1
+ deep    pair window: claude attach <id>
+ close   merge -> claude rm -> memory
