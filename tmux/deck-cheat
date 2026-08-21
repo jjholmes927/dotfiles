@@ -25,7 +25,7 @@ def emphasise(text, base):
         text = text.replace(c, CAUT + c + OFF + base)
     return text
 
-for raw in open(path).read().split("\n"):
+for raw in open(path).read().splitlines():
     line = raw.rstrip("\n")
     if not line.strip():
         print()
