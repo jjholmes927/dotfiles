@@ -1,4 +1,4 @@
-import importlib.util, importlib.machinery, pathlib, tempfile, unittest
+import importlib.util, importlib.machinery, pathlib, tempfile, time, unittest
 
 _path = pathlib.Path(__file__).resolve().parent.parent / "bin" / "fleet"
 _loader = importlib.machinery.SourceFileLoader("fleet", str(_path))
@@ -105,6 +105,79 @@ class Formatting(unittest.TestCase):
         lines = fleet.format_row(row, 120, True)
         self.assertEqual(len(lines), 2)
         self.assertIn("★", lines[0])
+
+
+class LaneStrip(unittest.TestCase):
+    def test_clean_and_dirty_lanes(self):
+        lanes = [
+            {"name": "mn1", "branch": "main", "dirty": False, "worktrees": 2},
+            {"name": "mn3", "branch": "main", "dirty": True, "worktrees": 1},
+        ]
+        lines = fleet.format_lane_strip(lanes, 120)
+        joined = " ".join(lines)
+        self.assertIn("mn1 ✓2", joined)
+        self.assertIn("mn3 DIRTY·1", joined)
+
+    def test_error_lane_renders_question_mark(self):
+        lines = fleet.format_lane_strip([{"name": "mn9", "error": True}], 120)
+        self.assertIn("mn9 ?", " ".join(lines))
+
+    def test_narrow_width_wraps_not_overflows(self):
+        lanes = [{"name": "mn%d" % i, "branch": "main", "dirty": False, "worktrees": i} for i in range(1, 6)]
+        for line in fleet.format_lane_strip(lanes, 40):
+            self.assertLessEqual(len(line), 40)
+
+
+class FormatAge(unittest.TestCase):
+    def test_boundaries(self):
+        now = time.time()
+        self.assertTrue(fleet.format_age((now - 59) * 1000).endswith("s"))
+        self.assertTrue(fleet.format_age((now - 61) * 1000).endswith("m"))
+        self.assertTrue(fleet.format_age((now - 3601) * 1000).endswith("h"))
+        self.assertTrue(fleet.format_age((now - 90000) * 1000).endswith("d"))
+
+    def test_garbage_is_question_mark(self):
+        self.assertEqual(fleet.format_age(None), "?")
+        self.assertEqual(fleet.format_age("banana"), "?")
+
+
+class StaleNoteNeverOnLiveRows(unittest.TestCase):
+    def test_working_row_ignores_sidecar_note(self):
+        sessions = [{"sessionId": "x" * 36, "id": "xxxxxxxx", "name": "n", "state": "working", "cwd": "/e", "startedAt": 1}]
+        sidecars = {"x" * 36: ("complete", "t", "old note PR #9")}
+        model = fleet.build_model(sessions, sidecars, set(), [])
+        row = model["groups"][0][1][0]
+        self.assertEqual(row["context"], "")
+        self.assertIsNone(row.get("pr"))
+
+    def test_blocked_row_keeps_live_status(self):
+        sessions = [{"sessionId": "y" * 36, "id": "yyyyyyyy", "name": "n", "state": "blocked", "status": "waiting on input", "cwd": "/e", "startedAt": 1}]
+        sidecars = {"y" * 36: ("complete", "t", "old note PR #9")}
+        model = fleet.build_model(sessions, sidecars, set(), [])
+        row = model["groups"][0][1][0]
+        self.assertEqual(row["context"], "waiting on input")
+        self.assertIsNone(row.get("pr"))
+
+    def test_complete_row_still_uses_sidecar_note(self):
+        sessions = [{"sessionId": "z" * 36, "id": "zzzzzzzz", "name": "n", "state": "done", "cwd": "/e", "startedAt": 1}]
+        sidecars = {"z" * 36: ("complete", "t", "shipped PR #9")}
+        model = fleet.build_model(sessions, sidecars, set(), [])
+        row = model["groups"][0][1][0]
+        self.assertEqual(row["context"], "shipped PR #9")
+        self.assertEqual(row["pr"], "#9")
+
+
+class ContextFlattening(unittest.TestCase):
+    def test_newlines_flattened(self):
+        row = {"short": "aaaaaaaa", "name": "n", "age": "1m", "context": "a\nb\tc", "starred": False, "bucket": "WORKING"}
+        lines = fleet.format_row(row, 120, False)
+        self.assertIn("a b c", lines[1])
+
+    def test_carriage_return_flattened(self):
+        row = {"short": "aaaaaaaa", "name": "n", "age": "1m", "context": "a\r\nb", "starred": False, "bucket": "WORKING"}
+        lines = fleet.format_row(row, 120, False)
+        self.assertIn("a  b", lines[1])
+        self.assertNotIn("\n", lines[1])
 
 
 if __name__ == "__main__":
