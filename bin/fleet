@@ -78,8 +78,8 @@ def lane_for_cwd(cwd, eng_root=None):
     return rest.split(os.sep)[0]
 
 
-def fetch_sessions(eng_root):
-    out = _run(["claude", "agents", "--json", "--all"])
+def fetch_sessions(eng_root, timeout=10):
+    out = _run(["claude", "agents", "--json", "--all"], timeout=timeout)
     if out is None:
         raise FleetError("claude agents --json --all failed")
     try:
@@ -385,6 +385,8 @@ def transcript_context(cwd, session_id, cache):
     if cached and cached[0] == stamp:
         return cached[1]
     text = sanitize_context(_tail_assistant_text(path, info.st_size))
+    if not text and cached and cached[1]:
+        text = cached[1]
     cache[path] = (stamp, text)
     return text
 
@@ -420,10 +422,10 @@ class FleetState(object):
         self.colors = {}
 
 
-def refresh_model(state, now=None, lanes=False):
+def refresh_model(state, now=None, lanes=False, timeout=10):
     now = time.monotonic() if now is None else now
     try:
-        state.sessions = fetch_sessions(ENG_ROOT)
+        state.sessions = fetch_sessions(ENG_ROOT, timeout=timeout)
         state.stale_since = ""
     except FleetError:
         if not state.stale_since:
@@ -439,7 +441,7 @@ def refresh_model(state, now=None, lanes=False):
         session_id = session.get("sessionId") or ""
         seen_paths.add(transcript_path(cwd, session_id))
         item = dict(session)
-        item["status"] = transcript_context(cwd, session_id, state.tails)
+        item["status"] = transcript_context(cwd, session_id, state.tails) or (item.get("status") or "")
         enriched.append(item)
     for path in [known for known in state.tails if known not in seen_paths]:
         del state.tails[path]
@@ -599,7 +601,7 @@ def run(screen, state):
             screen.clearok(True)
         now = time.monotonic()
         if now - state.sessions_at >= SESSION_INTERVAL:
-            refresh_model(state, now=now, lanes=(now - state.lanes_at >= LANE_INTERVAL))
+            refresh_model(state, now=now, lanes=(now - state.lanes_at >= LANE_INTERVAL), timeout=3)
 
 
 def main():
