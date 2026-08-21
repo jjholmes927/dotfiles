@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
+import curses
 import json
+import locale
 import os
 import re
 import subprocess
@@ -18,6 +20,16 @@ CONTEXT_INDENT = "      "
 LANE_LABEL = "LANES  "
 PR_PATTERN = re.compile(r"(?:PR\s*)?#(\d+)")
 SLUG_PATTERN = re.compile(r"[^A-Za-z0-9]")
+ANSI_PATTERN = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[@-Z\\-_]")
+CONTROL_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
+BLANK_PATTERN = re.compile(r"\s+")
+TAIL_BYTES = 65536
+SESSION_INTERVAL = 3.0
+LANE_INTERVAL = 15.0
+POLL_MS = 250
+HEADER_WIDTH = 60
+STAR_COLUMN = 2
+FOOTER = "[j/k]move  [R]refresh  [q]quit"
 
 
 class FleetError(Exception):
@@ -324,9 +336,281 @@ def transcript_tail(cwd, session_id):
     return ""
 
 
+def sanitize_context(text):
+    stripped = ANSI_PATTERN.sub("", text or "")
+    return BLANK_PATTERN.sub(" ", CONTROL_PATTERN.sub(" ", stripped)).strip()
+
+
+def _tail_assistant_text(path, size):
+    try:
+        with open(path, "rb") as handle:
+            if size > TAIL_BYTES:
+                handle.seek(size - TAIL_BYTES)
+                partial = True
+            else:
+                partial = False
+            window = handle.read()
+    except OSError:
+        return ""
+    lines = window.split(b"\n")
+    if partial and lines:
+        lines = lines[1:]
+    for raw in reversed(lines):
+        line = raw.decode("utf-8", "replace").strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(entry, dict) or entry.get("type") != "assistant":
+            continue
+        message = entry.get("message")
+        text = _content_text(message.get("content") if isinstance(message, dict) else None)
+        if text:
+            return text
+    return ""
+
+
+def transcript_context(cwd, session_id, cache):
+    if not session_id:
+        return ""
+    path = transcript_path(cwd, session_id)
+    try:
+        info = os.stat(path)
+    except OSError:
+        return ""
+    stamp = (info.st_mtime_ns, info.st_size)
+    cached = cache.get(path)
+    if cached and cached[0] == stamp:
+        return cached[1]
+    text = sanitize_context(_tail_assistant_text(path, info.st_size))
+    cache[path] = (stamp, text)
+    return text
+
+
+def lane_roots(sessions):
+    names = list(LANES)
+    seen = set(names)
+    for session in sessions:
+        name = lane_for_cwd(session.get("cwd") or "")
+        if not name or name in seen:
+            continue
+        root = os.path.join(ENG_ROOT, name)
+        if not os.path.exists(os.path.join(root, ".git")):
+            continue
+        seen.add(name)
+        names.append(name)
+    return [os.path.join(ENG_ROOT, name) for name in names]
+
+
+class FleetState(object):
+    def __init__(self):
+        self.sessions = []
+        self.lanes = []
+        self.model = {"counts": {}, "lanes": [], "groups": []}
+        self.rows = []
+        self.tails = {}
+        self.stale_since = ""
+        self.selected = 0
+        self.selected_id = ""
+        self.top = 0
+        self.sessions_at = None
+        self.lanes_at = None
+        self.colors = {}
+
+
+def refresh_model(state, now=None, lanes=False):
+    now = time.monotonic() if now is None else now
+    try:
+        state.sessions = fetch_sessions(ENG_ROOT)
+        state.stale_since = ""
+    except FleetError:
+        if not state.stale_since:
+            state.stale_since = time.strftime("%H:%M")
+    state.sessions_at = now
+    if lanes or state.lanes_at is None:
+        state.lanes = [lane_status(root) for root in lane_roots(state.sessions)]
+        state.lanes_at = now
+    enriched = []
+    seen_paths = set()
+    for session in state.sessions:
+        cwd = session.get("cwd") or ""
+        session_id = session.get("sessionId") or ""
+        seen_paths.add(transcript_path(cwd, session_id))
+        item = dict(session)
+        item["status"] = transcript_context(cwd, session_id, state.tails)
+        enriched.append(item)
+    for path in [known for known in state.tails if known not in seen_paths]:
+        del state.tails[path]
+    state.model = build_model(enriched, read_sidecars(SIDECAR_DIR), read_stars(STARS_PATH), state.lanes)
+    state.rows = [row for _, rows in state.model["groups"] for row in rows]
+    restore_selection(state)
+
+
+def restore_selection(state):
+    if not state.rows:
+        state.selected = 0
+        state.selected_id = ""
+        state.top = 0
+        return
+    for index, row in enumerate(state.rows):
+        if state.selected_id and row["session_id"] == state.selected_id:
+            state.selected = index
+            return
+    state.selected = max(0, min(state.selected, len(state.rows) - 1))
+    state.selected_id = state.rows[state.selected]["session_id"]
+
+
+def move_selection(state, delta):
+    if not state.rows:
+        return
+    state.selected = max(0, min(state.selected + delta, len(state.rows) - 1))
+    state.selected_id = state.rows[state.selected]["session_id"]
+
+
+def format_banner(state, width):
+    text = format_counts(state.model.get("counts") or {}, width)
+    if state.stale_since:
+        text = _clip("%s  ·  stale since %s" % (text, state.stale_since), width)
+    return text
+
+
+def format_group_header(bucket, width):
+    prefix = "── %s " % bucket
+    rule = min(width, HEADER_WIDTH)
+    if rule <= len(prefix):
+        return _clip(prefix, width)
+    return prefix + "─" * (rule - len(prefix))
+
+
+def body_lines(state, width):
+    lines = []
+    index = 0
+    for bucket, rows in state.model.get("groups") or []:
+        lines.append((format_group_header(bucket, width), "header", None, -1))
+        for row in rows:
+            chosen = index == state.selected
+            for offset, text in enumerate(format_row(row, width, chosen)):
+                lines.append((text, "row" if offset == 0 else "context", row, index))
+            index += 1
+    return lines
+
+
+def scroll_top(lines, selected, top, height):
+    if height <= 0 or not lines:
+        return 0
+    spots = [position for position, line in enumerate(lines) if line[3] == selected]
+    if spots:
+        if spots[0] < top:
+            top = spots[0]
+        if spots[-1] >= top + height:
+            top = spots[-1] - height + 1
+    return max(0, min(top, max(0, len(lines) - height)))
+
+
+def line_attr(state, kind, row, chosen):
+    if kind == "header":
+        return curses.A_DIM
+    attr = curses.A_NORMAL
+    if row.get("bucket") == "BLOCKED":
+        attr |= state.colors.get("red", curses.A_NORMAL)
+    if kind == "context":
+        attr |= curses.A_DIM
+    if chosen:
+        attr |= curses.A_REVERSE
+    return attr
+
+
+def _put(screen, y, x, text, attr, width):
+    room = width - x
+    if room <= 0 or not text:
+        return
+    try:
+        screen.addnstr(y, x, text, room, attr)
+    except curses.error:
+        pass
+
+
+def paint(screen, state):
+    screen.erase()
+    height, width = screen.getmaxyx()
+    if height < 4 or width < 20:
+        _put(screen, 0, 0, "fleet needs a bigger window", curses.A_NORMAL, max(width - 1, 1))
+        screen.noutrefresh()
+        curses.doupdate()
+        return
+    y = 0
+    _put(screen, y, 0, format_banner(state, width), curses.A_BOLD, width)
+    y += 2
+    for line in format_lane_strip(state.lanes, width):
+        _put(screen, y, 0, line, curses.A_NORMAL, width)
+        y += 1
+    y += 1
+    region = height - 1 - y
+    lines = body_lines(state, width)
+    state.top = scroll_top(lines, state.selected, state.top, region)
+    for offset, (text, kind, row, index) in enumerate(lines[state.top : state.top + max(region, 0)]):
+        chosen = index == state.selected and index >= 0
+        attr = line_attr(state, kind, row, chosen)
+        _put(screen, y + offset, 0, text, attr, width)
+        if kind == "row" and row.get("starred") and width > STAR_COLUMN:
+            star = state.colors.get("yellow", curses.A_NORMAL) | (curses.A_REVERSE if chosen else 0)
+            _put(screen, y + offset, STAR_COLUMN, "★", star, width)
+    _put(screen, height - 1, 0, _clip(FOOTER, width - 1), curses.A_DIM, width - 1)
+    screen.noutrefresh()
+    curses.doupdate()
+
+
+def init_colors():
+    colors = {"red": curses.A_BOLD, "yellow": curses.A_BOLD}
+    try:
+        curses.start_color()
+        curses.use_default_colors()
+        curses.init_pair(1, curses.COLOR_RED, -1)
+        curses.init_pair(2, curses.COLOR_YELLOW, -1)
+    except curses.error:
+        return colors
+    return {"red": curses.color_pair(1) | curses.A_BOLD, "yellow": curses.color_pair(2) | curses.A_BOLD}
+
+
+def run(screen, state):
+    try:
+        curses.curs_set(0)
+    except curses.error:
+        pass
+    screen.timeout(POLL_MS)
+    screen.keypad(True)
+    state.colors = init_colors()
+    refresh_model(state)
+    while True:
+        paint(screen, state)
+        key = screen.getch()
+        if key in (ord("q"), ord("Q")):
+            return 0
+        if key in (ord("j"), curses.KEY_DOWN):
+            move_selection(state, 1)
+        elif key in (ord("k"), curses.KEY_UP):
+            move_selection(state, -1)
+        elif key == ord("R"):
+            refresh_model(state, lanes=True)
+        elif key == curses.KEY_RESIZE:
+            state.top = 0
+            screen.clearok(True)
+        now = time.monotonic()
+        if now - state.sessions_at >= SESSION_INTERVAL:
+            refresh_model(state, now=now, lanes=(now - state.lanes_at >= LANE_INTERVAL))
+
+
 def main():
-    print("TUI arrives in Task 2")
-    return 0
+    try:
+        locale.setlocale(locale.LC_ALL, "")
+    except locale.Error:
+        pass
+    if not sys.stdout.isatty():
+        sys.stderr.write("fleet needs a terminal\n")
+        return 1
+    return curses.wrapper(run, FleetState())
 
 
 if __name__ == "__main__":
