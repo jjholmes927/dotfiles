@@ -13,7 +13,7 @@ CAUT  = "\033[38;5;179m"
 OFF   = "\033[0m"
 
 WARNINGS = ["BYPASS", "x2 deletes + worktree!", "FIRST 8 CHARS"]
-CAUTIONS = ["FRESH", "refuses uncommitted work", "only whats waiting on YOU", "--safe"]
+CAUTIONS = ["FRESH", "provisioned wt: by hand", "only whats waiting on YOU", "--safe"]
 
 here = os.path.dirname(os.path.realpath(__file__))
 path = os.path.join(here, "deck-cheatsheet.txt")

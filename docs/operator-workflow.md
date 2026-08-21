@@ -31,13 +31,13 @@ The day loop: `deck` → work the `s:blocked` queue with Space-peeks → `closur
 
 ```
 tmux "interpret"                                        (deck builds this)
-├── 0 deck  ┌───────────────────────────┬──────────────┐
+├── 1 deck  ┌───────────────────────────┬──────────────┐
 │           │ fleet  all the rest       │ cheat        │ ← 46-col right column
 │           │ claude agents             │ deck-cheat   │
 │           │   --cwd $ENG_ROOT         ├──────────────┤
 │           │ ← live here: the inbox    │ ops  46 × 14 │ ← bash · clone-status
 │           └───────────────────────────┴──────────────┘
-└── 1 pair  claude attach <id>                            ← the ONE deep-work session
+└── 2 pair  claude attach <id>                            ← the ONE deep-work session
 ```
 
 The tmux session has two windows, not one per stream — the inbox, its reference card and the shell you launch from all live side by side in `deck`:

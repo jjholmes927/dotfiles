@@ -41,4 +41,4 @@
  start   new-agent mnN "/e2e INT-X"
  gate    bell -> Space -> press 1
  deep    pair <name>  (or Enter in fleet)
- close   merge -> claude rm -> memory
+ close   merge -> claude rm+wt -> memory
