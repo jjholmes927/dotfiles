@@ -32,8 +32,8 @@
  claude attach|logs|stop|rm <id>
  <id> = FIRST 8 CHARS of sessionId
         (not the name, not the uuid)
- claude rm = remove worktree + branch
-            (refuses uncommitted work)
+ claude rm  removes session + lazy wt
+            (provisioned wt: by hand)
 
  THE DAY LOOP
  morning deck -> s:blocked -> gmp-all
