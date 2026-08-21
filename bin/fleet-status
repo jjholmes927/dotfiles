@@ -17,7 +17,7 @@ done
 
 if [ "${#positional[@]}" -ne 2 ]; then echo "$usage" >&2; exit 1; fi
 state="${positional[0]}"
-note="${positional[1]//$'\t'/ }"
+note="${positional[1]//[$'\t\n\r']/ }"
 case "$state" in complete|awaiting) ;; *) echo "bad state: $state" >&2; echo "$usage" >&2; exit 1 ;; esac
 if [ -z "$session" ]; then
   echo 'no session id: $CLAUDE_SESSION_ID unset and no --session given' >&2
