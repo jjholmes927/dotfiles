@@ -9,32 +9,56 @@ _loader.exec_module(fleet)
 
 class DeriveBucket(unittest.TestCase):
     def test_working_passes_through(self):
-        self.assertEqual(fleet.derive_bucket("working", None), "WORKING")
+        self.assertEqual(fleet.derive_bucket("working", "running", None), "WORKING")
 
     def test_blocked_passes_through(self):
-        self.assertEqual(fleet.derive_bucket("blocked", None), "BLOCKED")
+        self.assertEqual(fleet.derive_bucket("blocked", None, None), "BLOCKED")
 
     def test_done_with_complete_sidecar(self):
-        self.assertEqual(fleet.derive_bucket("done", ("complete", "t", "n")), "COMPLETE")
+        self.assertEqual(fleet.derive_bucket("done", None, ("complete", "t", "n")), "COMPLETE")
 
     def test_stopped_with_complete_sidecar(self):
-        self.assertEqual(fleet.derive_bucket("stopped", ("complete", "t", "n")), "COMPLETE")
+        self.assertEqual(fleet.derive_bucket("stopped", None, ("complete", "t", "n")), "COMPLETE")
 
     def test_done_with_awaiting_sidecar(self):
-        self.assertEqual(fleet.derive_bucket("done", ("awaiting", "t", "n")), "AWAITING")
+        self.assertEqual(fleet.derive_bucket("done", None, ("awaiting", "t", "n")), "AWAITING")
 
     def test_done_silent_is_awaiting(self):
-        self.assertEqual(fleet.derive_bucket("done", None), "AWAITING")
+        self.assertEqual(fleet.derive_bucket("done", None, None), "AWAITING")
 
     def test_stopped_silent_is_stopped(self):
-        self.assertEqual(fleet.derive_bucket("stopped", None), "STOPPED")
+        self.assertEqual(fleet.derive_bucket("stopped", None, None), "STOPPED")
 
     def test_failed_is_stopped(self):
-        self.assertEqual(fleet.derive_bucket("failed", None), "STOPPED")
+        self.assertEqual(fleet.derive_bucket("failed", None, None), "STOPPED")
 
     def test_stale_sidecar_never_recolors_live(self):
-        self.assertEqual(fleet.derive_bucket("working", ("complete", "t", "n")), "WORKING")
-        self.assertEqual(fleet.derive_bucket("blocked", ("awaiting", "t", "n")), "BLOCKED")
+        self.assertEqual(fleet.derive_bucket("working", "running", ("complete", "t", "n")), "WORKING")
+        self.assertEqual(fleet.derive_bucket("blocked", None, ("awaiting", "t", "n")), "BLOCKED")
+
+
+class IdleBlockedBucketsBySidecar(unittest.TestCase):
+    def test_idle_blocked_with_complete_sidecar_is_complete(self):
+        self.assertEqual(fleet.derive_bucket("blocked", "idle", ("complete", "t", "n")), "COMPLETE")
+
+    def test_idle_blocked_without_sidecar_is_awaiting(self):
+        self.assertEqual(fleet.derive_bucket("blocked", "idle", None), "AWAITING")
+
+    def test_idle_blocked_with_awaiting_sidecar_is_awaiting(self):
+        self.assertEqual(fleet.derive_bucket("blocked", "idle", ("awaiting", "t", "n")), "AWAITING")
+
+    def test_live_gate_reports_no_status_and_stays_blocked(self):
+        self.assertEqual(fleet.derive_bucket("blocked", None, ("complete", "t", "n")), "BLOCKED")
+
+    def test_waiting_status_stays_blocked(self):
+        self.assertEqual(fleet.derive_bucket("blocked", "waiting", ("complete", "t", "n")), "BLOCKED")
+
+    def test_answered_session_lands_in_complete_through_the_model(self):
+        sessions = [{"sessionId": "d" * 36, "id": "dddddddd", "name": "answered", "state": "blocked", "status": "idle", "cwd": "/e", "startedAt": 1}]
+        sidecars = {"d" * 36: ("complete", "t", "Done — recorded.")}
+        model = fleet.build_model(sessions, sidecars, set(), [])
+        self.assertEqual([g[0] for g in model["groups"]], ["COMPLETE"])
+        self.assertEqual(model["groups"][0][1][0]["context"], "Done — recorded.")
 
 
 class ParsePr(unittest.TestCase):
@@ -105,6 +129,19 @@ class Formatting(unittest.TestCase):
         lines = fleet.format_row(row, 120, True)
         self.assertEqual(len(lines), 2)
         self.assertIn("★", lines[0])
+
+    def test_pr_badge_on_first_line(self):
+        sessions = [{"sessionId": "p" * 36, "id": "pppppppp", "name": "ship-it", "state": "done", "status": "idle", "cwd": "/e", "startedAt": 1}]
+        sidecars = {"p" * 36: ("complete", "t", "INT-842 done, PR #9403")}
+        model = fleet.build_model(sessions, sidecars, set(), [])
+        row = model["groups"][0][1][0]
+        lines = fleet.format_row(row, 120, False)
+        self.assertIn("PR #9403", lines[0])
+        self.assertLess(lines[0].index("ship-it"), lines[0].index("PR #9403"))
+
+    def test_no_pr_leaves_first_line_clean(self):
+        row = {"short": "aaaaaaaa", "name": "n", "age": "2h", "context": "c", "starred": False, "bucket": "COMPLETE", "pr": None}
+        self.assertNotIn("PR", fleet.format_row(row, 120, False)[0])
 
 
 class LaneStrip(unittest.TestCase):

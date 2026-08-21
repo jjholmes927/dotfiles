@@ -47,12 +47,12 @@ No invented terms. CLI states pass through; the `done` split is named by `fleet-
 | Bucket | Rule |
 |--------|------|
 | WORKING | CLI `state == working` |
-| BLOCKED | CLI `state == blocked` (plan gates, questions, permission prompts) |
+| BLOCKED | CLI `state == blocked` AND `status != "idle"` (plan gates, questions, permission prompts) |
 | COMPLETE | CLI `done`/`stopped` + sidecar `complete` |
 | AWAITING | CLI `done` + sidecar `awaiting`, or `done` with no sidecar (silent stop reads as "may want attention", never "finished") |
 | STOPPED | CLI `stopped`/`failed` without a `complete` sidecar |
 
-Sidecars are consulted only for ended sessions; a stale sidecar from a previous turn never recolors a `working`/`blocked` row.
+Sidecars are consulted only for ended sessions; a stale sidecar from a previous turn never recolors a `working`/`blocked` row. A session answered from inside fleet parks at an interactive prompt and reports `blocked`/`idle` forever (verified 2026-08-21), while a genuine gate reports `blocked` with no `status` — which is why idle-blocked rows are treated as ended and fall through to the sidecar rule.
 
 ## Data loop
 
