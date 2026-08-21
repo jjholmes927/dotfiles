@@ -8,6 +8,7 @@ import re
 import shlex
 import subprocess
 import sys
+import textwrap
 import time
 
 BUCKET_ORDER = ["BLOCKED", "WORKING", "COMPLETE", "AWAITING", "STOPPED"]
@@ -38,6 +39,19 @@ ACTION_TIMEOUT = 20
 TMUX_TIMEOUT = 5
 ENTER_KEYS = (curses.KEY_ENTER, 10, 13)
 FOOTER = "[j/k]move [p]star [space]peek [enter]pair [s]stop [r]rm [R]refresh [q]quit"
+PEEK_RATIO = 0.8
+PEEK_MIN_HEIGHT = 6
+PEEK_MIN_WIDTH = 24
+ATTACH_WAIT = 4.0
+ANSWER_DELAY = 0.7
+QUESTION_PATTERN = re.compile(r"^[\s│┃|]*❯?\s*1\.")
+BELL_BUCKETS = ("BLOCKED", "COMPLETE")
+PEEK_FOOTER = "any key close"
+GATE_FOOTER = "1-9 answer · any other key close"
+NO_QUESTION_FOOTER = "no numbered question detected — Enter to pair in"
+NO_TMUX_FOOTER = "answering needs tmux — any key close"
+EMPTY_PEEK = "(no assistant text in the transcript yet)"
+EMPTY_CAPTURE = "(the attached pane rendered nothing)"
 
 
 class FleetError(Exception):
@@ -354,9 +368,36 @@ def transcript_tail(cwd, session_id):
     return ""
 
 
+def strip_visual(text):
+    return CONTROL_PATTERN.sub(" ", ANSI_PATTERN.sub("", text or ""))
+
+
 def sanitize_context(text):
-    stripped = ANSI_PATTERN.sub("", text or "")
-    return BLANK_PATTERN.sub(" ", CONTROL_PATTERN.sub(" ", stripped)).strip()
+    return BLANK_PATTERN.sub(" ", strip_visual(text)).strip()
+
+
+def capture_lines(text):
+    lines = [strip_visual(line).rstrip() for line in (text or "").splitlines()]
+    while lines and not lines[-1]:
+        lines.pop()
+    return lines
+
+
+def has_question(lines):
+    return any(QUESTION_PATTERN.match(line) for line in lines)
+
+
+def wrap_block(lines, width):
+    if width <= 0:
+        return []
+    wrapped = []
+    for line in lines:
+        if not line.strip():
+            wrapped.append("")
+            continue
+        indent = line[: len(line) - len(line.lstrip())][: max(width - 1, 0)]
+        wrapped.extend(textwrap.wrap(line, width, subsequent_indent=indent) or [""])
+    return wrapped
 
 
 def _tail_assistant_text(path, size):
@@ -484,6 +525,7 @@ class FleetState(object):
         self.lanes_at = None
         self.colors = {}
         self.message = ""
+        self.buckets = None
 
 
 def refresh_model(state, now=None, lanes=False, timeout=10):
@@ -499,6 +541,27 @@ def refresh_model(state, now=None, lanes=False, timeout=10):
         state.lanes = [lane_status(root, timeout=timeout) for root in lane_roots(state.sessions)]
         state.lanes_at = now
     remodel(state)
+    ring_bell(state)
+
+
+def bell_check(state):
+    current = dict((row["session_id"], row["bucket"]) for row in state.rows)
+    previous = state.buckets
+    state.buckets = current
+    if previous is None:
+        return False
+    return any(
+        bucket in BELL_BUCKETS and previous.get(session_id) != bucket for session_id, bucket in current.items()
+    )
+
+
+def ring_bell(state):
+    if not bell_check(state):
+        return
+    try:
+        curses.beep()
+    except curses.error:
+        pass
 
 
 def remodel(state):
@@ -641,7 +704,7 @@ def paint(screen, state):
     curses.doupdate()
 
 
-def confirm(screen, prompt):
+def status_line(screen, text, attr):
     height, width = screen.getmaxyx()
     if height < 1 or width < 2:
         return False
@@ -650,15 +713,104 @@ def confirm(screen, prompt):
         screen.clrtoeol()
     except curses.error:
         pass
-    _put(screen, height - 1, 0, _clip("%s [y/N]" % prompt, width - 1), curses.A_REVERSE, width - 1)
+    _put(screen, height - 1, 0, _clip(text, width - 1), attr, width - 1)
     screen.noutrefresh()
     curses.doupdate()
+    return True
+
+
+def confirm(screen, prompt):
+    if not status_line(screen, "%s [y/N]" % prompt, curses.A_REVERSE):
+        return False
     screen.timeout(-1)
     try:
         key = screen.getch()
     finally:
         screen.timeout(POLL_MS)
     return key in (ord("y"), ord("Y"))
+
+
+def overlay(screen, title, lines, footer):
+    height, width = screen.getmaxyx()
+    if height < PEEK_MIN_HEIGHT or width < PEEK_MIN_WIDTH:
+        return -1
+    box_height = max(int(height * PEEK_RATIO), PEEK_MIN_HEIGHT)
+    box_width = max(int(width * PEEK_RATIO), PEEK_MIN_WIDTH)
+    try:
+        window = curses.newwin(box_height, box_width, (height - box_height) // 2, (width - box_width) // 2)
+    except curses.error:
+        return -1
+    window.keypad(True)
+    window.erase()
+    try:
+        window.box()
+    except curses.error:
+        pass
+    inner = box_width - 4
+    room = box_height - 2
+    _put(window, 0, 2, _clip(" %s " % title, inner), curses.A_BOLD, box_width - 1)
+    body = wrap_block(lines, inner)
+    for offset, text in enumerate(body[max(len(body) - room, 0) :]):
+        _put(window, 1 + offset, 2, text, curses.A_NORMAL, box_width - 1)
+    _put(window, box_height - 1, 2, _clip(" %s " % footer, inner), curses.A_DIM, box_width - 1)
+    window.noutrefresh()
+    curses.doupdate()
+    window.timeout(-1)
+    try:
+        key = window.getch()
+    finally:
+        screen.clearok(True)
+        screen.touchwin()
+    return key
+
+
+def peek_title(row):
+    return ("%s %s" % (row.get("short") or "", row.get("name") or "")).strip()
+
+
+def gate_answer(screen, row, short):
+    rc, text = run_out(
+        ["tmux", "new-window", "-d", "-P", "-F", "#{window_id}", "claude attach %s" % short], TMUX_TIMEOUT
+    )
+    window = sanitize_context(text)
+    if rc != 0 or not window:
+        return "tmux new-window failed: %s" % (sanitize_context(text) or "no window id"), ""
+    try:
+        status_line(screen, "attaching to %s …" % short, curses.A_REVERSE)
+        time.sleep(ATTACH_WAIT)
+        rc, pane = run_out(["tmux", "capture-pane", "-t", window, "-p"], TMUX_TIMEOUT)
+        if rc != 0:
+            return "tmux capture-pane failed: %s" % sanitize_context(pane), ""
+        lines = capture_lines(pane)
+        answerable = has_question(lines)
+        key = overlay(
+            screen, peek_title(row), lines or [EMPTY_CAPTURE], GATE_FOOTER if answerable else NO_QUESTION_FOOTER
+        )
+        if not answerable:
+            return ("", "pair") if key in ENTER_KEYS else ("", "")
+        if not ord("1") <= key <= ord("9"):
+            return "", ""
+        digit = chr(key)
+        rc, text = run_out(["tmux", "send-keys", "-t", window, digit], TMUX_TIMEOUT)
+        if rc != 0:
+            return "tmux send-keys %s failed: %s" % (digit, sanitize_context(text)), ""
+        time.sleep(ANSWER_DELAY)
+        rc, text = run_out(["tmux", "send-keys", "-t", window, "Enter"], TMUX_TIMEOUT)
+        if rc != 0:
+            return "tmux send-keys Enter failed: %s" % sanitize_context(text), ""
+        return "answered %s with %s" % (short, digit), "refresh"
+    finally:
+        run_out(["tmux", "kill-window", "-t", window], TMUX_TIMEOUT)
+
+
+def peek(screen, row):
+    blocked = row.get("bucket") == "BLOCKED"
+    short = row.get("short") or ""
+    if blocked and short and os.environ.get("TMUX"):
+        return gate_answer(screen, row, short)
+    text = sanitize_context(transcript_tail(row.get("cwd"), row.get("session_id")))
+    overlay(screen, peek_title(row), [text or EMPTY_PEEK], NO_TMUX_FOOTER if blocked else PEEK_FOOTER)
+    return "", ""
 
 
 def pair_handoff(short):
@@ -754,6 +906,13 @@ def run(screen, state):
             if row and confirm(screen, "rm %s?" % row["short"]):
                 state.message = remove_session(row)
                 refresh_model(state)
+        elif key == ord(" "):
+            row = selected_row(state)
+            if row:
+                message, action = peek(screen, row)
+                if action == "refresh":
+                    refresh_model(state)
+                state.message = pair_handoff(row["short"]) if action == "pair" else message
         elif key in ENTER_KEYS:
             row = selected_row(state)
             if row:
