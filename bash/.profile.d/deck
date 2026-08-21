@@ -7,6 +7,7 @@ deck() {
     else
       w=$(tput cols 2>/dev/null || echo 200); h=$(tput lines 2>/dev/null || echo 60)
     fi
+    [ "${w:-0}" -ge 120 ] 2>/dev/null || w=200; [ "${h:-0}" -ge 35 ] 2>/dev/null || h=60
     fleet=$(tmux new-session -d -s "$name" -c "$root" -n deck -x "$w" -y "$h" -P -F '#{pane_id}')
     tmux set-option -w -t "=$name:deck" automatic-rename off
     tmux send-keys -t "$fleet" "claude agents --cwd \"$root\" --dangerously-skip-permissions" C-m
@@ -14,7 +15,7 @@ deck() {
     ops=$(tmux split-window -v -l 14 -t "$right" -c "$root" -P -F '#{pane_id}')
     if [ -x "$cheat" ]; then
       ch=$(tmux display -p -t "$right" '#{pane_height}')
-      tmux send-keys -t "$right" "clear; \"$cheat\" | head -n $((ch-2))" C-m
+      tmux send-keys -t "$right" "clear; \"$cheat\" | head -n $((ch-4))" C-m
     fi
     tmux send-keys -t "$ops" 'clone-status' C-m
     tmux select-pane -t "$fleet"
