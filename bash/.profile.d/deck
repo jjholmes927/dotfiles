@@ -1,17 +1,21 @@
 deck() {
-  local name=${1:-interpret} root="${ENG_ROOT:-$HOME/engineering}" cheat fleet right ops
+  local name=${1:-interpret} root="${ENG_ROOT:-$HOME/engineering}" cheat fleet right ops w h ch
   cheat="$(dirname "$(readlink "$HOME/.tmux.conf" 2>/dev/null)")/deck-cheat"
   if ! tmux has-session -t "=$name" 2>/dev/null; then
-    fleet=$(tmux new-session -d -s "$name" -c "$root" -n deck -P -F '#{pane_id}')
+    if [ -n "$TMUX" ]; then
+      w=$(tmux display -p '#{client_width}'); h=$(tmux display -p '#{client_height}')
+    else
+      w=$(tput cols 2>/dev/null || echo 200); h=$(tput lines 2>/dev/null || echo 60)
+    fi
+    fleet=$(tmux new-session -d -s "$name" -c "$root" -n deck -x "$w" -y "$h" -P -F '#{pane_id}')
     tmux set-option -w -t "=$name:deck" automatic-rename off
     tmux send-keys -t "$fleet" "claude agents --cwd \"$root\" --dangerously-skip-permissions" C-m
-    if [ -x "$cheat" ]; then
-      right=$(tmux split-window -h -l 46 -t "$fleet" -c "$root" -P -F '#{pane_id}' \
-        "bash -c 'h=\$(tmux display -p \"#{pane_height}\"); \"$cheat\" | head -n \$((h-1)); exec bash'")
-    else
-      right=$(tmux split-window -h -l 46 -t "$fleet" -c "$root" -P -F '#{pane_id}')
-    fi
+    right=$(tmux split-window -h -l 46 -t "$fleet" -c "$root" -P -F '#{pane_id}')
     ops=$(tmux split-window -v -l 14 -t "$right" -c "$root" -P -F '#{pane_id}')
+    if [ -x "$cheat" ]; then
+      ch=$(tmux display -p -t "$right" '#{pane_height}')
+      tmux send-keys -t "$right" "clear; \"$cheat\" | head -n $((ch-2))" C-m
+    fi
     tmux send-keys -t "$ops" 'clone-status' C-m
     tmux select-pane -t "$fleet"
     tmux new-window -t "=$name" -n pair -c "$root"
