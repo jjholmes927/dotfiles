@@ -12,27 +12,33 @@ One terminal surface for the whole day loop: lane health at a glance, streams so
 - `tests/fleet_test.py` — unit tests for the pure core (state derivation, sidecar parsing, row/strip formatting), run with `python3 -m unittest`.
 - Adoption path: run `fleet` in any pane/window while it earns trust; the native view keeps the deck fleet pane. Cutover later is a one-line change in `deck()` and is OUT of this spec's scope.
 
-## Screen layout (locked with user)
+## Screen layout (locked with user, iterated 2026-08-21 evening)
 
 ```
-LANES  mn1 main✓ 2wt · mn2 main✓ 1wt · mn3 DIRTY 1wt · mn4 ✓ · mn5 ✓
-       second-brain main✓ 1wt                      ← dynamic repos, only while active
-── BLOCKED ──────────────────────────────────────
-▸ 7feaaa4d mn3/phone-hub-routing   12m
-    verify run.services.list permission…
-── WORKING ──────────────────────────────────────
-  092b2a4b mn2/check-the-alert     41m
-── COMPLETE ─────────────────────────────────────
-  ad68d9fc gather-positive-feedb   2h   COMPLETE: playback pack + link
-── AWAITING ─────────────────────────────────────
-  3a99b95c investigate-sentiment   3h   awaiting: agenda sign-off
-── STOPPED ──────────────────────────────────────
-  c1d2e3f4 scribe-rate-limit       1d
+  1 BLOCKED · 2 WORKING · 1 COMPLETE · 1 AWAITING          ← counts banner, 2-second read
+
+  LANES  mn1 ✓2  mn2 ✓1  mn3 DIRTY·1  mn4 ✓  mn5 ✓
+         second-brain ✓1                                   ← dynamic repos, only while active
+  ── BLOCKED ──────────────────────────
+  ★ 7feaaa4d mn3/phone-hub-routing   12m
+      verify run.services.list permission?
+  ── WORKING ──────────────────────────
+    092b2a4b mn2/check-alert         41m
+      > Finding ElevenLabs callers                         ← live activity line, always shown
+  ── COMPLETE ─────────────────────────
+    ad68d9fc gather-feedback         2h
+      INT-842 done, PR #9403                               ← sidecar note; PR # parsed from it
+  ── AWAITING / STOPPED groups follow, same shape ──
+
+  [space]peek [1-9]answer [p]star [r]rm [q]quit            ← key footer
 ```
 
-- **Lanes strip**: configured `$LANES` always shown — root branch, ✓/DIRTY, worktree count (what `clone-status` reports). Any other git repo under `$ENG_ROOT` currently hosting a stream appears dynamically and drops off when quiet. Streams in `$ENG_ROOT` itself show untagged, no strip line.
-- **State groups**, attention-first order: BLOCKED → WORKING → COMPLETE → AWAITING → STOPPED. Empty groups collapse.
-- Rows: short id · name · age · one line of context (BLOCKED: the waiting reason; COMPLETE/AWAITING: the sidecar note).
+Decisions from the workstyle interview (usage is a mix of glance / batch visits / watching, depending on the day):
+- **Counts banner** is the first line — readable in two seconds from across the window.
+- **Lanes strip** second: configured `$LANES` always (branch ✓/DIRTY, worktree count); other `$ENG_ROOT` repos appear only while they host a stream. Streams in `$ENG_ROOT` itself show untagged.
+- **State groups**, attention-first: BLOCKED → WORKING → COMPLETE → AWAITING → STOPPED. Empty groups collapse.
+- **Every row is two lines**: id · name · age, then a dim context line — BLOCKED: the waiting reason; WORKING: live activity; COMPLETE/AWAITING: the sidecar note, with any `PR #NNNN` in it highlighted (parsed from the note text — no GitHub calls).
+- **Stars**: `p` toggles a star on a stream; starred rows sort first inside their group and render ★. Persisted one session id per line in `~/.claude/fleet-stars`; stale ids are harmless and ignored.
 
 ## State names (aligned with existing vocabulary — user decision)
 
@@ -59,6 +65,7 @@ Sidecars are consulted only for ended sessions; a stale sidecar from a previous 
 | Key | Action |
 |-----|--------|
 | `j`/`k`, arrows | move selection |
+| `p` | star/unstar the selected stream |
 | `Space` | peek: BLOCKED → live question via hidden tmux attach + `capture-pane`; other states → last assistant text from the session transcript (`~/.claude/projects/<slug>/<sessionId>.jsonl`) |
 | `1`–`9` | while peeking a BLOCKED row: answer via `send-keys` into the hidden attach, then kill it and re-poll |
 | `Enter` | hand the session to the pair window (send `claude attach <id>` to `:pair`, guarded like `pair()`: refuse if pair is busy, `C-u` first) |
