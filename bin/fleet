@@ -47,6 +47,7 @@ PEEK_MIN_WIDTH = 24
 ATTACH_WAIT = 4.0
 ANSWER_DELAY = 0.7
 QUESTION_PATTERN = re.compile(r"^[\s│┃|]*❯?\s*1\.")
+WINDOW_ID_PATTERN = re.compile(r"@\d+")
 BELL_BUCKETS = ("BLOCKED", "COMPLETE")
 PEEK_FOOTER = "any key close"
 GATE_FOOTER = "1-9 answer · any other key close"
@@ -247,7 +248,7 @@ def build_model(sessions, sidecars, stars, lanes):
     for session in sessions:
         session_id = session.get("sessionId") or ""
         sidecar = sidecars.get(session_id)
-        activity = (session.get("status") or "").strip()
+        activity = (session.get("context_text") or session.get("status") or "").strip()
         cli_status = session.get("cli_status", session.get("status"))
         bucket = derive_bucket(session.get("state"), cli_status, sidecar)
         settled = bucket in ("COMPLETE", "AWAITING", "STOPPED")
@@ -358,26 +359,12 @@ def transcript_path(cwd, session_id):
 
 
 def transcript_tail(cwd, session_id):
+    path = transcript_path(cwd, session_id)
     try:
-        with open(transcript_path(cwd, session_id), "r", encoding="utf-8", errors="replace") as handle:
-            lines = handle.readlines()
+        size = os.stat(path).st_size
     except OSError:
         return ""
-    for line in reversed(lines):
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            entry = json.loads(line)
-        except ValueError:
-            continue
-        if not isinstance(entry, dict) or entry.get("type") != "assistant":
-            continue
-        message = entry.get("message")
-        text = _content_text(message.get("content") if isinstance(message, dict) else None)
-        if text:
-            return text
-    return ""
+    return _tail_assistant_text(path, size)
 
 
 def strip_visual(text):
@@ -584,8 +571,9 @@ def remodel(state):
         session_id = session.get("sessionId") or ""
         seen_paths.add(transcript_path(cwd, session_id))
         item = dict(session)
-        item["cli_status"] = item.get("status") or ""
-        item["status"] = transcript_context(cwd, session_id, state.tails) or sanitize_context(item["cli_status"])
+        item["context_text"] = transcript_context(cwd, session_id, state.tails) or sanitize_context(
+            item.get("status") or ""
+        )
         enriched.append(item)
     for path in [known for known in state.tails if known not in seen_paths]:
         del state.tails[path]
@@ -797,6 +785,8 @@ def gate_answer(screen, row, short):
         return ORPHAN_WINDOW_WARNING % short, ""
     if rc != 0:
         return "tmux new-window failed: %s" % (window or "no window id"), ""
+    if not WINDOW_ID_PATTERN.fullmatch(window):
+        return ORPHAN_WINDOW_WARNING % short, ""
     try:
         status_line(screen, "attaching to %s …" % short, curses.A_REVERSE)
         time.sleep(ATTACH_WAIT)
@@ -830,8 +820,8 @@ def peek(screen, row):
     short = row.get("short") or ""
     if blocked and short and os.environ.get("TMUX"):
         return gate_answer(screen, row, short)
-    text = sanitize_context(transcript_tail(row.get("cwd"), row.get("session_id")))
-    overlay(screen, peek_title(row), [text or EMPTY_PEEK], NO_TMUX_FOOTER if blocked else PEEK_FOOTER)
+    lines = capture_lines(transcript_tail(row.get("cwd"), row.get("session_id")))
+    overlay(screen, peek_title(row), lines or [EMPTY_PEEK], NO_TMUX_FOOTER if blocked else PEEK_FOOTER)
     return "", ""
 
 

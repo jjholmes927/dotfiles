@@ -238,6 +238,49 @@ class GateAnswerNewWindowTimeout(unittest.TestCase):
         self.assertNotIn("may be live", message)
         self.assertEqual(action, "")
 
+    def test_noise_on_stdout_is_not_taken_for_a_window_id(self):
+        def fake(args, timeout=10):
+            self.calls.append(args)
+            return 0, "can't find pane @42"
+
+        fleet.run_out = fake
+        message, action = fleet.gate_answer(None, {"short": "abc12345"}, "abc12345")
+        self.assertIn("hidden attach window for abc12345 may be live", message)
+        self.assertEqual(action, "")
+        self.assertEqual(len(self.calls), 1)
+
+
+class GateAnswerValidWindowId(unittest.TestCase):
+    class Fake(object):
+        def getmaxyx(self):
+            return 40, 120
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self._saved = (fleet.run_out, fleet.overlay, fleet.ATTACH_WAIT, fleet.curses.doupdate)
+        fleet.ATTACH_WAIT = 0
+        fleet.curses.doupdate = lambda: None
+        fleet.overlay = lambda screen, title, lines, footer: ord("x")
+        self.calls = []
+
+    def tearDown(self):
+        fleet.run_out, fleet.overlay, fleet.ATTACH_WAIT, fleet.curses.doupdate = self._saved
+
+    def test_real_window_id_captures_then_kills_that_window(self):
+        def fake(args, timeout=10):
+            self.calls.append(args)
+            if args[1] == "new-window":
+                return 0, "@42\n"
+            return 0, "some pane text"
+
+        fleet.run_out = fake
+        message, action = fleet.gate_answer(self.Fake(), {"short": "abc12345"}, "abc12345")
+        self.assertEqual((message, action), ("", ""))
+        self.assertIn(["tmux", "capture-pane", "-t", "@42", "-p"], self.calls)
+        self.assertEqual(self.calls[-1], ["tmux", "kill-window", "-t", "@42"])
+
 
 class ParsePr(unittest.TestCase):
     def test_pr_hash(self):
@@ -547,6 +590,225 @@ class RemoveSession(unittest.TestCase):
         fleet.run_out = lambda args, timeout=10: (0, "")
         fleet.worktree_hint = lambda cwd: ""
         self.assertEqual(fleet.remove_session({"short": "abc12345", "cwd": "/e"}), "removed abc12345")
+
+
+class StatusFieldsStayUntangled(unittest.TestCase):
+    def _session(self, **extra):
+        session = {"sessionId": "k" * 36, "id": "kkkkkkkk", "name": "n", "cwd": "/e", "startedAt": 1}
+        session.update(extra)
+        return session
+
+    def _row(self, session):
+        return fleet.build_model([session], {}, set(), [])["groups"][0][1][0]
+
+    def test_context_text_drives_display_while_status_drives_bucketing(self):
+        row = self._row(
+            self._session(state="blocked", status="idle", context_text="Recorded the status; ready for review.")
+        )
+        self.assertEqual(row["bucket"], "AWAITING")
+        self.assertEqual(row["context"], "Recorded the status; ready for review.")
+
+    def test_missing_context_text_falls_back_to_status(self):
+        row = self._row(self._session(state="working", status="running"))
+        self.assertEqual(row["bucket"], "WORKING")
+        self.assertEqual(row["context"], "running")
+
+    def test_cli_status_still_wins_for_bucketing_when_present(self):
+        row = self._row(
+            self._session(state="blocked", status="idle", cli_status="waiting", context_text="Which option?")
+        )
+        self.assertEqual(row["bucket"], "BLOCKED")
+        self.assertEqual(row["context"], "Which option?")
+
+
+class TranscriptTail(unittest.TestCase):
+    def setUp(self):
+        self._temp = tempfile.TemporaryDirectory()
+        self._saved = fleet.PROJECTS_DIR
+        fleet.PROJECTS_DIR = os.path.join(self._temp.name, "projects")
+
+    def tearDown(self):
+        fleet.PROJECTS_DIR = self._saved
+        self._temp.cleanup()
+
+    def _write(self, session_id, entries):
+        path = fleet.transcript_path("/e/mn3", session_id)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as handle:
+            for entry in entries:
+                handle.write(json.dumps(entry) + "\n")
+
+    def _assistant(self, text):
+        return {"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}
+
+    def test_newlines_survive_for_the_peek_overlay(self):
+        session_id = "m" * 36
+        self._write(session_id, [self._assistant("Plan:\n- one\n- two")])
+        lines = fleet.capture_lines(fleet.transcript_tail("/e/mn3", session_id))
+        self.assertEqual(lines, ["Plan:", "- one", "- two"])
+
+    def test_last_assistant_entry_wins_over_later_user_entries(self):
+        session_id = "n" * 36
+        self._write(
+            session_id,
+            [self._assistant("older"), self._assistant("newer"), {"type": "user", "message": {"content": "hi"}}],
+        )
+        self.assertEqual(fleet.transcript_tail("/e/mn3", session_id), "newer")
+
+    def test_missing_transcript_is_empty(self):
+        self.assertEqual(fleet.transcript_tail("/e/mn3", "z" * 36), "")
+
+
+class HasQuestion(unittest.TestCase):
+    def test_menu_capture_is_answerable(self):
+        lines = ["Do you want to proceed?", "", "❯ 1. Yes, apply the fix", "  2. No, keep looking"]
+        self.assertTrue(fleet.has_question(lines))
+
+    def test_boxed_menu_is_answerable(self):
+        lines = ["╭──────────────╮", "│ Pick a plan  │", "│ 1. Ship it   │", "│ 2. Revise    │", "╰──────────────╯"]
+        self.assertTrue(fleet.has_question(lines))
+
+    def test_prose_without_a_numbered_line_is_not(self):
+        lines = ["I refactored the parser and ran the suite.", "Everything is green — over to you."]
+        self.assertFalse(fleet.has_question(lines))
+
+
+class BellCheck(unittest.TestCase):
+    def _state(self, pairs):
+        state = fleet.FleetState()
+        state.rows = [{"session_id": session_id, "bucket": bucket} for session_id, bucket in pairs]
+        return state
+
+    def _poll(self, state, pairs):
+        state.rows = [{"session_id": session_id, "bucket": bucket} for session_id, bucket in pairs]
+        return fleet.bell_check(state)
+
+    def test_first_poll_is_a_silent_baseline(self):
+        state = self._state([("a", "BLOCKED"), ("b", "COMPLETE")])
+        self.assertFalse(fleet.bell_check(state))
+
+    def test_transition_into_blocked_rings(self):
+        state = self._state([("a", "WORKING")])
+        fleet.bell_check(state)
+        self.assertTrue(self._poll(state, [("a", "BLOCKED")]))
+
+    def test_transition_into_complete_rings(self):
+        state = self._state([("a", "WORKING")])
+        fleet.bell_check(state)
+        self.assertTrue(self._poll(state, [("a", "COMPLETE")]))
+
+    def test_working_to_awaiting_stays_silent(self):
+        state = self._state([("a", "WORKING")])
+        fleet.bell_check(state)
+        self.assertFalse(self._poll(state, [("a", "AWAITING")]))
+
+    def test_sitting_in_blocked_does_not_ring_again(self):
+        state = self._state([("a", "WORKING")])
+        fleet.bell_check(state)
+        self.assertTrue(self._poll(state, [("a", "BLOCKED")]))
+        self.assertFalse(self._poll(state, [("a", "BLOCKED")]))
+
+
+class RestoreSelection(unittest.TestCase):
+    def _state(self, ids, selected, selected_id):
+        state = fleet.FleetState()
+        state.rows = [{"session_id": session_id} for session_id in ids]
+        state.selected = selected
+        state.selected_id = selected_id
+        return state
+
+    def test_selection_follows_the_session_across_a_resort(self):
+        state = self._state(["a", "b", "c"], 2, "c")
+        state.rows = [{"session_id": session_id} for session_id in ("c", "a", "b")]
+        fleet.restore_selection(state)
+        self.assertEqual(state.selected, 0)
+        self.assertEqual(state.selected_id, "c")
+
+    def test_vanished_session_keeps_the_index_and_adopts_that_row(self):
+        state = self._state(["a", "b", "c"], 1, "b")
+        state.rows = [{"session_id": session_id} for session_id in ("a", "c", "d")]
+        fleet.restore_selection(state)
+        self.assertEqual(state.selected, 1)
+        self.assertEqual(state.selected_id, "c")
+
+    def test_vanished_session_past_the_end_clamps_to_the_last_row(self):
+        state = self._state(["a", "b", "c"], 2, "c")
+        state.rows = [{"session_id": "a"}]
+        fleet.restore_selection(state)
+        self.assertEqual(state.selected, 0)
+        self.assertEqual(state.selected_id, "a")
+
+    def test_empty_fleet_resets_the_selection(self):
+        state = self._state([], 4, "c")
+        state.top = 7
+        fleet.restore_selection(state)
+        self.assertEqual((state.selected, state.selected_id, state.top), (0, "", 0))
+
+
+class BodyLinesAndScroll(unittest.TestCase):
+    def _state(self, count, selected):
+        rows = [
+            {
+                "session_id": str(index),
+                "short": "sess%d" % index,
+                "name": "row-%d" % index,
+                "age": "1m",
+                "context": "context %d" % index,
+                "starred": False,
+                "bucket": "WORKING",
+                "pr": None,
+            }
+            for index in range(count)
+        ]
+        state = fleet.FleetState()
+        state.rows = rows
+        state.selected = selected
+        state.model = {"counts": {}, "lanes": [], "groups": [("WORKING", rows)]}
+        return state
+
+    def test_header_and_two_lines_per_row_with_only_rows_indexed(self):
+        lines = fleet.body_lines(self._state(3, 0), 120)
+        self.assertEqual(len(lines), 1 + 2 * 3)
+        self.assertEqual(lines[0][3], -1)
+        self.assertEqual([line[3] for line in lines[1:]], [0, 0, 1, 1, 2, 2])
+
+    def test_selected_row_is_fully_visible_at_a_small_height(self):
+        state = self._state(12, 9)
+        lines = fleet.body_lines(state, 120)
+        height = 6
+        top = fleet.scroll_top(lines, state.selected, 0, height)
+        spots = [position for position, line in enumerate(lines) if line[3] == state.selected]
+        self.assertGreaterEqual(spots[0], top)
+        self.assertLess(spots[-1], top + height)
+
+    def test_scrolling_back_up_pulls_the_window_to_the_selection(self):
+        state = self._state(12, 0)
+        lines = fleet.body_lines(state, 120)
+        top = fleet.scroll_top(lines, 0, 15, 6)
+        spots = [position for position, line in enumerate(lines) if line[3] == 0]
+        self.assertEqual(top, spots[0])
+        self.assertLess(spots[-1], top + 6)
+
+    def test_boundary_heights_never_go_negative_or_past_the_end(self):
+        state = self._state(8, 0)
+        lines = fleet.body_lines(state, 120)
+        for height in (0, 1, 2, len(lines) - 1, len(lines), len(lines) + 5):
+            for selected in (0, 3, 7):
+                for start in (0, 99):
+                    top = fleet.scroll_top(lines, selected, start, height)
+                    self.assertGreaterEqual(top, 0)
+                    if height <= 0:
+                        self.assertEqual(top, 0)
+                    else:
+                        self.assertLessEqual(top, max(0, len(lines) - height))
+
+    def test_taller_than_the_body_pins_to_the_top(self):
+        state = self._state(2, 1)
+        lines = fleet.body_lines(state, 120)
+        self.assertEqual(fleet.scroll_top(lines, 1, 0, len(lines) + 4), 0)
+
+    def test_empty_body_has_no_offset(self):
+        self.assertEqual(fleet.scroll_top([], 0, 3, 10), 0)
 
 
 if __name__ == "__main__":
