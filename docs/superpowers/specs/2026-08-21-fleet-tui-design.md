@@ -24,20 +24,21 @@ One terminal surface for the whole day loop: lane health at a glance, streams so
       verify run.services.list permission?
   ── WORKING ──────────────────────────
     092b2a4b mn2/check-alert         41m
-      > Finding ElevenLabs callers                         ← live activity line, always shown
+      > Finding ElevenLabs callers                         ← live row: the transcript tail
   ── COMPLETE ─────────────────────────
     ad68d9fc gather-feedback         2h
       INT-842 done, PR #9403                               ← sidecar note; PR # parsed from it
   ── AWAITING / STOPPED groups follow, same shape ──
 
-  [space]peek [1-9]answer [p]star [r]rm [q]quit            ← key footer
+  [j/k]move [p]star [space]peek [enter]pair [s]stop [r]rm [R]refresh [q]quit
+                                                           ← key footer, verbatim
 ```
 
 Decisions from the workstyle interview (usage is a mix of glance / batch visits / watching, depending on the day):
 - **Counts banner** is the first line — readable in two seconds from across the window.
 - **Lanes strip** second: configured `$LANES` always (branch ✓/DIRTY, worktree count); other `$ENG_ROOT` repos appear only while they host a stream. Streams in `$ENG_ROOT` itself show untagged.
 - **State groups**, attention-first: BLOCKED → WORKING → COMPLETE → AWAITING → STOPPED. Empty groups collapse.
-- **Every row is two lines**: id · name · age, then a dim context line — BLOCKED: the waiting reason; WORKING: live activity; COMPLETE/AWAITING: the sidecar note. Any `PR #NNNN` parsed from the note (no GitHub calls) renders as a bold badge on the row's **first** line, after the age — not inside the context line.
+- **Every row is two lines**: id · name · age, then a dim context line (dropped below 80 cols) — live rows (BLOCKED/WORKING) show the transcript tail, falling back to the CLI activity string; settled rows (COMPLETE/AWAITING/STOPPED) show the sidecar note, falling back to that same tail. Any `PR #NNNN` parsed from the note (no GitHub calls) renders as a bold badge on the row's **first** line, after the age — not inside the context line.
 - **Stars**: `p` toggles a star on a stream; starred rows sort first inside their group and render ★. Persisted one session id per line in `~/.claude/fleet-stars`; stale ids are harmless and ignored.
 
 ## State names (aligned with existing vocabulary — user decision)

@@ -34,6 +34,7 @@
         (not the name, not the uuid)
  claude rm  removes session + lazy wt
             (provisioned wt: by hand)
+ fleet       streams+lanes TUI (trial)
 
  THE DAY LOOP
  morning deck -> s:blocked -> gmp-all
