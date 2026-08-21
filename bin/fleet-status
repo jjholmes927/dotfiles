@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage='usage: fleet-status complete|awaiting "<note>" [--session <id>] [--stop]'
+
+session="${CLAUDE_SESSION_ID:-}" stop=0
+positional=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --session)   session="$2"; shift 2 ;;
+    --session=*) session="${1#*=}"; shift ;;
+    --stop)      stop=1; shift ;;
+    -*)          echo "unknown flag: $1" >&2; echo "$usage" >&2; exit 1 ;;
+    *)           positional+=("$1"); shift ;;
+  esac
+done
+
+if [ "${#positional[@]}" -ne 2 ]; then echo "$usage" >&2; exit 1; fi
+state="${positional[0]}"
+note="${positional[1]//$'\t'/ }"
+case "$state" in complete|awaiting) ;; *) echo "bad state: $state" >&2; echo "$usage" >&2; exit 1 ;; esac
+if [ -z "$session" ]; then
+  echo 'no session id: $CLAUDE_SESSION_ID unset and no --session given' >&2
+  exit 1
+fi
+
+dir="$HOME/.claude/fleet-status"
+mkdir -p "$dir"
+printf '%s\t%s\t%s\n' "$state" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$note" > "$dir/$session"
+echo "fleet-status: $state recorded for ${session:0:8}"
+
+if [ "$stop" = 1 ]; then
+  claude stop "${session:0:8}" >/dev/null 2>&1 || true
+  echo "fleet-status: stop requested for ${session:0:8}"
+fi
