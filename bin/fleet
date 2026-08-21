@@ -37,6 +37,8 @@ PAIR_TARGET = ":pair"
 SHELL_COMMANDS = ("bash", "zsh", "sh")
 ACTION_TIMEOUT = 20
 TMUX_TIMEOUT = 5
+TIMEOUT_RC = 124
+ORPHAN_WINDOW_WARNING = "tmux new-window timed out — a hidden attach window for %s may be live (check: tmux list-windows)"
 ENTER_KEYS = (curses.KEY_ENTER, 10, 13)
 FOOTER = "[j/k]move [p]star [space]peek [enter]pair [s]stop [r]rm [R]refresh [q]quit"
 PEEK_RATIO = 0.8
@@ -86,7 +88,7 @@ def run_out(args, timeout=10):
     try:
         proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout)
     except subprocess.TimeoutExpired:
-        return 124, "timed out after %ss" % timeout
+        return TIMEOUT_RC, "timed out after %ss" % timeout
     except (OSError, subprocess.SubprocessError) as error:
         return 127, str(error)
     return proc.returncode, proc.stdout.decode("utf-8", "replace")
@@ -246,7 +248,8 @@ def build_model(sessions, sidecars, stars, lanes):
         session_id = session.get("sessionId") or ""
         sidecar = sidecars.get(session_id)
         activity = (session.get("status") or "").strip()
-        bucket = derive_bucket(session.get("state"), activity, sidecar)
+        cli_status = session.get("cli_status", session.get("status"))
+        bucket = derive_bucket(session.get("state"), cli_status, sidecar)
         settled = bucket in ("COMPLETE", "AWAITING", "STOPPED")
         note = sidecar[2] if (sidecar and settled) else ""
         cwd = session.get("cwd") or ""
@@ -581,7 +584,8 @@ def remodel(state):
         session_id = session.get("sessionId") or ""
         seen_paths.add(transcript_path(cwd, session_id))
         item = dict(session)
-        item["status"] = transcript_context(cwd, session_id, state.tails) or sanitize_context(item.get("status") or "")
+        item["cli_status"] = item.get("status") or ""
+        item["status"] = transcript_context(cwd, session_id, state.tails) or sanitize_context(item["cli_status"])
         enriched.append(item)
     for path in [known for known in state.tails if known not in seen_paths]:
         del state.tails[path]
@@ -770,6 +774,7 @@ def overlay(screen, title, lines, footer):
     window.noutrefresh()
     curses.doupdate()
     window.timeout(-1)
+    curses.flushinp()
     try:
         key = window.getch()
     finally:
@@ -787,8 +792,10 @@ def gate_answer(screen, row, short):
         ["tmux", "new-window", "-d", "-P", "-F", "#{window_id}", "claude attach %s" % short], TMUX_TIMEOUT
     )
     window = sanitize_context(text)
+    if rc == TIMEOUT_RC:
+        return ORPHAN_WINDOW_WARNING % short, ""
     if rc != 0 or not window:
-        return "tmux new-window failed: %s" % (sanitize_context(text) or "no window id"), ""
+        return "tmux new-window failed: %s" % (window or "no window id"), ""
     try:
         status_line(screen, "attaching to %s …" % short, curses.A_REVERSE)
         time.sleep(ATTACH_WAIT)

@@ -37,7 +37,7 @@ Decisions from the workstyle interview (usage is a mix of glance / batch visits 
 - **Counts banner** is the first line — readable in two seconds from across the window.
 - **Lanes strip** second: configured `$LANES` always (branch ✓/DIRTY, worktree count); other `$ENG_ROOT` repos appear only while they host a stream. Streams in `$ENG_ROOT` itself show untagged.
 - **State groups**, attention-first: BLOCKED → WORKING → COMPLETE → AWAITING → STOPPED. Empty groups collapse.
-- **Every row is two lines**: id · name · age, then a dim context line — BLOCKED: the waiting reason; WORKING: live activity; COMPLETE/AWAITING: the sidecar note, with any `PR #NNNN` in it highlighted (parsed from the note text — no GitHub calls).
+- **Every row is two lines**: id · name · age, then a dim context line — BLOCKED: the waiting reason; WORKING: live activity; COMPLETE/AWAITING: the sidecar note. Any `PR #NNNN` parsed from the note (no GitHub calls) renders as a bold badge on the row's **first** line, after the age — not inside the context line.
 - **Stars**: `p` toggles a star on a stream; starred rows sort first inside their group and render ★. Persisted one session id per line in `~/.claude/fleet-stars`; stale ids are harmless and ignored.
 
 ## State names (aligned with existing vocabulary — user decision)
@@ -48,11 +48,11 @@ No invented terms. CLI states pass through; the `done` split is named by `fleet-
 |--------|------|
 | WORKING | CLI `state == working` |
 | BLOCKED | CLI `state == blocked` AND `status != "idle"` (plan gates, questions, permission prompts) |
-| COMPLETE | CLI `done`/`stopped` + sidecar `complete` |
-| AWAITING | CLI `done` + sidecar `awaiting`, or `done` with no sidecar (silent stop reads as "may want attention", never "finished") |
+| COMPLETE | CLI `done`/`stopped` + sidecar `complete`, or CLI `blocked` + `status == "idle"` + sidecar `complete` (a session answered from inside fleet parks as `blocked`/`idle`) |
+| AWAITING | CLI `done` + sidecar `awaiting`, or `done` with no sidecar (silent stop reads as "may want attention", never "finished"); also CLI `blocked` + `status == "idle"` with an `awaiting` sidecar or none at all — an idle-blocked row never falls through to STOPPED |
 | STOPPED | CLI `stopped`/`failed` without a `complete` sidecar |
 
-Sidecars are consulted only for ended sessions; a stale sidecar from a previous turn never recolors a `working`/`blocked` row. A session answered from inside fleet parks at an interactive prompt and reports `blocked`/`idle` forever (verified 2026-08-21), while a genuine gate reports `blocked` with no `status` — which is why idle-blocked rows are treated as ended and fall through to the sidecar rule.
+Sidecars are consulted only for ended sessions; a stale sidecar from a previous turn never recolors a `working`/`blocked` row. A session answered from inside fleet parks at an interactive prompt and reports `blocked`/`idle` forever (verified 2026-08-21), while a genuine gate reports `blocked` with no `status` — which is why idle-blocked rows are treated as ended and fall through to the sidecar rule. Bucketing reads the raw CLI status, kept as `cli_status`, because the display context line is overwritten with the transcript tail before the model is built.
 
 ## Data loop
 

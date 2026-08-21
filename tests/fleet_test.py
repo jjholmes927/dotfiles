@@ -1,4 +1,4 @@
-import importlib.util, importlib.machinery, os, pathlib, tempfile, time, unittest
+import importlib.util, importlib.machinery, json, os, pathlib, tempfile, time, unittest
 
 _path = pathlib.Path(__file__).resolve().parent.parent / "bin" / "fleet"
 _loader = importlib.machinery.SourceFileLoader("fleet", str(_path))
@@ -59,6 +59,144 @@ class IdleBlockedBucketsBySidecar(unittest.TestCase):
         model = fleet.build_model(sessions, sidecars, set(), [])
         self.assertEqual([g[0] for g in model["groups"]], ["COMPLETE"])
         self.assertEqual(model["groups"][0][1][0]["context"], "Done — recorded.")
+
+
+class RemodelBucketsFromRawCliStatus(unittest.TestCase):
+    def setUp(self):
+        self._temp = tempfile.TemporaryDirectory()
+        self._saved = (fleet.PROJECTS_DIR, fleet.SIDECAR_DIR, fleet.STARS_PATH)
+        root = self._temp.name
+        fleet.PROJECTS_DIR = os.path.join(root, "projects")
+        fleet.SIDECAR_DIR = os.path.join(root, "fleet-status")
+        fleet.STARS_PATH = os.path.join(root, "fleet-stars")
+        os.makedirs(fleet.SIDECAR_DIR)
+
+    def tearDown(self):
+        fleet.PROJECTS_DIR, fleet.SIDECAR_DIR, fleet.STARS_PATH = self._saved
+        self._temp.cleanup()
+
+    def _transcript(self, cwd, session_id, text):
+        path = fleet.transcript_path(cwd, session_id)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        entry = {"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(entry) + "\n")
+
+    def _sidecar(self, session_id, state, note):
+        with open(os.path.join(fleet.SIDECAR_DIR, session_id), "w", encoding="utf-8") as handle:
+            handle.write("%s\t2026-08-21T10:00:00Z\t%s\n" % (state, note))
+
+    def _row(self, session):
+        state = fleet.FleetState()
+        state.sessions = [session]
+        fleet.remodel(state)
+        return state.rows[0]
+
+    def _session(self, session_id, **extra):
+        session = {
+            "sessionId": session_id,
+            "id": session_id[:8],
+            "name": "parked",
+            "state": "blocked",
+            "cwd": "/e/mn3/.worktrees/task-3",
+            "startedAt": 1,
+        }
+        session.update(extra)
+        return session
+
+    def test_answered_idle_blocked_lands_complete_with_transcript_context(self):
+        session_id = "e" * 36
+        self._transcript("/e/mn3/.worktrees/task-3", session_id, "Recorded the status; ready for review.")
+        self._sidecar(session_id, "complete", "")
+        row = self._row(self._session(session_id, status="idle"))
+        self.assertEqual(row["bucket"], "COMPLETE")
+        self.assertEqual(row["context"], "Recorded the status; ready for review.")
+
+    def test_answered_idle_blocked_without_sidecar_lands_awaiting(self):
+        session_id = "f" * 36
+        self._transcript("/e/mn3/.worktrees/task-3", session_id, "Still thinking about it.")
+        row = self._row(self._session(session_id, status="idle"))
+        self.assertEqual(row["bucket"], "AWAITING")
+        self.assertEqual(row["context"], "Still thinking about it.")
+
+    def test_genuine_gate_with_transcript_stays_blocked(self):
+        session_id = "g" * 36
+        self._transcript("/e/mn3/.worktrees/task-3", session_id, "Which option do you want?")
+        self._sidecar(session_id, "complete", "stale note PR #9")
+        row = self._row(self._session(session_id))
+        self.assertEqual(row["bucket"], "BLOCKED")
+        self.assertEqual(row["context"], "Which option do you want?")
+        self.assertIsNone(row["pr"])
+
+    def test_sidecar_note_still_wins_over_transcript_when_settled(self):
+        session_id = "h" * 36
+        self._transcript("/e/mn3/.worktrees/task-3", session_id, "transcript tail")
+        self._sidecar(session_id, "complete", "INT-842 done, PR #9403")
+        row = self._row(self._session(session_id, status="idle"))
+        self.assertEqual(row["bucket"], "COMPLETE")
+        self.assertEqual(row["context"], "INT-842 done, PR #9403")
+        self.assertEqual(row["pr"], "#9403")
+
+
+class OverlayFlushesTypeahead(unittest.TestCase):
+    class Fake(object):
+        def __init__(self, log):
+            self.log = log
+
+        def getmaxyx(self):
+            return 40, 120
+
+        def getch(self):
+            self.log.append("getch")
+            return ord("x")
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def test_flushinp_runs_before_the_blocking_read(self):
+        log = []
+        saved = (fleet.curses.newwin, fleet.curses.flushinp, fleet.curses.doupdate)
+        try:
+            fleet.curses.newwin = lambda *args: self.Fake(log)
+            fleet.curses.flushinp = lambda: log.append("flushinp")
+            fleet.curses.doupdate = lambda: None
+            key = fleet.overlay(self.Fake(log), "title", ["body"], "footer")
+        finally:
+            fleet.curses.newwin, fleet.curses.flushinp, fleet.curses.doupdate = saved
+        self.assertEqual(key, ord("x"))
+        self.assertEqual(log, ["flushinp", "getch"])
+
+
+class GateAnswerNewWindowTimeout(unittest.TestCase):
+    def setUp(self):
+        self._real_run_out = fleet.run_out
+        self.calls = []
+
+    def tearDown(self):
+        fleet.run_out = self._real_run_out
+
+    def test_timeout_warns_a_hidden_window_may_be_live(self):
+        def fake(args, timeout=10):
+            self.calls.append(args)
+            return 124, "timed out after 5s"
+
+        fleet.run_out = fake
+        message, action = fleet.gate_answer(None, {"short": "abc12345"}, "abc12345")
+        self.assertIn("hidden attach window for abc12345 may be live", message)
+        self.assertIn("tmux list-windows", message)
+        self.assertEqual(action, "")
+        self.assertEqual(len(self.calls), 1)
+
+    def test_plain_failure_still_reports_new_window_failed(self):
+        def fake(args, timeout=10):
+            self.calls.append(args)
+            return 1, "no server running"
+
+        fleet.run_out = fake
+        message, action = fleet.gate_answer(None, {"short": "abc12345"}, "abc12345")
+        self.assertIn("tmux new-window failed", message)
+        self.assertNotIn("may be live", message)
+        self.assertEqual(action, "")
 
 
 class ParsePr(unittest.TestCase):
