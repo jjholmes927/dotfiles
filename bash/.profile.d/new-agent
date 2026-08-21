@@ -28,6 +28,15 @@ ticket title where one exists):
 NOTE
 }
 
+_new_agent_status_note() {
+  cat <<'NOTE'
+
+---
+When your work is fully complete, or you are parked waiting on a human, record it
+by running: fleet-status complete|awaiting "<one line, include ticket/PR refs>"
+NOTE
+}
+
 new-agent() {
   local lane="" branch="" effort=high perm=bypassPermissions
   local -a positional=()
@@ -121,6 +130,8 @@ new-agent() {
   if [ -z "$branch" ]; then
     prompt="$prompt$(_new_agent_branch_note)"
   fi
+
+  prompt="$prompt$(_new_agent_status_note)"
 
   (cd "$wt" && claude --bg --name "$name" --effort "$effort" --permission-mode "$perm" "$prompt")
 }
