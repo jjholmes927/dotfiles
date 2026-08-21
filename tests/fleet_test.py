@@ -1,4 +1,4 @@
-import importlib.util, importlib.machinery, pathlib, tempfile, time, unittest
+import importlib.util, importlib.machinery, os, pathlib, tempfile, time, unittest
 
 _path = pathlib.Path(__file__).resolve().parent.parent / "bin" / "fleet"
 _loader = importlib.machinery.SourceFileLoader("fleet", str(_path))
@@ -178,6 +178,160 @@ class ContextFlattening(unittest.TestCase):
         lines = fleet.format_row(row, 120, False)
         self.assertIn("a  b", lines[1])
         self.assertNotIn("\n", lines[1])
+
+
+class WorktreeParts(unittest.TestCase):
+    def test_dot_worktrees_shape(self):
+        self.assertEqual(
+            fleet.worktree_parts("/e/mn3/.worktrees/task-3"),
+            ("/e/mn3", "/e/mn3/.worktrees/task-3", "task-3"),
+        )
+
+    def test_claude_worktrees_shape(self):
+        self.assertEqual(
+            fleet.worktree_parts("/e/mn1/.claude/worktrees/task-3"),
+            ("/e/mn1", "/e/mn1/.claude/worktrees/task-3", "task-3"),
+        )
+
+    def test_nested_containers_last_one_wins(self):
+        self.assertEqual(
+            fleet.worktree_parts("/e/mn1/.worktrees/outer/.claude/worktrees/inner"),
+            ("/e/mn1/.worktrees/outer", "/e/mn1/.worktrees/outer/.claude/worktrees/inner", "inner"),
+        )
+
+    def test_nested_same_container_last_one_wins(self):
+        self.assertEqual(
+            fleet.worktree_parts("/e/mn1/.worktrees/outer/.worktrees/inner"),
+            ("/e/mn1/.worktrees/outer", "/e/mn1/.worktrees/outer/.worktrees/inner", "inner"),
+        )
+
+    def test_deeper_cwd_inside_worktree_keeps_worktree_root(self):
+        self.assertEqual(
+            fleet.worktree_parts("/e/mn3/.worktrees/task-3/app/models"),
+            ("/e/mn3", "/e/mn3/.worktrees/task-3", "task-3"),
+        )
+
+    def test_no_container_is_none(self):
+        self.assertIsNone(fleet.worktree_parts("/e/mn3/app/models"))
+
+    def test_container_without_name_is_none(self):
+        self.assertIsNone(fleet.worktree_parts("/e/mn3/.worktrees"))
+        self.assertIsNone(fleet.worktree_parts("/e/mn1/.claude/worktrees"))
+
+    def test_container_at_root_is_none(self):
+        self.assertIsNone(fleet.worktree_parts(".worktrees/task-3"))
+
+    def test_empty_cwd_is_none(self):
+        self.assertIsNone(fleet.worktree_parts(""))
+        self.assertIsNone(fleet.worktree_parts(None))
+
+
+class WorktreeHint(unittest.TestCase):
+    def setUp(self):
+        self._real_run_out = fleet.run_out
+        self.calls = []
+
+    def tearDown(self):
+        fleet.run_out = self._real_run_out
+
+    def _stub(self, rc, text):
+        def fake(args, timeout=10):
+            self.calls.append(args)
+            return rc, text
+
+        fleet.run_out = fake
+
+    def test_uses_real_branch_not_directory_name(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "mn3", ".worktrees", "task-3")
+            os.makedirs(path)
+            self._stub(0, "jjholmes927-real-branch-INT-1\n")
+            hint = fleet.worktree_hint(path)
+        self.assertIn("branch -D jjholmes927-real-branch-INT-1", hint)
+        self.assertNotIn("branch -D task-3", hint)
+        self.assertEqual(self.calls[0][:4], ["git", "-C", path, "rev-parse"])
+
+    def test_detached_head_omits_branch_delete(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "mn3", ".worktrees", "task-3")
+            os.makedirs(path)
+            self._stub(0, "HEAD\n")
+            hint = fleet.worktree_hint(path)
+        self.assertIn("worktree remove", hint)
+        self.assertNotIn("branch -D", hint)
+
+    def test_empty_branch_omits_branch_delete(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "mn3", ".worktrees", "task-3")
+            os.makedirs(path)
+            self._stub(0, "\n")
+            hint = fleet.worktree_hint(path)
+        self.assertIn("worktree remove", hint)
+        self.assertNotIn("branch -D", hint)
+
+    def test_not_a_git_worktree_has_no_git_commands(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "mn3", ".worktrees", "task-3")
+            os.makedirs(path)
+            self._stub(128, "fatal: not a git repository\n")
+            hint = fleet.worktree_hint(path)
+        self.assertEqual(hint, "worktree dir left behind: %s" % path)
+        self.assertNotIn("git ", hint)
+
+    def test_space_in_path_is_quoted(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = os.path.join(d, "my lane")
+            path = os.path.join(root, ".worktrees", "task 3")
+            os.makedirs(path)
+            self._stub(0, "feature branch\n")
+            hint = fleet.worktree_hint(path)
+        self.assertIn("'%s'" % root, hint)
+        self.assertIn("'%s'" % path, hint)
+        self.assertIn("'feature branch'", hint)
+
+    def test_claude_worktrees_root_is_above_dot_claude(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = os.path.join(d, "mn1")
+            path = os.path.join(root, ".claude", "worktrees", "task-3")
+            os.makedirs(path)
+            self._stub(0, "some-branch\n")
+            hint = fleet.worktree_hint(path)
+        self.assertIn("git -C %s worktree remove %s" % (root, path), hint)
+
+    def test_no_container_no_hint(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "mn3", "app")
+            os.makedirs(path)
+            self._stub(0, "main\n")
+            self.assertEqual(fleet.worktree_hint(path), "")
+        self.assertEqual(self.calls, [])
+
+    def test_missing_directory_no_hint(self):
+        self._stub(0, "main\n")
+        self.assertEqual(fleet.worktree_hint("/nonexistent/mn3/.worktrees/task-3"), "")
+        self.assertEqual(self.calls, [])
+
+
+class RemoveSession(unittest.TestCase):
+    def setUp(self):
+        self._real_run_out = fleet.run_out
+        self._real_hint = fleet.worktree_hint
+
+    def tearDown(self):
+        fleet.run_out = self._real_run_out
+        fleet.worktree_hint = self._real_hint
+
+    def test_hint_keeps_the_removed_confirmation(self):
+        fleet.run_out = lambda args, timeout=10: (0, "")
+        fleet.worktree_hint = lambda cwd: "worktree not reaped: git -C a worktree remove b"
+        message = fleet.remove_session({"short": "abc12345", "cwd": "/e/mn3/.worktrees/x"})
+        self.assertTrue(message.startswith("removed abc12345 · "))
+        self.assertIn("worktree not reaped", message)
+
+    def test_no_hint_is_plain_removed(self):
+        fleet.run_out = lambda args, timeout=10: (0, "")
+        fleet.worktree_hint = lambda cwd: ""
+        self.assertEqual(fleet.remove_session({"short": "abc12345", "cwd": "/e"}), "removed abc12345")
 
 
 if __name__ == "__main__":

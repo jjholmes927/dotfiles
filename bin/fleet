@@ -5,6 +5,7 @@ import json
 import locale
 import os
 import re
+import shlex
 import subprocess
 import sys
 import time
@@ -29,7 +30,7 @@ LANE_INTERVAL = 15.0
 POLL_MS = 250
 HEADER_WIDTH = 60
 STAR_COLUMN = 2
-WORKTREES_DIR = ".worktrees"
+WORKTREE_CONTAINERS = ((".worktrees",), (".claude", "worktrees"))
 PAIR_WINDOW = "pair"
 PAIR_TARGET = ":pair"
 SHELL_COMMANDS = ("bash", "zsh", "sh")
@@ -410,24 +411,47 @@ def transcript_context(cwd, session_id, cache):
 
 def worktree_parts(cwd):
     parts = os.path.normpath(cwd or "").split(os.sep)
-    if WORKTREES_DIR not in parts:
+    found = None
+    for index in range(len(parts)):
+        for container in WORKTREE_CONTAINERS:
+            if tuple(parts[index : index + len(container)]) != container:
+                continue
+            name_index = index + len(container)
+            if index == 0 or name_index >= len(parts):
+                continue
+            found = (index, name_index)
+    if found is None:
         return None
-    index = parts.index(WORKTREES_DIR)
-    if index == 0 or index + 1 >= len(parts):
-        return None
+    index, name_index = found
     root = os.sep.join(parts[:index]) or os.sep
-    path = os.sep.join(parts[: index + 2])
-    return root, path, parts[index + 1]
+    path = os.sep.join(parts[: name_index + 1])
+    return root, path, parts[name_index]
+
+
+def worktree_branch(path, timeout=ACTION_TIMEOUT):
+    rc, text = run_out(["git", "-C", path, "rev-parse", "--abbrev-ref", "HEAD"], timeout)
+    if rc != 0:
+        return None
+    branch = sanitize_context(text)
+    if not branch or branch == "HEAD":
+        return ""
+    return branch
 
 
 def worktree_hint(cwd):
     parts = worktree_parts(cwd)
     if not parts:
         return ""
-    root, path, branch = parts
+    root, path, _name = parts
     if not os.path.isdir(path):
         return ""
-    return "worktree not reaped: git -C %s worktree remove %s && git -C %s branch -D %s" % (root, path, root, branch)
+    branch = worktree_branch(path)
+    if branch is None:
+        return "worktree dir left behind: %s" % path
+    command = "git -C %s worktree remove %s" % (shlex.quote(root), shlex.quote(path))
+    if branch:
+        command += " && git -C %s branch -D %s" % (shlex.quote(root), shlex.quote(branch))
+    return "worktree not reaped: %s" % command
 
 
 def lane_roots(sessions):
@@ -677,7 +701,10 @@ def remove_session(row):
     rc, text = run_out(["claude", "rm", row["short"]], ACTION_TIMEOUT)
     if rc != 0:
         return "rm %s failed: %s" % (row["short"], sanitize_context(text))
-    return worktree_hint(row.get("cwd")) or "removed %s" % row["short"]
+    hint = worktree_hint(row.get("cwd"))
+    if hint:
+        return "removed %s · %s" % (row["short"], hint)
+    return "removed %s" % row["short"]
 
 
 def init_colors():
