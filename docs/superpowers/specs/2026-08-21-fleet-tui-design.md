@@ -51,7 +51,7 @@ No invented terms. CLI states pass through; the `done` split is named by `fleet-
 | BLOCKED | CLI `state == blocked` AND `status != "idle"` (plan gates, questions, permission prompts) |
 | COMPLETE | CLI `done`/`stopped` + sidecar `complete`, or CLI `blocked` + `status == "idle"` + sidecar `complete` (a session answered from inside fleet parks as `blocked`/`idle`) |
 | AWAITING | CLI `done` + sidecar `awaiting`, or `done` with no sidecar (silent stop reads as "may want attention", never "finished"); also CLI `blocked` + `status == "idle"` with an `awaiting` sidecar or none at all — an idle-blocked row never falls through to STOPPED |
-| STOPPED | CLI `stopped`/`failed` without a `complete` sidecar |
+| STOPPED | CLI `stopped` without a `complete` sidecar; CLI `failed` always (a crash never renders as finished) |
 
 Sidecars are consulted only for ended sessions; a stale sidecar from a previous turn never recolors a `working`/`blocked` row. A session answered from inside fleet parks at an interactive prompt and reports `blocked`/`idle` forever (verified 2026-08-21), while a genuine gate reports `blocked` with no `status` — which is why idle-blocked rows are treated as ended and fall through to the sidecar rule. Bucketing reads the raw CLI status, kept as `cli_status`, because the display context line is overwritten with the transcript tail before the model is built.
 
