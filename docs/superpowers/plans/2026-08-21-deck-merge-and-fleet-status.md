@@ -89,7 +89,7 @@ Run each; check output exactly:
 ```bash
 fleet-status complete                       # exit 1, usage line
 fleet-status done "x" --session test-123    # exit 1, "bad state: done"
-env -u CLAUDE_SESSION_ID fleet-status complete "x"   # exit 1, "no session id" message
+env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_SESSION_ID fleet-status complete "x"   # exit 1, "no session id" message
 fleet-status complete $'has\ttab' --session test-123 # exit 0
 cat ~/.claude/fleet-status/test-123
 ```

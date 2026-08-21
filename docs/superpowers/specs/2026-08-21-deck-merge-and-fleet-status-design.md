@@ -43,8 +43,8 @@ fleet-status complete "INT-842 done, PR #9403"
 fleet-status awaiting "need staging creds"     [--stop]
 ```
 
-- Writes `~/.claude/fleet-status/$CLAUDE_SESSION_ID` (dir created on demand), single line, tab-separated: `state<TAB>ISO-8601 timestamp<TAB>note`. Rewrites on repeat calls — last call wins.
-- Errors clearly when `$CLAUDE_SESSION_ID` is unset (not inside a Claude session); `--session <id>` overrides for manual use.
+- Writes `~/.claude/fleet-status/$CLAUDE_CODE_SESSION_ID` (dir created on demand; that is the var agent shells actually set — legacy `$CLAUDE_SESSION_ID` honoured as fallback), single line, tab-separated: `state<TAB>ISO-8601 timestamp<TAB>note`. Rewrites on repeat calls — last call wins.
+- Errors clearly when neither session var is set (not inside a Claude session); `--session <id>` overrides for manual use.
 - `--stop` additionally runs `claude stop` on the session's short id (first 8 chars) for fire-and-forget runs. Default leaves the session idle and peekable.
 - The completion unit is the stream (session) — not the ticket, not the PR. A ticket can span many streams and a PR can be ticketless, so the note carries refs free-form and Linear/GitHub keep owning their own lifecycles.
 - Stale files are harmless (session ids are UUIDs, never reused) — no reaper until something actually needs one.
