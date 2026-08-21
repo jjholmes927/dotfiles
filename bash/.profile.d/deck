@@ -11,7 +11,7 @@ deck() {
     fleet=$(tmux new-session -d -s "$name" -c "$root" -n deck -x "$w" -y "$h" -P -F '#{pane_id}')
     tmux set-option -w -t "=$name:deck" automatic-rename off
     tmux send-keys -t "$fleet" "claude agents --cwd \"$root\" --dangerously-skip-permissions" C-m
-    right=$(tmux split-window -h -l 46 -t "$fleet" -c "$root" -P -F '#{pane_id}')
+    right=$(tmux split-window -h -l 56 -t "$fleet" -c "$root" -P -F '#{pane_id}')
     ops=$(tmux split-window -v -l 14 -t "$right" -c "$root" -P -F '#{pane_id}')
     if [ -x "$cheat" ]; then
       ch=$(tmux display -p -t "$right" '#{pane_height}')
