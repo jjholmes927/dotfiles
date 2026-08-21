@@ -741,6 +741,7 @@ def confirm(screen, prompt):
     if not status_line(screen, "%s [y/N]" % prompt, curses.A_REVERSE):
         return False
     screen.timeout(-1)
+    curses.flushinp()
     try:
         key = screen.getch()
     finally:
@@ -792,9 +793,9 @@ def gate_answer(screen, row, short):
         ["tmux", "new-window", "-d", "-P", "-F", "#{window_id}", "claude attach %s" % short], TMUX_TIMEOUT
     )
     window = sanitize_context(text)
-    if rc == TIMEOUT_RC:
+    if rc == TIMEOUT_RC or (rc == 0 and not window):
         return ORPHAN_WINDOW_WARNING % short, ""
-    if rc != 0 or not window:
+    if rc != 0:
         return "tmux new-window failed: %s" % (window or "no window id"), ""
     try:
         status_line(screen, "attaching to %s …" % short, curses.A_REVERSE)

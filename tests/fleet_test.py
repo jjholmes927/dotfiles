@@ -167,6 +167,34 @@ class OverlayFlushesTypeahead(unittest.TestCase):
         self.assertEqual(log, ["flushinp", "getch"])
 
 
+class ConfirmFlushesTypeahead(unittest.TestCase):
+    class Fake(object):
+        def __init__(self, log):
+            self.log = log
+
+        def getmaxyx(self):
+            return 40, 120
+
+        def getch(self):
+            self.log.append("getch")
+            return ord("y")
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def test_flushinp_runs_before_the_blocking_read(self):
+        log = []
+        saved = (fleet.curses.flushinp, fleet.curses.doupdate)
+        try:
+            fleet.curses.flushinp = lambda: log.append("flushinp")
+            fleet.curses.doupdate = lambda: None
+            answered = fleet.confirm(self.Fake(log), "rm abc12345?")
+        finally:
+            fleet.curses.flushinp, fleet.curses.doupdate = saved
+        self.assertTrue(answered)
+        self.assertEqual(log, ["flushinp", "getch"])
+
+
 class GateAnswerNewWindowTimeout(unittest.TestCase):
     def setUp(self):
         self._real_run_out = fleet.run_out
@@ -179,6 +207,18 @@ class GateAnswerNewWindowTimeout(unittest.TestCase):
         def fake(args, timeout=10):
             self.calls.append(args)
             return 124, "timed out after 5s"
+
+        fleet.run_out = fake
+        message, action = fleet.gate_answer(None, {"short": "abc12345"}, "abc12345")
+        self.assertIn("hidden attach window for abc12345 may be live", message)
+        self.assertIn("tmux list-windows", message)
+        self.assertEqual(action, "")
+        self.assertEqual(len(self.calls), 1)
+
+    def test_empty_window_id_warns_a_hidden_window_may_be_live(self):
+        def fake(args, timeout=10):
+            self.calls.append(args)
+            return 0, ""
 
         fleet.run_out = fake
         message, action = fleet.gate_answer(None, {"short": "abc12345"}, "abc12345")
