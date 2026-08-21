@@ -17,7 +17,7 @@
  fleet-status complete|awaiting "<note>"
                    mark stream end-state
 
- FLEET (left pane)
+ FLEET VIEW (left pane)
  Space   peek: read + reply, 1-9 answers
  Enter   attach row / dispatch input
  <-      detach (on empty prompt)

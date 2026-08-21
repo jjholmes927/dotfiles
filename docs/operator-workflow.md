@@ -116,7 +116,7 @@ Default branches are resolved per repo from `origin/HEAD` (fallback `main`); run
 ## 5. New / second machine bootstrap
 
 1. `git -C <dotfiles> pull`, then run `claude/install.sh` (idempotent, backs up anything it would overwrite) and, if codex is used on this machine, the codex installer. `claude update` to ≥ 2.1.235 (agent view, `--bg`, cross-session messaging).
-2. Put `fleet-status` on `PATH` so streams can record their end state: `mkdir -p ~/.local/bin && ln -sf <dotfiles>/bin/fleet-status ~/.local/bin/` (check `~/.local/bin` is actually on `PATH`).
+2. The same `claude/install.sh` run links **both** fleet tools into `~/.local/bin` — `fleet-status` (so streams can record their end state) and `fleet` (the TUI) — creating the dir and backing up anything already there that points elsewhere. Never hand-link with `ln -sf`; it clobbers. Only check `~/.local/bin` is actually on `PATH`.
 3. Create the machine-local override — gitignored, sourced automatically:
    ```bash
    cat > ~/.profile.d/local <<'EOF'
