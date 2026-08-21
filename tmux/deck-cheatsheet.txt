@@ -14,8 +14,10 @@
  gmp-all           sync lanes, sweep dirty
  lane-sweep <lane> park WIP -> worktree
  closure-sweep     aged PRs + blocked rows
+ fleet-status complete|awaiting "<note>"
+                   mark stream end-state
 
- FLEET (window 0)
+ FLEET (left pane)
  Space   peek: read + reply, 1-9 answers
  Enter   attach row / dispatch input
  <-      detach (on empty prompt)
