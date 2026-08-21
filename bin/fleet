@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+
+BUCKET_ORDER = ["BLOCKED", "WORKING", "COMPLETE", "AWAITING", "STOPPED"]
+ENG_ROOT = os.environ.get("ENG_ROOT", os.path.expanduser("~/engineering"))
+SIDECAR_DIR = os.path.expanduser("~/.claude/fleet-status")
+STARS_PATH = os.path.expanduser("~/.claude/fleet-stars")
+PROJECTS_DIR = os.path.expanduser("~/.claude/projects")
+LANES = (os.environ.get("LANES") or "mn1 mn2 mn3 mn4 mn5").split()
+NARROW_WIDTH = 80
+CONTEXT_INDENT = "      "
+LANE_LABEL = "LANES  "
+PR_PATTERN = re.compile(r"(?:PR\s*)?#(\d+)")
+SLUG_PATTERN = re.compile(r"[^A-Za-z0-9]")
+
+
+class FleetError(Exception):
+    pass
+
+
+def _clip(text, width):
+    if width <= 0:
+        return ""
+    if len(text) <= width:
+        return text
+    if width == 1:
+        return text[:1]
+    return text[: width - 1] + "…"
+
+
+def _run(args, timeout=10):
+    try:
+        proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout.decode("utf-8", "replace")
+
+
+def _is_under(path, root):
+    if not path or not root:
+        return False
+    path = os.path.normpath(path)
+    root = os.path.normpath(root)
+    return path == root or path.startswith(root + os.sep)
+
+
+def lane_for_cwd(cwd, eng_root=None):
+    root = os.path.normpath(eng_root or ENG_ROOT)
+    if not _is_under(cwd, root):
+        return ""
+    rest = os.path.normpath(cwd)[len(root) :].strip(os.sep)
+    if not rest:
+        return ""
+    return rest.split(os.sep)[0]
+
+
+def fetch_sessions(eng_root):
+    out = _run(["claude", "agents", "--json", "--all"])
+    if out is None:
+        raise FleetError("claude agents --json --all failed")
+    try:
+        rows = json.loads(out)
+    except ValueError:
+        raise FleetError("claude agents --json --all returned non-JSON")
+    if not isinstance(rows, list):
+        raise FleetError("claude agents --json --all returned unexpected shape")
+    return [
+        row
+        for row in rows
+        if isinstance(row, dict)
+        and row.get("kind") == "background"
+        and _is_under(row.get("cwd"), eng_root)
+    ]
+
+
+def read_sidecars(dir_path):
+    sidecars = {}
+    try:
+        names = os.listdir(dir_path)
+    except OSError:
+        return sidecars
+    for name in names:
+        if name.endswith(".tmp"):
+            continue
+        try:
+            with open(os.path.join(dir_path, name), "r", encoding="utf-8", errors="replace") as handle:
+                line = handle.readline()
+        except OSError:
+            continue
+        fields = line.rstrip("\r\n").split("\t")
+        if len(fields) != 3:
+            continue
+        sidecars[name] = (fields[0], fields[1], fields[2])
+    return sidecars
+
+
+def derive_bucket(cli_state, sidecar):
+    state = (cli_state or "").strip().lower()
+    if state == "working":
+        return "WORKING"
+    if state == "blocked":
+        return "BLOCKED"
+    recorded = (sidecar[0].strip().lower() if sidecar else "")
+    if state in ("done", "stopped") and recorded == "complete":
+        return "COMPLETE"
+    if state == "done":
+        return "AWAITING"
+    return "STOPPED"
+
+
+def parse_pr(note):
+    if not note:
+        return None
+    match = PR_PATTERN.search(note)
+    if not match:
+        return None
+    return "#" + match.group(1)
+
+
+def read_stars(path):
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            return set(line.strip() for line in handle if line.strip())
+    except OSError:
+        return set()
+
+
+def toggle_star(path, session_id):
+    stars = read_stars(path)
+    if session_id in stars:
+        stars.discard(session_id)
+    else:
+        stars.add(session_id)
+    parent = os.path.dirname(path)
+    tmp = path + ".tmp"
+    try:
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        with open(tmp, "w", encoding="utf-8") as handle:
+            for entry in sorted(stars):
+                handle.write(entry + "\n")
+        os.replace(tmp, path)
+    except OSError:
+        pass
+    return stars
+
+
+def format_age(started_at, now=None):
+    try:
+        started = float(started_at) / 1000.0
+    except (TypeError, ValueError):
+        return "?"
+    elapsed = int((time.time() if now is None else now) - started)
+    if elapsed < 0:
+        elapsed = 0
+    if elapsed < 60:
+        return "%ds" % elapsed
+    if elapsed < 3600:
+        return "%dm" % (elapsed // 60)
+    if elapsed < 86400:
+        return "%dh" % (elapsed // 3600)
+    return "%dd" % (elapsed // 86400)
+
+
+def lane_status(root):
+    name = os.path.basename(os.path.normpath(root))
+    branch = _run(["git", "-C", root, "branch", "--show-current"])
+    porcelain = _run(["git", "-C", root, "status", "--porcelain"])
+    worktrees = _run(["git", "-C", root, "worktree", "list"])
+    if branch is None or porcelain is None or worktrees is None:
+        return {"name": name, "root": root, "error": True}
+    return {
+        "name": name,
+        "root": root,
+        "branch": branch.strip() or "detached",
+        "dirty": bool(porcelain.strip()),
+        "worktrees": max(len([line for line in worktrees.splitlines() if line.strip()]) - 1, 0),
+        "error": False,
+    }
+
+
+def build_model(sessions, sidecars, stars, lanes):
+    stars = set(stars or ())
+    counts = dict((bucket, 0) for bucket in BUCKET_ORDER)
+    buckets = dict((bucket, []) for bucket in BUCKET_ORDER)
+    for session in sessions:
+        session_id = session.get("sessionId") or ""
+        sidecar = sidecars.get(session_id)
+        bucket = derive_bucket(session.get("state"), sidecar)
+        note = sidecar[2] if sidecar else ""
+        activity = (session.get("status") or "").strip()
+        cwd = session.get("cwd") or ""
+        started_at = session.get("startedAt")
+        row = {
+            "session_id": session_id,
+            "short": session.get("id") or session_id[:8],
+            "name": session.get("name") or "(unnamed)",
+            "cwd": cwd,
+            "lane": lane_for_cwd(cwd),
+            "state": session.get("state") or "",
+            "bucket": bucket,
+            "started_at": started_at,
+            "age": format_age(started_at),
+            "note": note,
+            "pr": parse_pr(note),
+            "starred": session_id in stars,
+            "context": (note or activity) if bucket in ("COMPLETE", "AWAITING", "STOPPED") else (activity or note),
+        }
+        counts[bucket] += 1
+        buckets[bucket].append(row)
+    groups = []
+    for bucket in BUCKET_ORDER:
+        rows = buckets[bucket]
+        if not rows:
+            continue
+        rows.sort(key=lambda row: (not row["starred"], _sort_key(row["started_at"]), row["name"]))
+        groups.append((bucket, rows))
+    return {"counts": counts, "lanes": list(lanes or []), "groups": groups}
+
+
+def _sort_key(started_at):
+    try:
+        return float(started_at)
+    except (TypeError, ValueError):
+        return float("inf")
+
+
+def format_counts(counts, width):
+    parts = ["%d %s" % (counts.get(bucket, 0), bucket) for bucket in BUCKET_ORDER if counts.get(bucket)]
+    return _clip(" · ".join(parts) if parts else "no streams", width)
+
+
+def _lane_cell(lane):
+    name = lane.get("name") or "?"
+    if lane.get("error"):
+        return "%s ?" % name
+    worktrees = lane.get("worktrees") or 0
+    if lane.get("dirty"):
+        return "%s DIRTY·%d" % (name, worktrees) if worktrees else "%s DIRTY" % name
+    return "%s ✓%d" % (name, worktrees) if worktrees else "%s ✓" % name
+
+
+def format_lane_strip(lanes, width):
+    if not lanes:
+        return []
+    indent = " " * len(LANE_LABEL)
+    lines = []
+    current = LANE_LABEL
+    for lane in lanes:
+        cell = _lane_cell(lane)
+        if current in (LANE_LABEL, indent):
+            current += cell
+        elif len(current) + 2 + len(cell) > width:
+            lines.append(current)
+            current = indent + cell
+        else:
+            current += "  " + cell
+    lines.append(current)
+    return [_clip(line, width) for line in lines]
+
+
+def format_row(row, width, selected):
+    marker = ">" if selected else " "
+    star = "★" if row.get("starred") else " "
+    age = row.get("age") or ""
+    head = "%s %s %-8s " % (marker, star, (row.get("short") or "")[:8])
+    room = max(width - len(head) - len(age) - 1, 8)
+    name = _clip(row.get("name") or "", room)
+    lines = [_clip(head + name.ljust(room) + " " + age, width)]
+    if width >= NARROW_WIDTH:
+        lines.append(_clip(CONTEXT_INDENT + (row.get("context") or "").strip(), width))
+    return lines
+
+
+def _content_text(content):
+    if isinstance(content, str):
+        return content.strip()
+    if not isinstance(content, list):
+        return ""
+    chunks = []
+    for block in content:
+        if isinstance(block, dict) and block.get("type") == "text" and block.get("text"):
+            chunks.append(block["text"])
+    return "\n".join(chunks).strip()
+
+
+def transcript_path(cwd, session_id):
+    return os.path.join(PROJECTS_DIR, SLUG_PATTERN.sub("-", cwd or ""), session_id + ".jsonl")
+
+
+def transcript_tail(cwd, session_id):
+    try:
+        with open(transcript_path(cwd, session_id), "r", encoding="utf-8", errors="replace") as handle:
+            lines = handle.readlines()
+    except OSError:
+        return ""
+    for line in reversed(lines):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(entry, dict) or entry.get("type") != "assistant":
+            continue
+        message = entry.get("message")
+        text = _content_text(message.get("content") if isinstance(message, dict) else None)
+        if text:
+            return text
+    return ""
+
+
+def main():
+    print("TUI arrives in Task 2")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
