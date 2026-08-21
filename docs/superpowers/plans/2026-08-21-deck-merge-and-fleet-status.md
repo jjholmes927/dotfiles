@@ -43,7 +43,7 @@ set -euo pipefail
 
 usage='usage: fleet-status complete|awaiting "<note>" [--session <id>] [--stop]'
 
-session="${CLAUDE_SESSION_ID:-}" stop=0
+session="${CLAUDE_CODE_SESSION_ID:-${CLAUDE_SESSION_ID:-}}" stop=0
 positional=()
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -60,7 +60,7 @@ state="${positional[0]}"
 note="${positional[1]//$'\t'/ }"
 case "$state" in complete|awaiting) ;; *) echo "bad state: $state" >&2; echo "$usage" >&2; exit 1 ;; esac
 if [ -z "$session" ]; then
-  echo 'no session id: $CLAUDE_SESSION_ID unset and no --session given' >&2
+  echo 'no session id: $CLAUDE_CODE_SESSION_ID unset and no --session given' >&2
   exit 1
 fi
 
@@ -280,7 +280,7 @@ Change the `FLEET (window 0)` header line to `FLEET (left pane)`. After the `clo
 
 - [ ] **Step 2: Verify the 42-column rule**
 
-Run: `awk 'length > 42 {print FILENAME": "NR" ("length")"; bad=1} END {exit bad}' tmux/deck-cheatsheet.txt`
+Run: `python3 -c 'import sys;bad=[(i+1,len(l)) for i,l in enumerate(open(sys.argv[1]).read().splitlines()) if len(l)>42];[print(*b) for b in bad];sys.exit(bool(bad))' tmux/deck-cheatsheet.txt`
 Expected: no output, exit 0.
 
 - [ ] **Step 3: Commit**

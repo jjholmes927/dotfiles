@@ -32,8 +32,9 @@ _new_agent_status_note() {
   cat <<'NOTE'
 
 ---
-When your work is fully complete, or you are parked waiting on a human, record it
-by running: fleet-status complete|awaiting "<one line, include ticket/PR refs>"
+When your work is fully complete, run: fleet-status complete "<one line, include ticket/PR refs>"
+If you are parked waiting on a human, use awaiting instead of complete.
+Run fleet-status yourself in your own shell, never via a subagent.
 NOTE
 }
 
