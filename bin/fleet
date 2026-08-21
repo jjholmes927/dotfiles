@@ -29,7 +29,14 @@ LANE_INTERVAL = 15.0
 POLL_MS = 250
 HEADER_WIDTH = 60
 STAR_COLUMN = 2
-FOOTER = "[j/k]move  [R]refresh  [q]quit"
+WORKTREES_DIR = ".worktrees"
+PAIR_WINDOW = "pair"
+PAIR_TARGET = ":pair"
+SHELL_COMMANDS = ("bash", "zsh", "sh")
+ACTION_TIMEOUT = 20
+TMUX_TIMEOUT = 5
+ENTER_KEYS = (curses.KEY_ENTER, 10, 13)
+FOOTER = "[j/k]move [p]star [space]peek [enter]pair [s]stop [r]rm [R]refresh [q]quit"
 
 
 class FleetError(Exception):
@@ -58,6 +65,16 @@ def _run(args, timeout=10):
     if proc.returncode != 0:
         return None
     return proc.stdout.decode("utf-8", "replace")
+
+
+def run_out(args, timeout=10):
+    try:
+        proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return 124, "timed out after %ss" % timeout
+    except (OSError, subprocess.SubprocessError) as error:
+        return 127, str(error)
+    return proc.returncode, proc.stdout.decode("utf-8", "replace")
 
 
 def _is_under(path, root):
@@ -186,11 +203,11 @@ def format_age(started_at, now=None):
     return "%dd" % (elapsed // 86400)
 
 
-def lane_status(root):
+def lane_status(root, timeout=10):
     name = os.path.basename(os.path.normpath(root))
-    branch = _run(["git", "-C", root, "branch", "--show-current"])
-    porcelain = _run(["git", "-C", root, "status", "--porcelain"])
-    worktrees = _run(["git", "-C", root, "worktree", "list"])
+    branch = _run(["git", "-C", root, "branch", "--show-current"], timeout=timeout)
+    porcelain = _run(["git", "-C", root, "status", "--porcelain"], timeout=timeout)
+    worktrees = _run(["git", "-C", root, "worktree", "list"], timeout=timeout)
     if branch is None or porcelain is None or worktrees is None:
         return {"name": name, "root": root, "error": True}
     return {
@@ -391,6 +408,28 @@ def transcript_context(cwd, session_id, cache):
     return text
 
 
+def worktree_parts(cwd):
+    parts = os.path.normpath(cwd or "").split(os.sep)
+    if WORKTREES_DIR not in parts:
+        return None
+    index = parts.index(WORKTREES_DIR)
+    if index == 0 or index + 1 >= len(parts):
+        return None
+    root = os.sep.join(parts[:index]) or os.sep
+    path = os.sep.join(parts[: index + 2])
+    return root, path, parts[index + 1]
+
+
+def worktree_hint(cwd):
+    parts = worktree_parts(cwd)
+    if not parts:
+        return ""
+    root, path, branch = parts
+    if not os.path.isdir(path):
+        return ""
+    return "worktree not reaped: git -C %s worktree remove %s && git -C %s branch -D %s" % (root, path, root, branch)
+
+
 def lane_roots(sessions):
     names = list(LANES)
     seen = set(names)
@@ -420,6 +459,7 @@ class FleetState(object):
         self.sessions_at = None
         self.lanes_at = None
         self.colors = {}
+        self.message = ""
 
 
 def refresh_model(state, now=None, lanes=False, timeout=10):
@@ -432,8 +472,12 @@ def refresh_model(state, now=None, lanes=False, timeout=10):
             state.stale_since = time.strftime("%H:%M")
     state.sessions_at = now
     if lanes or state.lanes_at is None:
-        state.lanes = [lane_status(root) for root in lane_roots(state.sessions)]
+        state.lanes = [lane_status(root, timeout=timeout) for root in lane_roots(state.sessions)]
         state.lanes_at = now
+    remodel(state)
+
+
+def remodel(state):
     enriched = []
     seen_paths = set()
     for session in state.sessions:
@@ -441,7 +485,7 @@ def refresh_model(state, now=None, lanes=False, timeout=10):
         session_id = session.get("sessionId") or ""
         seen_paths.add(transcript_path(cwd, session_id))
         item = dict(session)
-        item["status"] = transcript_context(cwd, session_id, state.tails) or (item.get("status") or "")
+        item["status"] = transcript_context(cwd, session_id, state.tails) or sanitize_context(item.get("status") or "")
         enriched.append(item)
     for path in [known for known in state.tails if known not in seen_paths]:
         del state.tails[path]
@@ -462,6 +506,12 @@ def restore_selection(state):
             return
     state.selected = max(0, min(state.selected, len(state.rows) - 1))
     state.selected_id = state.rows[state.selected]["session_id"]
+
+
+def selected_row(state):
+    if not state.rows or not 0 <= state.selected < len(state.rows):
+        return None
+    return state.rows[state.selected]
 
 
 def move_selection(state, delta):
@@ -549,7 +599,7 @@ def paint(screen, state):
         _put(screen, y, 0, line, curses.A_NORMAL, width)
         y += 1
     y += 1
-    region = height - 1 - y
+    region = height - 1 - y - (1 if state.message else 0)
     lines = body_lines(state, width)
     state.top = scroll_top(lines, state.selected, state.top, region)
     for offset, (text, kind, row, index) in enumerate(lines[state.top : state.top + max(region, 0)]):
@@ -559,9 +609,75 @@ def paint(screen, state):
         if kind == "row" and row.get("starred") and width > STAR_COLUMN:
             star = state.colors.get("yellow", curses.A_NORMAL) | (curses.A_REVERSE if chosen else 0)
             _put(screen, y + offset, STAR_COLUMN, "★", star, width)
+    if state.message:
+        attr = state.colors.get("yellow", curses.A_NORMAL)
+        _put(screen, height - 2, 0, _clip(_flatten(state.message), width - 1), attr, width - 1)
     _put(screen, height - 1, 0, _clip(FOOTER, width - 1), curses.A_DIM, width - 1)
     screen.noutrefresh()
     curses.doupdate()
+
+
+def confirm(screen, prompt):
+    height, width = screen.getmaxyx()
+    if height < 1 or width < 2:
+        return False
+    try:
+        screen.move(height - 1, 0)
+        screen.clrtoeol()
+    except curses.error:
+        pass
+    _put(screen, height - 1, 0, _clip("%s [y/N]" % prompt, width - 1), curses.A_REVERSE, width - 1)
+    screen.noutrefresh()
+    curses.doupdate()
+    screen.timeout(-1)
+    try:
+        key = screen.getch()
+    finally:
+        screen.timeout(POLL_MS)
+    return key in (ord("y"), ord("Y"))
+
+
+def pair_handoff(short):
+    if not short:
+        return "nothing selected"
+    if not os.environ.get("TMUX"):
+        return "no tmux — run: claude attach %s" % short
+    rc, text = run_out(["tmux", "list-windows", "-F", "#W"], TMUX_TIMEOUT)
+    if rc != 0:
+        return "tmux list-windows failed: %s" % sanitize_context(text)
+    if PAIR_WINDOW not in [line.strip() for line in text.splitlines()]:
+        return "no pair window in this session — run deck first"
+    rc, command = run_out(
+        ["tmux", "display-message", "-p", "-t", PAIR_TARGET, "#{pane_current_command}"], TMUX_TIMEOUT
+    )
+    if rc != 0:
+        return "tmux display-message failed: %s" % sanitize_context(command)
+    command = sanitize_context(command)
+    if command not in SHELL_COMMANDS:
+        return "pair window is busy running '%s' — detach it first" % command
+    for args in (
+        ["tmux", "send-keys", "-t", PAIR_TARGET, "C-u"],
+        ["tmux", "send-keys", "-t", PAIR_TARGET, "claude attach %s" % short, "C-m"],
+        ["tmux", "select-window", "-t", PAIR_TARGET],
+    ):
+        rc, text = run_out(args, TMUX_TIMEOUT)
+        if rc != 0:
+            return "tmux %s failed: %s" % (args[1], sanitize_context(text))
+    return "pair → %s" % short
+
+
+def stop_session(row):
+    rc, text = run_out(["claude", "stop", row["short"]], ACTION_TIMEOUT)
+    if rc != 0:
+        return "stop %s failed: %s" % (row["short"], sanitize_context(text))
+    return "stopped %s" % row["short"]
+
+
+def remove_session(row):
+    rc, text = run_out(["claude", "rm", row["short"]], ACTION_TIMEOUT)
+    if rc != 0:
+        return "rm %s failed: %s" % (row["short"], sanitize_context(text))
+    return worktree_hint(row.get("cwd")) or "removed %s" % row["short"]
 
 
 def init_colors():
@@ -588,12 +704,33 @@ def run(screen, state):
     while True:
         paint(screen, state)
         key = screen.getch()
+        if key != -1:
+            state.message = ""
         if key in (ord("q"), ord("Q")):
             return 0
         if key in (ord("j"), curses.KEY_DOWN):
             move_selection(state, 1)
         elif key in (ord("k"), curses.KEY_UP):
             move_selection(state, -1)
+        elif key == ord("p"):
+            row = selected_row(state)
+            if row:
+                toggle_star(STARS_PATH, row["session_id"])
+                remodel(state)
+        elif key == ord("s"):
+            row = selected_row(state)
+            if row and confirm(screen, "stop %s?" % row["short"]):
+                state.message = stop_session(row)
+                refresh_model(state)
+        elif key == ord("r"):
+            row = selected_row(state)
+            if row and confirm(screen, "rm %s?" % row["short"]):
+                state.message = remove_session(row)
+                refresh_model(state)
+        elif key in ENTER_KEYS:
+            row = selected_row(state)
+            if row:
+                state.message = pair_handoff(row["short"])
         elif key == ord("R"):
             refresh_model(state, lanes=True)
         elif key == curses.KEY_RESIZE:
