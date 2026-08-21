@@ -15,6 +15,7 @@ deck() {
     ops=$(tmux split-window -v -l 14 -t "$right" -c "$root" -P -F '#{pane_id}')
     if [ -x "$cheat" ]; then
       ch=$(tmux display -p -t "$right" '#{pane_height}')
+      [ "${ch:-0}" -gt 8 ] 2>/dev/null || ch=20
       tmux send-keys -t "$right" "clear; \"$cheat\" | head -n $((ch-4))" C-m
     fi
     tmux send-keys -t "$ops" 'clone-status' C-m

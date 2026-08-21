@@ -85,6 +85,11 @@ link "$SCRIPT_DIR/mcp-servers.json" "$CLAUDE_HOME/mcp-servers.json"
 chmod +x "$SCRIPT_DIR/sync-mcps.sh"
 "$SCRIPT_DIR/sync-mcps.sh"
 
+header "Fleet tools (~/.local/bin)"
+REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+link "$REPO_DIR/bin/fleet-status" "$HOME/.local/bin/fleet-status"
+link "$REPO_DIR/bin/fleet" "$HOME/.local/bin/fleet"
+
 header "Done"
 if [[ -d "$BACKUP_DIR" ]]; then
   echo "  Backups: $BACKUP_DIR"

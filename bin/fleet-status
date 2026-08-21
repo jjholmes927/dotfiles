@@ -7,9 +7,10 @@ session="${CLAUDE_CODE_SESSION_ID:-${CLAUDE_SESSION_ID:-}}" stop=0
 positional=()
 while [ $# -gt 0 ]; do
   case "$1" in
-    --session)   session="$2"; shift 2 ;;
+    --session)   [ $# -ge 2 ] || { echo "$usage" >&2; exit 1; }; session="$2"; shift 2 ;;
     --session=*) session="${1#*=}"; shift ;;
     --stop)      stop=1; shift ;;
+    --)          shift; while [ $# -gt 0 ]; do positional+=("$1"); shift; done ;;
     -*)          echo "unknown flag: $1" >&2; echo "$usage" >&2; exit 1 ;;
     *)           positional+=("$1"); shift ;;
   esac
@@ -23,10 +24,12 @@ if [ -z "$session" ]; then
   echo 'no session id: $CLAUDE_CODE_SESSION_ID unset and no --session given' >&2
   exit 1
 fi
+case "$session" in */*|.|..) echo "bad session id: $session" >&2; exit 1 ;; esac
 
 dir="$HOME/.claude/fleet-status"
 mkdir -p "$dir"
-printf '%s\t%s\t%s\n' "$state" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$note" > "$dir/$session"
+printf '%s\t%s\t%s\n' "$state" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$note" > "$dir/$session.tmp"
+mv "$dir/$session.tmp" "$dir/$session"
 echo "fleet-status: $state recorded for ${session:0:8}"
 
 if [ "$stop" = 1 ]; then
