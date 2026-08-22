@@ -1710,5 +1710,29 @@ class Footer(unittest.TestCase):
             self.assertNotIn(hint, fleet.FOOTER)
 
 
+class CtrlC(unittest.TestCase):
+    class Sys(object):
+        class Tty(object):
+            def isatty(self):
+                return True
+
+        def __init__(self):
+            self.stdout = self.Tty()
+
+    def setUp(self):
+        self._saved = (fleet.curses.wrapper, fleet.sys)
+        fleet.sys = self.Sys()
+
+    def tearDown(self):
+        fleet.curses.wrapper, fleet.sys = self._saved
+
+    def test_ctrl_c_exits_quietly_instead_of_raising(self):
+        def interrupt(func, *args):
+            raise KeyboardInterrupt
+
+        fleet.curses.wrapper = interrupt
+        self.assertEqual(fleet.main(), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

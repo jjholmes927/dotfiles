@@ -1266,7 +1266,10 @@ def main():
     if not sys.stdout.isatty():
         sys.stderr.write("fleet needs a terminal\n")
         return 1
-    return curses.wrapper(run, FleetState())
+    try:
+        return curses.wrapper(run, FleetState())
+    except KeyboardInterrupt:
+        return 0
 
 
 if __name__ == "__main__":
