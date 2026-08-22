@@ -35,6 +35,7 @@
  claude rm  removes session + lazy wt
             (provisioned wt: by hand)
  fleet       streams+lanes TUI (trial)
+ fleet-toggle     swap inbox (or prefix F)
 
  THE DAY LOOP
  morning deck -> s:blocked -> gmp-all
