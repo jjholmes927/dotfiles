@@ -1,4 +1,4 @@
-import importlib.util, importlib.machinery, json, os, pathlib, tempfile, time, unittest
+import importlib.util, importlib.machinery, json, os, pathlib, tempfile, threading, time, unittest
 
 _path = pathlib.Path(__file__).resolve().parent.parent / "bin" / "fleet"
 _loader = importlib.machinery.SourceFileLoader("fleet", str(_path))
@@ -88,7 +88,7 @@ class RemodelBucketsFromRawCliStatus(unittest.TestCase):
 
     def _row(self, session):
         state = fleet.FleetState()
-        state.sessions = [session]
+        state.sessions = fleet.enrich_sessions([session], {})
         fleet.remodel(state)
         return state.rows[0]
 
@@ -1236,7 +1236,7 @@ class ActionDispatch(unittest.TestCase):
 
     def test_marking_prompts_then_records_then_remodels(self):
         state = self._dispatch("complete")
-        self.assertEqual([kind for kind, _detail in self.log], ["prompt", "mark", "remodel"])
+        self.assertEqual([kind for kind, _detail in self.log], ["prompt", "mark", "remodel", "refresh"])
         self.assertEqual(self.log[1][1], "complete typed note")
         self.assertEqual(state.message, "mark complete typed note")
 
@@ -1732,6 +1732,386 @@ class CtrlC(unittest.TestCase):
 
         fleet.curses.wrapper = interrupt
         self.assertEqual(fleet.main(), 0)
+
+
+class SnapshotHolderSemantics(unittest.TestCase):
+    def _snapshot(self, tag):
+        return fleet.Snapshot([{"sessionId": tag}], [], 1.0, "")
+
+    def test_an_empty_holder_hands_back_nothing(self):
+        self.assertIsNone(fleet.SnapshotHolder().consume())
+
+    def test_a_published_snapshot_is_consumed_exactly_once(self):
+        holder = fleet.SnapshotHolder()
+        holder.publish(self._snapshot("a"))
+        self.assertEqual(holder.consume().sessions[0]["sessionId"], "a")
+        self.assertIsNone(holder.consume())
+
+    def test_the_latest_publish_wins_and_the_stale_one_is_dropped(self):
+        holder = fleet.SnapshotHolder()
+        holder.publish(self._snapshot("old"))
+        holder.publish(self._snapshot("new"))
+        self.assertEqual(holder.consume().sessions[0]["sessionId"], "new")
+        self.assertIsNone(holder.consume())
+
+    def test_a_published_snapshot_cannot_be_rewritten(self):
+        snapshot = self._snapshot("a")
+        with self.assertRaises(AttributeError):
+            snapshot.error = "boom"
+
+    def test_concurrent_publishers_never_lose_the_holder(self):
+        holder = fleet.SnapshotHolder()
+        threads = [threading.Thread(target=holder.publish, args=(self._snapshot(str(n)),)) for n in range(8)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        self.assertIsNotNone(holder.consume())
+        self.assertIsNone(holder.consume())
+
+
+class ForceRefreshRequest(unittest.TestCase):
+    def test_a_plain_request_wakes_the_worker_without_forcing_the_lanes(self):
+        worker = fleet.DataWorker()
+        fleet.request_refresh(worker)
+        self.assertTrue(worker.wake.is_set())
+        self.assertFalse(worker.lane_wake.is_set())
+
+    def test_a_lane_request_wakes_both(self):
+        worker = fleet.DataWorker()
+        fleet.request_refresh(worker, lanes=True)
+        self.assertTrue(worker.wake.is_set())
+        self.assertTrue(worker.lane_wake.is_set())
+
+    def test_refresh_model_only_asks_the_worker_and_never_fetches(self):
+        state = fleet.FleetState()
+        state.worker = fleet.DataWorker()
+        fleet.refresh_model(state, lanes=True)
+        self.assertTrue(state.worker.wake.is_set())
+        self.assertTrue(state.worker.lane_wake.is_set())
+        self.assertEqual(state.sessions, [])
+
+    def test_a_state_without_a_worker_is_inert(self):
+        fleet.refresh_model(fleet.FleetState(), lanes=True)
+
+
+class ActionsAskForAnImmediateSweep(unittest.TestCase):
+    class Screen(object):
+        def getmaxyx(self):
+            return 40, 120
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self.names = ("confirm", "stop_session", "remove_session", "read_note", "mark_status", "remodel")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        self.state = fleet.FleetState()
+        self.state.worker = fleet.DataWorker()
+        self.when_acted = []
+        fleet.confirm = lambda screen, prompt: True
+        fleet.remodel = lambda state: None
+        fleet.read_note = lambda screen, prompt: "note"
+        fleet.stop_session = lambda row: self._acted("stopped")
+        fleet.remove_session = lambda row: self._acted("removed")
+        fleet.mark_status = lambda row, action, note: self._acted("marked")
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+
+    def _acted(self, message):
+        self.when_acted.append(self.state.worker.wake.is_set())
+        return message
+
+    def _dispatch(self, action):
+        row = {"short": "abc12345", "session_id": "a" * 36, "bucket": "AWAITING", "starred": False, "cwd": "/e"}
+        fleet.dispatch_action(self.Screen(), self.state, row, action)
+
+    def test_stop_wakes_the_worker_only_after_the_stop_lands(self):
+        self._dispatch("stop")
+        self.assertEqual(self.when_acted, [False])
+        self.assertTrue(self.state.worker.wake.is_set())
+
+    def test_remove_wakes_the_worker_only_after_the_rm_lands(self):
+        self._dispatch("remove")
+        self.assertEqual(self.when_acted, [False])
+        self.assertTrue(self.state.worker.wake.is_set())
+
+    def test_marking_wakes_the_worker_after_recording(self):
+        self._dispatch("complete")
+        self.assertEqual(self.when_acted, [False])
+        self.assertTrue(self.state.worker.wake.is_set())
+
+    def test_a_declined_confirm_leaves_the_worker_alone(self):
+        fleet.confirm = lambda screen, prompt: False
+        self._dispatch("stop")
+        self.assertEqual(self.when_acted, [])
+        self.assertFalse(self.state.worker.wake.is_set())
+
+
+class WorkerCycle(unittest.TestCase):
+    def setUp(self):
+        self.names = ("fetch_sessions", "lane_status", "lane_roots")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        self.worker = fleet.DataWorker()
+        self.lane_calls = []
+        fleet.lane_roots = lambda sessions: ["/e/mn1"]
+        fleet.lane_status = lambda root, timeout=10: self.lane_calls.append(root) or {"name": "mn1", "error": False}
+        fleet.fetch_sessions = lambda root, timeout=10: [self._session()]
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+
+    def _session(self):
+        return {"sessionId": "a" * 36, "id": "aaaaaaaa", "name": "n", "state": "working", "status": "running", "cwd": "/e/mn1", "startedAt": 1}
+
+    def _explode(self, error):
+        def boom(*args, **kwargs):
+            raise error
+
+        return boom
+
+    def test_a_good_cycle_publishes_enriched_sessions_lanes_and_a_stamp(self):
+        snapshot = fleet.worker_cycle(self.worker, now=100.0)
+        self.assertEqual(snapshot.error, "")
+        self.assertEqual(snapshot.sessions[0]["context_text"], "running")
+        self.assertEqual([lane["name"] for lane in snapshot.lanes], ["mn1"])
+        self.assertEqual(snapshot.fetched_at, 100.0)
+        self.assertIs(self.worker.holder.consume(), snapshot)
+
+    def test_a_failed_fetch_publishes_the_error_and_keeps_the_last_good_sessions(self):
+        fleet.worker_cycle(self.worker, now=100.0)
+        fleet.fetch_sessions = self._explode(fleet.FleetError("claude agents --json --all failed"))
+        snapshot = fleet.worker_cycle(self.worker, now=103.0)
+        self.assertEqual(snapshot.error, "claude agents --json --all failed")
+        self.assertEqual([session["sessionId"] for session in snapshot.sessions], ["a" * 36])
+        self.assertEqual([lane["name"] for lane in snapshot.lanes], ["mn1"])
+
+    def test_a_recovered_fetch_clears_the_error(self):
+        fleet.fetch_sessions = self._explode(fleet.FleetError("down"))
+        fleet.worker_cycle(self.worker, now=100.0)
+        fleet.fetch_sessions = lambda root, timeout=10: [self._session()]
+        self.assertEqual(fleet.worker_cycle(self.worker, now=103.0).error, "")
+
+    def test_an_unexpected_fetch_explosion_is_still_reported_not_raised(self):
+        fleet.fetch_sessions = self._explode(OSError("claude vanished"))
+        self.assertIn("claude vanished", fleet.worker_cycle(self.worker, now=100.0).error)
+
+    def test_lanes_are_swept_on_the_first_cycle_then_on_the_lane_interval(self):
+        fleet.worker_cycle(self.worker, now=100.0)
+        fleet.worker_cycle(self.worker, now=100.0 + fleet.LANE_INTERVAL - 1)
+        self.assertEqual(len(self.lane_calls), 1)
+        fleet.worker_cycle(self.worker, now=100.0 + fleet.LANE_INTERVAL)
+        self.assertEqual(len(self.lane_calls), 2)
+
+    def test_a_forced_lane_sweep_runs_on_the_next_cycle_and_clears(self):
+        fleet.worker_cycle(self.worker, now=100.0)
+        fleet.request_refresh(self.worker, lanes=True)
+        fleet.worker_cycle(self.worker, now=101.0)
+        self.assertEqual(len(self.lane_calls), 2)
+        self.assertFalse(self.worker.lane_wake.is_set())
+        fleet.worker_cycle(self.worker, now=102.0)
+        self.assertEqual(len(self.lane_calls), 2)
+
+    def test_an_exploding_lane_sweep_never_escapes_the_tick(self):
+        fleet.lane_status = self._explode(RuntimeError("git went sideways"))
+        self.assertIsNone(fleet.worker_tick(self.worker, now=100.0))
+
+    def test_a_healthy_tick_still_returns_its_snapshot(self):
+        self.assertIsNotNone(fleet.worker_tick(self.worker, now=100.0))
+
+
+class WorkerThread(unittest.TestCase):
+    def setUp(self):
+        self.names = ("fetch_sessions", "lane_roots")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        self.called = threading.Event()
+        fleet.lane_roots = lambda sessions: []
+        fleet.fetch_sessions = lambda root, timeout=10: self.called.set() or []
+        self.worker = None
+
+    def tearDown(self):
+        if self.worker:
+            self.worker.stopping.set()
+            self.worker.wake.set()
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+
+    def test_the_data_thread_is_a_daemon_that_publishes_on_its_own(self):
+        state = fleet.FleetState()
+        self.worker = fleet.start_worker(state)
+        self.assertTrue(self.called.wait(5))
+        threads = [thread for thread in threading.enumerate() if thread.name == fleet.WORKER_NAME]
+        self.assertEqual(len(threads), 1)
+        self.assertTrue(threads[0].daemon)
+        self.assertTrue(fleet.take_snapshot(state))
+        self.worker.stopping.set()
+        self.worker.wake.set()
+        threads[0].join(5)
+        self.assertFalse(threads[0].is_alive())
+
+
+class SnapshotIntoTheUiState(unittest.TestCase):
+    def setUp(self):
+        self._temp = tempfile.TemporaryDirectory()
+        self._saved = (fleet.SIDECAR_DIR, fleet.STARS_PATH, fleet.curses.beep)
+        fleet.SIDECAR_DIR = os.path.join(self._temp.name, "fleet-status")
+        fleet.STARS_PATH = os.path.join(self._temp.name, "fleet-stars")
+        self.beeps = []
+        fleet.curses.beep = lambda: self.beeps.append(1)
+
+    def tearDown(self):
+        fleet.SIDECAR_DIR, fleet.STARS_PATH, fleet.curses.beep = self._saved
+        self._temp.cleanup()
+
+    def _session(self, state):
+        return {"sessionId": "a" * 36, "id": "aaaaaaaa", "name": "n", "state": state, "cwd": "/e", "startedAt": 1, "context_text": "ctx"}
+
+    def _snapshot(self, state, error="", at=1.0):
+        return fleet.Snapshot([self._session(state)], [], at, error)
+
+    def test_the_first_snapshot_is_a_silent_baseline(self):
+        state = fleet.FleetState()
+        fleet.apply_snapshot(state, self._snapshot("blocked"))
+        self.assertEqual(state.rows[0]["bucket"], "BLOCKED")
+        self.assertEqual(self.beeps, [])
+
+    def test_a_later_flip_into_blocked_rings_once(self):
+        state = fleet.FleetState()
+        fleet.apply_snapshot(state, self._snapshot("working"))
+        fleet.apply_snapshot(state, self._snapshot("blocked"))
+        self.assertEqual(len(self.beeps), 1)
+        fleet.apply_snapshot(state, self._snapshot("blocked"))
+        self.assertEqual(len(self.beeps), 1)
+
+    def test_an_error_snapshot_stamps_the_stale_banner_and_keeps_the_rows(self):
+        state = fleet.FleetState()
+        fleet.apply_snapshot(state, self._snapshot("working"))
+        fleet.apply_snapshot(state, self._snapshot("working", error="claude agents --json --all failed", at=4.0))
+        self.assertTrue(state.stale_since)
+        self.assertIn(fleet.STALE_PREFIX, fleet.format_banner(state, 120))
+        self.assertEqual(len(state.rows), 1)
+
+    def test_the_stale_stamp_never_moves_while_the_fetch_stays_down(self):
+        state = fleet.FleetState()
+        state.stale_since = "09:00"
+        fleet.apply_snapshot(state, self._snapshot("working", error="down"))
+        self.assertEqual(state.stale_since, "09:00")
+
+    def test_a_good_snapshot_clears_the_banner(self):
+        state = fleet.FleetState()
+        state.stale_since = "09:00"
+        fleet.apply_snapshot(state, self._snapshot("working"))
+        self.assertEqual(state.stale_since, "")
+        self.assertNotIn(fleet.STALE_PREFIX, fleet.format_banner(state, 120))
+
+    def test_taking_a_snapshot_happens_once_per_publish(self):
+        state = fleet.FleetState()
+        state.worker = fleet.DataWorker()
+        self.assertFalse(fleet.take_snapshot(state))
+        state.worker.holder.publish(self._snapshot("working"))
+        self.assertTrue(fleet.take_snapshot(state))
+        self.assertFalse(fleet.take_snapshot(state))
+        self.assertEqual(state.fetched_at, 1.0)
+
+
+class UiLoopPainting(unittest.TestCase):
+    class Screen(object):
+        def __init__(self, keys, on_idle=None):
+            self.keys = list(keys)
+            self.on_idle = on_idle
+
+        def getmaxyx(self):
+            return 40, 120
+
+        def getch(self):
+            key = self.keys.pop(0) if self.keys else ord("q")
+            if key == -1 and self.on_idle:
+                self.on_idle()
+            return key
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self.paints = []
+        self.names = ("paint", "init_colors", "start_worker")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        self._curs_set = fleet.curses.curs_set
+        self.worker = fleet.DataWorker()
+        fleet.paint = lambda screen, state: self.paints.append(state.selected)
+        fleet.init_colors = lambda: {}
+        fleet.start_worker = self._start
+        fleet.curses.curs_set = lambda value: None
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+        fleet.curses.curs_set = self._curs_set
+
+    def _start(self, state):
+        state.worker = self.worker
+        return self.worker
+
+    def _state(self, rows=0):
+        state = fleet.FleetState()
+        state.rows = [{"session_id": str(index)} for index in range(rows)]
+        return state
+
+    def _run(self, keys, state=None, on_idle=None):
+        state = state if state is not None else self._state()
+        return fleet.run(self.Screen(keys, on_idle), state), state
+
+    def test_idle_ticks_never_repaint(self):
+        code, _state = self._run([-1] * 20 + [ord("q")])
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.paints), 1)
+
+    def test_every_move_repaints_and_lands_on_its_row(self):
+        _code, state = self._run([ord("j")] * 3 + [ord("q")], self._state(5))
+        self.assertEqual(self.paints, [0, 1, 2, 3])
+        self.assertEqual(state.selected, 3)
+
+    def test_a_fresh_snapshot_repaints_without_a_keypress(self):
+        published = []
+
+        def publish():
+            if published:
+                return
+            published.append(1)
+            self.worker.holder.publish(fleet.Snapshot([], [], 1.0, ""))
+
+        self._run([-1, -1, -1, ord("q")], on_idle=publish)
+        self.assertEqual(len(self.paints), 2)
+
+    def test_R_asks_the_worker_for_an_immediate_sweep_with_lanes(self):
+        self._run([ord("R"), ord("q")])
+        self.assertTrue(self.worker.wake.is_set())
+        self.assertTrue(self.worker.lane_wake.is_set())
+
+    def test_quitting_tells_the_worker_to_stop(self):
+        self._run([ord("q")])
+        self.assertTrue(self.worker.stopping.is_set())
+        self.assertTrue(self.worker.wake.is_set())
+
+    def test_a_crash_in_the_loop_still_stops_the_worker(self):
+        fleet.paint = self._boom
+        with self.assertRaises(RuntimeError):
+            self._run([ord("q")])
+        self.assertTrue(self.worker.stopping.is_set())
+
+    def _boom(self, screen, state):
+        raise RuntimeError("paint blew up")
+
+
+class InputLoopLatency(unittest.TestCase):
+    def test_the_key_poll_stays_snappy(self):
+        self.assertLessEqual(fleet.POLL_MS, 50)
+
+    def test_the_worker_keeps_the_old_fetch_cadence(self):
+        self.assertEqual((fleet.SESSION_INTERVAL, fleet.LANE_INTERVAL), (3.0, 15.0))
 
 
 if __name__ == "__main__":

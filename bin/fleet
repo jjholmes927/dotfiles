@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import collections
 import curses
 import json
 import locale
@@ -9,6 +10,7 @@ import shlex
 import subprocess
 import sys
 import textwrap
+import threading
 import time
 import unicodedata
 
@@ -31,7 +33,9 @@ WIDE_WIDTHS = ("W", "F")
 TAIL_BYTES = 65536
 SESSION_INTERVAL = 3.0
 LANE_INTERVAL = 15.0
-POLL_MS = 250
+FETCH_TIMEOUT = 10
+WORKER_NAME = "fleet-data"
+POLL_MS = 30
 HEADER_WIDTH = 60
 HEADER_PREFIX = "── "
 COUNT_SEPARATOR = " · "
@@ -623,38 +627,149 @@ def lane_roots(sessions):
     return [os.path.join(ENG_ROOT, name) for name in names]
 
 
+def enrich_sessions(sessions, cache):
+    enriched = []
+    seen_paths = set()
+    for session in sessions:
+        cwd = session.get("cwd") or ""
+        session_id = session.get("sessionId") or ""
+        seen_paths.add(transcript_path(cwd, session_id))
+        item = dict(session)
+        item["context_text"] = transcript_context(cwd, session_id, cache) or sanitize_context(
+            item.get("status") or ""
+        )
+        enriched.append(item)
+    for path in [known for known in cache if known not in seen_paths]:
+        del cache[path]
+    return enriched
+
+
+Snapshot = collections.namedtuple("Snapshot", "sessions lanes fetched_at error")
+
+
+class SnapshotHolder(object):
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._pending = None
+
+    def publish(self, snapshot):
+        with self._lock:
+            self._pending = snapshot
+
+    def consume(self):
+        with self._lock:
+            snapshot = self._pending
+            self._pending = None
+        return snapshot
+
+
+class DataWorker(object):
+    def __init__(self, holder=None):
+        self.holder = holder or SnapshotHolder()
+        self.wake = threading.Event()
+        self.lane_wake = threading.Event()
+        self.stopping = threading.Event()
+        self.tails = {}
+        self.sessions = []
+        self.lanes = []
+        self.lanes_at = None
+        self.error = ""
+
+
+def request_refresh(worker, lanes=False):
+    if worker is None:
+        return
+    if lanes:
+        worker.lane_wake.set()
+    worker.wake.set()
+
+
+def wants_lanes(worker, now):
+    if worker.lanes_at is None or worker.lane_wake.is_set():
+        return True
+    return now - worker.lanes_at >= LANE_INTERVAL
+
+
+def worker_cycle(worker, now=None):
+    now = time.monotonic() if now is None else now
+    lanes = wants_lanes(worker, now)
+    worker.lane_wake.clear()
+    try:
+        worker.sessions = enrich_sessions(fetch_sessions(ENG_ROOT, timeout=FETCH_TIMEOUT), worker.tails)
+        worker.error = ""
+    except Exception as error:
+        worker.error = str(error) or type(error).__name__
+    if lanes:
+        worker.lanes = [lane_status(root, timeout=FETCH_TIMEOUT) for root in lane_roots(worker.sessions)]
+        worker.lanes_at = now
+    snapshot = Snapshot(list(worker.sessions), list(worker.lanes), now, worker.error)
+    worker.holder.publish(snapshot)
+    return snapshot
+
+
+def worker_tick(worker, now=None):
+    try:
+        return worker_cycle(worker, now)
+    except Exception:
+        return None
+
+
+def worker_loop(worker, interval=SESSION_INTERVAL):
+    while not worker.stopping.is_set():
+        started = time.monotonic()
+        worker_tick(worker, started)
+        worker.wake.wait(max(interval - (time.monotonic() - started), 0.0))
+        worker.wake.clear()
+
+
+def start_worker(state):
+    worker = DataWorker()
+    state.worker = worker
+    threading.Thread(target=worker_loop, args=(worker,), name=WORKER_NAME, daemon=True).start()
+    return worker
+
+
 class FleetState(object):
     def __init__(self):
         self.sessions = []
         self.lanes = []
         self.model = {"counts": {}, "lanes": [], "groups": []}
         self.rows = []
-        self.tails = {}
         self.stale_since = ""
         self.selected = 0
         self.selected_id = ""
         self.top = 0
-        self.sessions_at = None
-        self.lanes_at = None
+        self.fetched_at = None
         self.colors = {}
         self.message = ""
         self.buckets = None
+        self.worker = None
+        self.dirty = True
 
 
-def refresh_model(state, now=None, lanes=False, timeout=10):
-    now = time.monotonic() if now is None else now
-    try:
-        state.sessions = fetch_sessions(ENG_ROOT, timeout=timeout)
-        state.stale_since = ""
-    except FleetError:
+def refresh_model(state, lanes=False):
+    request_refresh(state.worker, lanes)
+
+
+def apply_snapshot(state, snapshot):
+    state.sessions = snapshot.sessions
+    state.lanes = snapshot.lanes
+    state.fetched_at = snapshot.fetched_at
+    if snapshot.error:
         if not state.stale_since:
             state.stale_since = time.strftime("%H:%M")
-    state.sessions_at = now
-    if lanes or state.lanes_at is None:
-        state.lanes = [lane_status(root, timeout=timeout) for root in lane_roots(state.sessions)]
-        state.lanes_at = now
+    else:
+        state.stale_since = ""
     remodel(state)
     ring_bell(state)
+
+
+def take_snapshot(state):
+    snapshot = state.worker.holder.consume() if state.worker else None
+    if snapshot is None:
+        return False
+    apply_snapshot(state, snapshot)
+    return True
 
 
 def bell_check(state):
@@ -678,20 +793,7 @@ def ring_bell(state):
 
 
 def remodel(state):
-    enriched = []
-    seen_paths = set()
-    for session in state.sessions:
-        cwd = session.get("cwd") or ""
-        session_id = session.get("sessionId") or ""
-        seen_paths.add(transcript_path(cwd, session_id))
-        item = dict(session)
-        item["context_text"] = transcript_context(cwd, session_id, state.tails) or sanitize_context(
-            item.get("status") or ""
-        )
-        enriched.append(item)
-    for path in [known for known in state.tails if known not in seen_paths]:
-        del state.tails[path]
-    state.model = build_model(enriched, read_sidecars(SIDECAR_DIR), read_stars(STARS_PATH), state.lanes)
+    state.model = build_model(state.sessions, read_sidecars(SIDECAR_DIR), read_stars(STARS_PATH), state.lanes)
     state.rows = [row for _, rows in state.model["groups"] for row in rows]
     restore_selection(state)
 
@@ -1179,6 +1281,7 @@ def dispatch_action(screen, state, row, action):
         else:
             state.message = mark_status(row, action, status_note(typed, action))
             remodel(state)
+            refresh_model(state)
     elif action == "stop":
         if confirm(screen, "stop %s?" % row["short"]):
             state.message = stop_session(row)
@@ -1228,34 +1331,41 @@ def run(screen, state):
     screen.timeout(POLL_MS)
     screen.keypad(True)
     state.colors = init_colors()
-    refresh_model(state)
-    while True:
-        paint(screen, state)
-        key = screen.getch()
-        if key != -1:
+    worker = start_worker(state)
+    try:
+        while True:
+            if take_snapshot(state):
+                state.dirty = True
+            if state.dirty:
+                paint(screen, state)
+                state.dirty = False
+            key = screen.getch()
+            if key == -1:
+                continue
             state.message = ""
-        if key in (ord("q"), ord("Q")):
-            return 0
-        if key in (ord("j"), curses.KEY_DOWN):
-            move_selection(state, 1)
-        elif key in (ord("k"), curses.KEY_UP):
-            move_selection(state, -1)
-        elif key in ACTION_KEYS:
-            row = selected_row(state)
-            if row:
-                dispatch_action(screen, state, row, ACTION_KEYS[key])
-        elif key in ENTER_KEYS:
-            row = selected_row(state)
-            if row:
-                open_menu(screen, state, row)
-        elif key == ord("R"):
-            refresh_model(state, lanes=True)
-        elif key == curses.KEY_RESIZE:
-            state.top = 0
-            screen.clearok(True)
-        now = time.monotonic()
-        if now - state.sessions_at >= SESSION_INTERVAL:
-            refresh_model(state, now=now, lanes=(now - state.lanes_at >= LANE_INTERVAL), timeout=3)
+            state.dirty = True
+            if key in (ord("q"), ord("Q")):
+                return 0
+            if key in (ord("j"), curses.KEY_DOWN):
+                move_selection(state, 1)
+            elif key in (ord("k"), curses.KEY_UP):
+                move_selection(state, -1)
+            elif key in ACTION_KEYS:
+                row = selected_row(state)
+                if row:
+                    dispatch_action(screen, state, row, ACTION_KEYS[key])
+            elif key in ENTER_KEYS:
+                row = selected_row(state)
+                if row:
+                    open_menu(screen, state, row)
+            elif key == ord("R"):
+                refresh_model(state, lanes=True)
+            elif key == curses.KEY_RESIZE:
+                state.top = 0
+                screen.clearok(True)
+    finally:
+        worker.stopping.set()
+        worker.wake.set()
 
 
 def main():
