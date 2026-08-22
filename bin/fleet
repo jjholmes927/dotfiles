@@ -29,6 +29,15 @@ ANSI_PATTERN = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[@-Z\\-_]")
 CONTROL_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
 BLANK_PATTERN = re.compile(r"\s+")
 MARKDOWN_PATTERN = re.compile(r"\*\*|`")
+FENCE_PATTERN = re.compile(r"^\s{0,3}(?:```|~~~)")
+HEADER_PATTERN = re.compile(r"^\s{0,3}(#{1,3})\s+(.*)$")
+QUOTE_PATTERN = re.compile(r"^\s*>\s?(.*)$")
+BULLET_PATTERN = re.compile(r"^(\s*)[-*]\s+(.*)$")
+INLINE_PATTERN = re.compile(r"\*\*(.+?)\*\*|`([^`]+)`|\[([^\]]+)\]\(([^)]*)\)")
+WORD_PATTERN = re.compile(r"\S+")
+BULLET_GLYPH = "• "
+BULLET_INDENT = "  "
+QUOTE_PREFIX = "▏ "
 WIDE_WIDTHS = ("W", "F")
 TAIL_BYTES = 65536
 SESSION_INTERVAL = 3.0
@@ -57,6 +66,15 @@ BUCKET_COLORS = {
     "AWAITING": "yellow",
     "STOPPED": "dim",
 }
+STYLE_ATTRS = {
+    "bold": curses.A_BOLD,
+    "header": curses.A_BOLD,
+    "code": curses.A_NORMAL,
+    "dim": curses.A_DIM,
+    "quote": curses.A_DIM,
+    "link": curses.A_UNDERLINE,
+}
+STYLE_COLORS = {"code": "cyan", "header": "yellow"}
 LANE_MARK_PATTERN = re.compile(r"DIRTY|✓|\?")
 LANE_MARK_COLORS = {"DIRTY": "red", "✓": "green", "?": "yellow"}
 WORKTREE_CONTAINERS = ((".worktrees",), (".claude", "worktrees"))
@@ -515,6 +533,172 @@ def wrap_block(lines, width):
         indent = line[: len(line) - len(line.lstrip())][: max(width - 1, 0)]
         wrapped.extend(textwrap.wrap(line, width, subsequent_indent=indent) or [""])
     return wrapped
+
+
+def _leading(text):
+    return text[: len(text) - len(text.lstrip())]
+
+
+def _fitting_chars(text, room):
+    used = 0
+    for index, char in enumerate(text):
+        step = 2 if unicodedata.east_asian_width(char) in WIDE_WIDTHS else 1
+        if used + step > room:
+            return index or 1
+        used += step
+    return len(text)
+
+
+def _hard_wrap(line, width):
+    if cell_width(line) <= width:
+        return [line]
+    indent = _leading(line)
+    if cell_width(indent) >= width:
+        indent = ""
+    pieces = []
+    rest = line
+    while rest:
+        room = width if not pieces else max(width - cell_width(indent), 1)
+        take = _fitting_chars(rest, room)
+        pieces.append((indent if pieces else "") + rest[:take])
+        rest = rest[take:]
+    return pieces
+
+
+def _code_lines(line, width):
+    return [(piece, [(0, len(piece), "dim")] if piece else []) for piece in _hard_wrap(line, width)]
+
+
+def inline_segments(text, plain=False, base=""):
+    text = text or ""
+    segments = []
+    index = 0
+    for match in INLINE_PATTERN.finditer(text):
+        if match.start() > index:
+            segments.append((text[index : match.start()], base))
+        if match.group(1) is not None:
+            segments.extend(inline_segments(match.group(1), plain, base if plain else "bold"))
+        elif match.group(2) is not None:
+            segments.append((match.group(2), base if plain else "code"))
+        else:
+            segments.extend(inline_segments(match.group(3), plain, base if plain else "link"))
+        index = match.end()
+    if index < len(text):
+        segments.append((text[index:], base))
+    return segments
+
+
+def _word_chunks(text, budget):
+    chunks = []
+    for match in WORD_PATTERN.finditer(text):
+        start, word = match.start(), match.group()
+        while word:
+            if cell_width(word) <= budget:
+                chunks.append((start, word))
+                break
+            take = _fitting_chars(word, budget)
+            chunks.append((start, word[:take]))
+            start += take
+            word = word[take:]
+    return chunks
+
+
+def _spans(marks):
+    spans = []
+    for index, style in enumerate(marks):
+        if not style:
+            continue
+        if spans and spans[-1][2] == style and spans[-1][0] + spans[-1][1] == index:
+            spans[-1] = (spans[-1][0], spans[-1][1] + 1, style)
+        else:
+            spans.append((index, 1, style))
+    return spans
+
+
+def _assemble(prefix, words, styles, base):
+    text = prefix
+    marks = [base] * len(prefix)
+    previous = -1
+    for position, (start, word) in enumerate(words):
+        if position:
+            gap = styles[previous] if start == previous + 1 and previous < len(styles) else ""
+            text += " "
+            marks.append(gap or base)
+        text += word
+        marks.extend(styles[start + offset] or base for offset in range(len(word)))
+        previous = start + len(word)
+    return text, _spans(marks)
+
+
+def _flow(segments, width, first, following, base):
+    styles = []
+    for chunk, style in segments:
+        styles.extend([style] * len(chunk))
+    text = "".join(chunk for chunk, _style in segments)
+    rows = []
+    current = []
+    used = 0
+    prefix = first
+    for start, word in _word_chunks(text, max(width - cell_width(following), 1)):
+        step = cell_width(word)
+        room = max(width - cell_width(prefix), 1)
+        if not current:
+            current, used = [(start, word)], step
+        elif used + 1 + step > room:
+            rows.append((prefix, current))
+            prefix = following
+            current, used = [(start, word)], step
+        else:
+            current.append((start, word))
+            used += 1 + step
+    if current or not rows:
+        rows.append((prefix, current))
+    return [_assemble(prefix, words, styles, base) for prefix, words in rows]
+
+
+def _prose_lines(line, width):
+    header = HEADER_PATTERN.match(line)
+    if header:
+        return _flow(inline_segments(header.group(2), True), width, "", "", "header")
+    quote = QUOTE_PATTERN.match(line)
+    if quote:
+        return _flow(inline_segments(quote.group(1)), width, QUOTE_PREFIX, QUOTE_PREFIX, "quote")
+    bullet = BULLET_PATTERN.match(line)
+    if bullet:
+        indent = bullet.group(1)
+        return _flow(inline_segments(bullet.group(2)), width, indent + BULLET_GLYPH, indent + BULLET_INDENT, "")
+    indent = _leading(line)
+    return _flow(inline_segments(line.strip()), width, indent, indent, "")
+
+
+def render_markdown(text, width):
+    if width <= 0:
+        return []
+    rendered = []
+    fenced = False
+    for raw in (text or "").split("\n"):
+        line = raw.rstrip()
+        if FENCE_PATTERN.match(line):
+            fenced = not fenced
+        elif fenced:
+            rendered.extend(_code_lines(line, width))
+        elif not line.strip():
+            rendered.append(("", []))
+        else:
+            rendered.extend(_prose_lines(line, width))
+    return rendered
+
+
+def style_attr(style):
+    attr = STYLE_ATTRS.get(style, curses.A_NORMAL)
+    name = STYLE_COLORS.get(style, "")
+    slot = next((slot for slot, (known, _color) in enumerate(COLOR_SLOTS, 1) if known == name), 0)
+    if not slot:
+        return attr
+    try:
+        return attr | curses.color_pair(slot) if curses.has_colors() else attr
+    except curses.error:
+        return attr
 
 
 def _tail_assistant_text(path, size):
@@ -1039,7 +1223,7 @@ def read_note(screen, prompt):
     return typed.decode("utf-8", "replace")
 
 
-def overlay(screen, title, lines, footer, fit=False):
+def overlay(screen, title, lines, footer, fit=False, markdown=False):
     height, width = screen.getmaxyx()
     if height < PEEK_MIN_HEIGHT or width < PEEK_MIN_WIDTH:
         return -1
@@ -1062,9 +1246,15 @@ def overlay(screen, title, lines, footer, fit=False):
     inner = box_width - 4
     room = box_height - 2
     _put(window, 0, 2, _clip(" %s " % title, inner), curses.A_BOLD, box_width - 1)
-    body = wrap_block(lines, inner)
-    for offset, text in enumerate(body[max(len(body) - room, 0) :]):
+    if markdown:
+        body = render_markdown("\n".join(lines), inner)
+    else:
+        body = [(text, []) for text in wrap_block(lines, inner)]
+    for offset, (text, spans) in enumerate(body[max(len(body) - room, 0) :]):
         _put(window, 1 + offset, 2, text, curses.A_NORMAL, box_width - 1)
+        for column, length, style in spans:
+            chunk = text[column : column + length]
+            _put(window, 1 + offset, 2 + cell_width(text[:column]), chunk, style_attr(style), box_width - 1)
     _put(window, box_height - 1, 2, _clip(" %s " % footer, inner), curses.A_DIM, box_width - 1)
     window.noutrefresh()
     curses.doupdate()
@@ -1127,7 +1317,13 @@ def peek(screen, row):
     if blocked and short and os.environ.get("TMUX"):
         return gate_answer(screen, row, short)
     lines = capture_lines(transcript_tail(row.get("cwd"), row.get("session_id")))
-    overlay(screen, peek_title(row), lines or [EMPTY_PEEK], NO_TMUX_FOOTER if blocked else PEEK_FOOTER)
+    overlay(
+        screen,
+        peek_title(row),
+        lines or [EMPTY_PEEK],
+        NO_TMUX_FOOTER if blocked else PEEK_FOOTER,
+        markdown=True,
+    )
     return "", ""
 
 

@@ -479,6 +479,329 @@ class MarkdownNoise(unittest.TestCase):
         self.assertEqual(fleet.sanitize_context("2 * 3 stays"), "2 * 3 stays")
 
 
+class MarkdownRendering(unittest.TestCase):
+    SAMPLE = "# Title\n\n**Done** — ran `pytest`\n\n- a bullet\n\n> quoted\n\n```sh\nmake test\n```\n\n[docs](https://x/y)"
+
+    def _render(self, text, width=40):
+        return fleet.render_markdown(text, width)
+
+    def _texts(self, rendered):
+        return [text for text, _spans in rendered]
+
+    def _only(self, text, width=40):
+        rendered = self._render(text, width)
+        self.assertEqual(len(rendered), 1)
+        return rendered[0]
+
+    def test_bold_markers_go_and_the_span_lands_on_the_words(self):
+        text, spans = self._only("**Done** — ran it")
+        self.assertEqual(text, "Done — ran it")
+        self.assertEqual(spans, [(0, 4, "bold")])
+        self.assertEqual(text[spans[0][0] : spans[0][0] + spans[0][1]], "Done")
+
+    def test_a_bold_phrase_stays_one_span_across_its_space(self):
+        text, spans = self._only("tail **two words** here")
+        self.assertEqual(text, "tail two words here")
+        self.assertEqual([text[column : column + length] for column, length, _style in spans], ["two words"])
+
+    def test_inline_code_is_cyan_without_the_backticks(self):
+        text, spans = self._only("ran `pytest -q` twice")
+        self.assertEqual(text, "ran pytest -q twice")
+        self.assertEqual(spans, [(4, 9, "code")])
+        self.assertEqual(fleet.STYLE_COLORS["code"], "cyan")
+
+    def test_a_mixed_line_keeps_every_span_in_place(self):
+        text, spans = self._only("**Ran** `pytest` — see [the docs](https://x/y)")
+        self.assertEqual(text, "Ran pytest — see the docs")
+        self.assertEqual([style for _column, _length, style in spans], ["bold", "code", "link"])
+        self.assertEqual(
+            [text[column : column + length] for column, length, _style in spans], ["Ran", "pytest", "the docs"]
+        )
+        self.assertNotIn("https", text)
+
+    def test_a_link_keeps_the_text_and_drops_the_url(self):
+        text, spans = self._only("see [the docs](https://example.com/a/b) now")
+        self.assertEqual(text, "see the docs now")
+        self.assertEqual(spans, [(4, 8, "link")])
+
+    def test_a_link_nested_in_bold_still_loses_its_url(self):
+        text, spans = self._only("**→ Created [INT-842](https://linear.app/a/b)** — assigned")
+        self.assertEqual(text, "→ Created INT-842 — assigned")
+        self.assertEqual([style for _column, _length, style in spans], ["bold", "link"])
+        self.assertEqual([text[column : column + length] for column, length, _style in spans], ["→ Created ", "INT-842"])
+
+    def test_code_inside_a_fence_of_backticks_is_left_verbatim(self):
+        self.assertEqual(self._only("`**not bold**`"), ("**not bold**", [(0, 12, "code")]))
+
+    def test_a_header_absorbs_its_inline_markers(self):
+        text, spans = self._only("## Head with **bold** and `code`")
+        self.assertEqual(text, "Head with bold and code")
+        self.assertEqual(spans, [(0, len(text), "header")])
+
+    def test_headers_lose_their_hashes_and_take_the_header_style(self):
+        for source in ("# Plan", "## Plan", "### Plan"):
+            text, spans = self._only(source)
+            self.assertEqual(text, "Plan")
+            self.assertEqual(spans, [(0, 4, "header")])
+        self.assertEqual(fleet.STYLE_COLORS["header"], "yellow")
+
+    def test_a_fourth_hash_is_not_a_header(self):
+        text, spans = self._only("#### too deep")
+        self.assertEqual(text, "#### too deep")
+        self.assertEqual(spans, [])
+
+    def test_fenced_lines_are_dim_and_verbatim_without_the_fences(self):
+        rendered = self._render("before\n```python\ndef f():\n    return  1\n```\nafter")
+        self.assertEqual(self._texts(rendered), ["before", "def f():", "    return  1", "after"])
+        self.assertEqual(
+            [spans for _text, spans in rendered], [[], [(0, 8, "dim")], [(0, 13, "dim")], []]
+        )
+
+    def test_markdown_inside_a_fence_is_left_alone(self):
+        rendered = self._render("```\n**not bold** and `not code`\n```")
+        self.assertEqual(self._texts(rendered), ["**not bold** and `not code`"])
+        self.assertEqual(rendered[0][1], [(0, len(rendered[0][0]), "dim")])
+
+    def test_a_long_fenced_line_wraps_keeping_the_indent(self):
+        texts = self._texts(self._render("```\n    " + "x" * 60 + "\n```", 20))
+        self.assertGreater(len(texts), 1)
+        for text in texts:
+            self.assertLessEqual(fleet.cell_width(text), 20)
+            self.assertTrue(text.startswith("    "))
+        self.assertEqual("".join(text[4:] for text in texts), "x" * 60)
+
+    def test_bullets_become_glyphs_with_a_two_space_wrap_indent(self):
+        texts = self._texts(self._render("- a bullet long enough to wrap twice over the box", 20))
+        self.assertGreater(len(texts), 1)
+        self.assertTrue(texts[0].startswith("• "))
+        for text in texts[1:]:
+            self.assertTrue(text.startswith("  "))
+            self.assertFalse(text.startswith("   "))
+        self.assertEqual(" ".join(text.strip() for text in texts).replace("• ", ""), "a bullet long enough to wrap twice over the box")
+
+    def test_star_bullets_get_the_same_glyph(self):
+        self.assertEqual(self._texts(self._render("* starred item")), ["• starred item"])
+
+    def test_a_bullet_keeps_its_inline_spans_after_the_glyph(self):
+        text, spans = self._only("- ran **the** suite")
+        self.assertEqual(text, "• ran the suite")
+        self.assertEqual([text[column : column + length] for column, length, _style in spans], ["the"])
+
+    def test_quotes_are_dim_behind_a_bar(self):
+        text, spans = self._only("> mind the gap")
+        self.assertEqual(text, "▏ mind the gap")
+        self.assertEqual(spans, [(0, len(text), "quote")])
+
+    def test_blank_lines_survive_as_paragraph_spacing(self):
+        self.assertEqual(self._texts(self._render("one\n\n\ntwo")), ["one", "", "", "two"])
+
+    def test_prose_wraps_to_the_overlay_width(self):
+        rendered = self._render("word " * 40, 30)
+        self.assertGreater(len(rendered), 1)
+        for text, _spans in rendered:
+            self.assertLessEqual(fleet.cell_width(text), 30)
+
+    def test_wide_characters_never_spill_past_the_width(self):
+        rendered = self._render("進捗: " + "日本語のテキスト " * 6, 24)
+        for text, _spans in rendered:
+            self.assertLessEqual(fleet.cell_width(text), 24)
+        self.assertIn("日本語のテキスト", "".join(self._texts(rendered)))
+
+    def test_a_word_longer_than_the_width_is_split_not_dropped(self):
+        self.assertEqual("".join(self._texts(self._render("x" * 50, 20))), "x" * 50)
+
+    def test_a_single_asterisk_is_still_left_alone(self):
+        self.assertEqual(self._only("2 * 3 stays"), ("2 * 3 stays", []))
+
+    def test_no_marker_survives_onto_the_screen(self):
+        joined = "\n".join(self._texts(self._render(self.SAMPLE)))
+        self.assertNotIn("**", joined)
+        self.assertNotIn("`", joined)
+        self.assertNotIn("](", joined)
+
+    def test_ansi_noise_is_stripped_before_the_markdown_is_read(self):
+        raw = "\x1b[31m**Done**\x1b[0m — ran `it`"
+        text, spans = self._only("\n".join(fleet.capture_lines(raw)))
+        self.assertEqual(text, "Done — ran it")
+        self.assertNotIn("\x1b", text)
+        self.assertEqual([style for _column, _length, style in spans], ["bold", "code"])
+
+    def test_every_span_stays_inside_its_own_line(self):
+        for text, spans in self._render(self.SAMPLE, 18):
+            for column, length, style in spans:
+                self.assertGreaterEqual(column, 0)
+                self.assertLessEqual(column + length, len(text))
+                self.assertIn(style, fleet.STYLE_ATTRS)
+
+    def test_an_unusable_width_renders_nothing(self):
+        self.assertEqual(fleet.render_markdown("**anything**", 0), [])
+
+
+class MarkdownStyleAttributes(unittest.TestCase):
+    def test_each_tag_maps_to_a_visible_attribute(self):
+        self.assertTrue(fleet.style_attr("bold") & fleet.curses.A_BOLD)
+        self.assertTrue(fleet.style_attr("header") & fleet.curses.A_BOLD)
+        self.assertTrue(fleet.style_attr("dim") & fleet.curses.A_DIM)
+        self.assertTrue(fleet.style_attr("quote") & fleet.curses.A_DIM)
+        self.assertTrue(fleet.style_attr("link") & fleet.curses.A_UNDERLINE)
+
+    def test_an_unknown_tag_is_plain(self):
+        self.assertEqual(fleet.style_attr("nope"), fleet.curses.A_NORMAL)
+
+    def test_colour_tags_reuse_the_pairs_the_rows_already_use(self):
+        saved = (fleet.curses.has_colors, fleet.curses.color_pair)
+        names = [name for name, _color in fleet.COLOR_SLOTS]
+        try:
+            fleet.curses.has_colors = lambda: True
+            fleet.curses.color_pair = lambda slot: slot * 256
+            self.assertEqual(fleet.style_attr("code"), (names.index("cyan") + 1) * 256)
+            self.assertEqual(fleet.style_attr("header"), fleet.curses.A_BOLD | (names.index("yellow") + 1) * 256)
+        finally:
+            fleet.curses.has_colors, fleet.curses.color_pair = saved
+
+    def test_a_terminal_without_colour_still_gets_the_plain_attribute(self):
+        saved = fleet.curses.has_colors
+        try:
+            fleet.curses.has_colors = lambda: False
+            self.assertEqual(fleet.style_attr("code"), fleet.curses.A_NORMAL)
+            self.assertEqual(fleet.style_attr("header"), fleet.curses.A_BOLD)
+        finally:
+            fleet.curses.has_colors = saved
+
+    def test_a_curses_that_refuses_to_answer_never_raises(self):
+        saved = fleet.curses.has_colors
+
+        def boom():
+            raise fleet.curses.error("must call initscr() first")
+
+        try:
+            fleet.curses.has_colors = boom
+            self.assertEqual(fleet.style_attr("code"), fleet.curses.A_NORMAL)
+        finally:
+            fleet.curses.has_colors = saved
+
+
+class OverlayMarkdownPainting(unittest.TestCase):
+    class Fake(object):
+        def __init__(self, painted):
+            self.painted = painted
+
+        def getmaxyx(self):
+            return 40, 120
+
+        def getch(self):
+            return ord("x")
+
+        def addnstr(self, y, x, text, room, attr):
+            self.painted.append((y, x, text, attr))
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self.painted = []
+        self._saved = (fleet.curses.newwin, fleet.curses.flushinp, fleet.curses.doupdate, fleet.curses.has_colors)
+        fleet.curses.newwin = lambda *args: self.Fake(self.painted)
+        fleet.curses.flushinp = lambda: None
+        fleet.curses.doupdate = lambda: None
+        fleet.curses.has_colors = lambda: False
+
+    def tearDown(self):
+        fleet.curses.newwin, fleet.curses.flushinp, fleet.curses.doupdate, fleet.curses.has_colors = self._saved
+
+    def _overlay(self, lines, markdown=True):
+        fleet.overlay(self.Fake(self.painted), "abc12345 row", lines, "any key close", markdown=markdown)
+        return self.painted
+
+    def test_the_plain_line_is_laid_down_before_its_spans(self):
+        painted = self._overlay(["ran **the** suite"])
+        body = [(x, text, attr) for _y, x, text, attr in painted if "suite" in text or text == "the"]
+        self.assertEqual([text for _x, text, _attr in body], ["ran the suite", "the"])
+        self.assertEqual(body[0][2], fleet.curses.A_NORMAL)
+        self.assertTrue(body[1][2] & fleet.curses.A_BOLD)
+
+    def test_a_span_is_painted_at_its_own_screen_column(self):
+        painted = self._overlay(["ran **the** suite"])
+        line = [(x, text) for _y, x, text, _attr in painted if text == "ran the suite"][0]
+        bold = [(x, text) for _y, x, text, _attr in painted if text == "the"][0]
+        self.assertEqual(bold[0] - line[0], line[1].index("the"))
+
+    def test_wide_characters_push_a_span_to_the_right_column(self):
+        painted = self._overlay(["日本 **bold**"])
+        line = [(x, text) for _y, x, text, _attr in painted if text.startswith("日本")][0]
+        bold = [(x, text) for _y, x, text, _attr in painted if text == "bold"][0]
+        self.assertEqual(bold[0] - line[0], fleet.cell_width("日本 "))
+
+    def test_a_fenced_body_is_painted_dim(self):
+        painted = self._overlay(["```", "make test", "```"])
+        attrs = [attr for _y, _x, text, attr in painted if text == "make test"]
+        self.assertEqual(len(attrs), 2)
+        self.assertTrue(attrs[1] & fleet.curses.A_DIM)
+
+    def test_a_plain_overlay_still_paints_only_the_text(self):
+        painted = self._overlay(["ran **the** suite"], markdown=False)
+        self.assertIn("ran **the** suite", [text for _y, _x, text, _attr in painted])
+        self.assertEqual([text for _y, _x, text, _attr in painted if text == "the"], [])
+
+
+class PeekRendersMarkdown(unittest.TestCase):
+    def setUp(self):
+        self._saved = (fleet.overlay, fleet.transcript_tail, dict(os.environ))
+        self.seen = {}
+
+        def fake(screen, title, lines, footer, fit=False, markdown=False):
+            self.seen.update(title=title, lines=lines, footer=footer, fit=fit, markdown=markdown)
+            return ord("x")
+
+        fleet.overlay = fake
+        os.environ.pop("TMUX", None)
+
+    def tearDown(self):
+        fleet.overlay, fleet.transcript_tail = self._saved[:2]
+        os.environ.clear()
+        os.environ.update(self._saved[2])
+
+    def _peek(self, text, bucket="COMPLETE"):
+        fleet.transcript_tail = lambda cwd, session_id: text
+        row = {"bucket": bucket, "short": "abc12345", "name": "n", "cwd": "/e", "session_id": "a" * 36}
+        return fleet.peek(None, row)
+
+    def test_the_transcript_peek_asks_for_markdown(self):
+        self.assertEqual(self._peek("**Done**"), ("", ""))
+        self.assertTrue(self.seen["markdown"])
+        self.assertEqual(self.seen["footer"], fleet.PEEK_FOOTER)
+
+    def test_the_markers_and_the_blank_lines_reach_the_renderer_intact(self):
+        self._peek("**Done**\n\n- one\n-  two   spaced")
+        self.assertEqual(self.seen["lines"], ["**Done**", "", "- one", "-  two   spaced"])
+
+    def test_a_blocked_row_without_tmux_still_renders_markdown(self):
+        self._peek("## Question", bucket="BLOCKED")
+        self.assertTrue(self.seen["markdown"])
+        self.assertEqual(self.seen["footer"], fleet.NO_TMUX_FOOTER)
+
+    def test_an_empty_transcript_falls_back_to_the_placeholder(self):
+        self._peek("")
+        self.assertEqual(self.seen["lines"], [fleet.EMPTY_PEEK])
+
+    def test_the_gate_capture_is_never_run_through_the_renderer(self):
+        captured = {}
+
+        def fake_gate(screen, row, short):
+            captured["short"] = short
+            return "", ""
+
+        saved = fleet.gate_answer
+        try:
+            fleet.gate_answer = fake_gate
+            os.environ["TMUX"] = "/tmp/sock,1,0"
+            self._peek("**Done**", bucket="BLOCKED")
+        finally:
+            fleet.gate_answer = saved
+        self.assertEqual(captured["short"], "abc12345")
+        self.assertEqual(self.seen, {})
+
+
 class WideGlyphClipping(unittest.TestCase):
     def test_emoji_context_never_spills_past_the_pane(self):
         row = {"short": "aaaaaaaa", "name": "n", "age": "1m", "starred": False, "bucket": "COMPLETE",
