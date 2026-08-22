@@ -38,6 +38,8 @@ COUNT_SEPARATOR = " · "
 STALE_PREFIX = "stale since "
 ROW_GLYPH = "●"
 STAR_GLYPH = "★"
+BAR_GLYPH = "▌"
+BAR_BLANK = " "
 COLOR_SLOTS = (
     ("red", curses.COLOR_RED),
     ("yellow", curses.COLOR_YELLOW),
@@ -57,6 +59,10 @@ WORKTREE_CONTAINERS = ((".worktrees",), (".claude", "worktrees"))
 PAIR_WINDOW = "pair"
 PAIR_TARGET = ":pair"
 SHELL_COMMANDS = ("bash", "zsh", "sh")
+PAIR_HANDOFF = "handoff"
+PAIR_INPLACE = "inplace"
+ATTACH_BACK = "back from %s"
+ATTACH_RC = "back from %s · claude attach exited %s"
 ACTION_TIMEOUT = 20
 TMUX_TIMEOUT = 5
 TIMEOUT_RC = 124
@@ -412,19 +418,25 @@ def lane_marks(line):
     ]
 
 
-def row_parts(row, width):
+def row_lead(selected):
+    return BAR_GLYPH if selected else BAR_BLANK
+
+
+def row_parts(row, width, selected=False):
     glyph = STAR_GLYPH if row.get("starred") else ROW_GLYPH
     short = (row.get("short") or "")[:8]
     age = row.get("age") or ""
     badge = pr_badge(row)
     tail = age + ("  " + badge if badge else "")
-    head = "%s %-8s " % (glyph, short)
+    head = "%s%s %-8s " % (row_lead(selected), glyph, short)
     room = max(width - len(head) - len(tail) - 1, 8)
     name = _clip(row.get("name") or "", room)
     tail_column = len(head) + room + 1
-    parts = [(0, glyph, "glyph"), (2, short, "short"), (len(head), name, "name"), (tail_column, age, "age")]
+    parts = [(1, glyph, "glyph"), (3, short, "short"), (len(head), name, "name"), (tail_column, age, "age")]
     if badge:
         parts.append((tail_column + len(age) + 2, badge, "badge"))
+    if selected:
+        parts.insert(0, (0, BAR_GLYPH, "bar"))
     text = _clip(head + name.ljust(room) + " " + tail, width)
     return [part for part in parts if part[1]], text
 
@@ -434,9 +446,9 @@ def row_context(row):
 
 
 def format_row(row, width, selected=False):
-    lines = [row_parts(row, width)[1]]
+    lines = [row_parts(row, width, selected)[1]]
     if width >= NARROW_WIDTH:
-        lines.append(_clip(CONTEXT_INDENT + row_context(row), width))
+        lines.append(_clip(row_lead(selected) + CONTEXT_INDENT + row_context(row), width))
     return lines
 
 
@@ -764,11 +776,13 @@ def bucket_attr(state, bucket, bold=True):
     return color_attr(state, BUCKET_COLORS.get(bucket, "dim"), bold)
 
 
-def part_attr(state, role, row):
+def part_attr(state, role, row, chosen=False):
+    if role == "bar":
+        return bucket_attr(state, row.get("bucket")) | curses.A_BOLD
     if role == "glyph":
         return color_attr(state, "yellow") if row.get("starred") else bucket_attr(state, row.get("bucket"))
     if role == "name":
-        return curses.A_BOLD if row.get("bucket") == "BLOCKED" else curses.A_NORMAL
+        return curses.A_BOLD if chosen or row.get("bucket") == "BLOCKED" else curses.A_NORMAL
     if role == "badge":
         return color_attr(state, "green")
     return color_attr(state, "dim")
@@ -779,12 +793,9 @@ def line_attr(state, kind, payload, chosen):
         return curses.A_NORMAL
     if kind == "header":
         return color_attr(state, "dim")
-    attr = curses.A_NORMAL
     if kind == "context":
-        attr |= curses.A_DIM
-    if chosen:
-        attr |= curses.A_REVERSE
-    return attr
+        return curses.A_DIM
+    return curses.A_NORMAL
 
 
 def _put(screen, y, x, text, attr, width):
@@ -834,9 +845,10 @@ def paint(screen, state):
         if kind == "header":
             _put_part(screen, y + offset, len(HEADER_PREFIX), payload, bucket_attr(state, payload), text, width)
         elif kind == "row":
-            reverse = curses.A_REVERSE if chosen else 0
-            for column, chunk, role in row_parts(payload, width)[0]:
-                _put_part(screen, y + offset, column, chunk, part_attr(state, role, payload) | reverse, text, width)
+            for column, chunk, role in row_parts(payload, width, chosen)[0]:
+                _put_part(screen, y + offset, column, chunk, part_attr(state, role, payload, chosen), text, width)
+        elif kind == "context" and chosen:
+            _put_part(screen, y + offset, 0, BAR_GLYPH, part_attr(state, "bar", payload), text, width)
     if state.message:
         attr = color_attr(state, "yellow")
         _put(screen, height - 2, 0, _clip(_flatten(state.message), width - 1), attr, width - 1)
@@ -1017,24 +1029,70 @@ def peek(screen, row):
     return "", ""
 
 
-def pair_handoff(short):
+def pair_target(windows, pane_cmd, own_pane, pair_pane, has_tmux):
+    if not has_tmux:
+        return PAIR_INPLACE
+    if PAIR_WINDOW not in (windows or []):
+        return PAIR_INPLACE
+    if (pane_cmd or "") not in SHELL_COMMANDS:
+        return PAIR_INPLACE
+    if own_pane and pair_pane and own_pane == pair_pane:
+        return PAIR_INPLACE
+    return PAIR_HANDOFF
+
+
+def pair_probe():
+    own_pane = os.environ.get("TMUX_PANE") or ""
+    if not os.environ.get("TMUX"):
+        return [], "", own_pane, "", False
+    rc, text = run_out(["tmux", "list-windows", "-F", "#W"], TMUX_TIMEOUT)
+    windows = [line.strip() for line in text.splitlines()] if rc == 0 else []
+    if PAIR_WINDOW not in windows:
+        return windows, "", own_pane, "", True
+    rc, text = run_out(
+        ["tmux", "display-message", "-p", "-t", PAIR_TARGET, "#{pane_current_command} #{pane_id}"], TMUX_TIMEOUT
+    )
+    fields = sanitize_context(text).split() if rc == 0 else []
+    return windows, (fields[0] if fields else ""), own_pane, (fields[1] if len(fields) > 1 else ""), True
+
+
+def attach_in_place(screen, state, short):
+    try:
+        curses.endwin()
+    except curses.error:
+        pass
+    try:
+        rc = subprocess.call(["claude", "attach", short])
+    except (OSError, subprocess.SubprocessError):
+        rc = 127
+    resume_screen(screen)
+    refresh_model(state)
+    return ATTACH_BACK % short if rc == 0 else ATTACH_RC % (short, rc)
+
+
+def resume_screen(screen):
+    for reset in (curses.flushinp, lambda: curses.curs_set(0)):
+        try:
+            reset()
+        except curses.error:
+            pass
+    screen.clearok(True)
+    screen.touchwin()
+    try:
+        screen.refresh()
+    except curses.error:
+        pass
+
+
+def pair_in(screen, state, short):
     if not short:
         return "nothing selected"
-    if not os.environ.get("TMUX"):
-        return "no tmux — run: claude attach %s" % short
-    rc, text = run_out(["tmux", "list-windows", "-F", "#W"], TMUX_TIMEOUT)
-    if rc != 0:
-        return "tmux list-windows failed: %s" % sanitize_context(text)
-    if PAIR_WINDOW not in [line.strip() for line in text.splitlines()]:
-        return "no pair window in this session — run deck first"
-    rc, command = run_out(
-        ["tmux", "display-message", "-p", "-t", PAIR_TARGET, "#{pane_current_command}"], TMUX_TIMEOUT
-    )
-    if rc != 0:
-        return "tmux display-message failed: %s" % sanitize_context(command)
-    command = sanitize_context(command)
-    if command not in SHELL_COMMANDS:
-        return "pair window is busy running '%s' — detach it first" % command
+    if pair_target(*pair_probe()) == PAIR_HANDOFF:
+        return pair_handoff(short)
+    return attach_in_place(screen, state, short)
+
+
+def pair_handoff(short):
     for args in (
         ["tmux", "send-keys", "-t", PAIR_TARGET, "C-u"],
         ["tmux", "send-keys", "-t", PAIR_TARGET, "claude attach %s" % short, "C-m"],
@@ -1105,12 +1163,12 @@ def mark_status(row, action, note):
 
 def dispatch_action(screen, state, row, action):
     if action == "pair":
-        state.message = pair_handoff(row["short"])
+        state.message = pair_in(screen, state, row["short"])
     elif action == "peek":
         message, followup = peek(screen, row)
         if followup == "refresh":
             refresh_model(state)
-        state.message = pair_handoff(row["short"]) if followup == "pair" else message
+        state.message = pair_in(screen, state, row["short"]) if followup == "pair" else message
     elif action == "star":
         toggle_star(STARS_PATH, row["session_id"])
         remodel(state)

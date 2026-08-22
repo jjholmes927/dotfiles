@@ -366,14 +366,14 @@ class Formatting(unittest.TestCase):
 
     def test_row_opens_with_the_state_dot(self):
         row = {"short": "aaaaaaaa", "name": "n", "age": "2h", "context": "c", "starred": False, "bucket": "WORKING"}
-        self.assertTrue(fleet.format_row(row, 120, False)[0].startswith("● aaaaaaaa"))
+        self.assertTrue(fleet.format_row(row, 120, False)[0].startswith(" ● aaaaaaaa"))
 
     def test_star_replaces_the_dot_and_keeps_the_width(self):
         plain = {"short": "aaaaaaaa", "name": "n", "age": "2h", "context": "c", "starred": False, "bucket": "WORKING"}
         starred = dict(plain, starred=True)
         first = fleet.format_row(plain, 120, False)[0]
         second = fleet.format_row(starred, 120, False)[0]
-        self.assertTrue(second.startswith("★ aaaaaaaa"))
+        self.assertTrue(second.startswith(" ★ aaaaaaaa"))
         self.assertNotIn("●", second)
         self.assertEqual(len(first), len(second))
 
@@ -383,6 +383,84 @@ class Formatting(unittest.TestCase):
         self.assertEqual([role for _column, _chunk, role in parts], ["glyph", "short", "name", "age", "badge"])
         for column, chunk, _role in parts:
             self.assertEqual(text[column : column + len(chunk)], chunk)
+
+
+class SelectionBar(unittest.TestCase):
+    def _row(self, **extra):
+        row = {"short": "aaaaaaaa", "name": "mn3/thing", "age": "12m", "context": "some ctx",
+               "starred": False, "bucket": "WORKING", "pr": None}
+        row.update(extra)
+        return row
+
+    def _state(self):
+        state = fleet.FleetState()
+        state.colors = {"cyan": 4096, "red": 256, "dim": fleet.curses.A_DIM}
+        return state
+
+    def test_the_selected_row_carries_the_bar_on_both_lines(self):
+        lines = fleet.format_row(self._row(), 120, True)
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(all(line.startswith(fleet.BAR_GLYPH) for line in lines))
+
+    def test_an_unselected_row_keeps_a_blank_leading_column(self):
+        for line in fleet.format_row(self._row(), 120, False):
+            self.assertTrue(line.startswith(" "))
+            self.assertNotIn(fleet.BAR_GLYPH, line)
+
+    def test_the_bar_costs_exactly_what_the_blank_costs(self):
+        selected = fleet.format_row(self._row(), 120, True)
+        plain = fleet.format_row(self._row(), 120, False)
+        for barred, blank in zip(selected, plain):
+            self.assertEqual(fleet.cell_width(barred), fleet.cell_width(blank))
+
+    def test_the_glyph_sits_one_column_in_on_every_row(self):
+        for selected in (False, True):
+            line = fleet.format_row(self._row(), 120, selected)[0]
+            self.assertEqual(line[1], "●")
+            self.assertEqual(line[3:11], "aaaaaaaa")
+
+    def test_the_bar_is_the_first_part_at_column_zero(self):
+        parts, _text = fleet.row_parts(self._row(), 120, True)
+        self.assertEqual(parts[0], (0, fleet.BAR_GLYPH, "bar"))
+
+    def test_an_unselected_row_has_no_bar_part(self):
+        parts, _text = fleet.row_parts(self._row(), 120, False)
+        self.assertNotIn("bar", [role for _column, _chunk, role in parts])
+
+    def test_parts_still_line_up_with_the_rendered_line_either_way(self):
+        for selected in (False, True):
+            parts, text = fleet.row_parts(self._row(pr="#9403"), 120, selected)
+            for column, chunk, _role in parts:
+                self.assertEqual(text[column : column + len(chunk)], chunk)
+
+    def test_the_bar_takes_the_row_state_colour_in_bold(self):
+        state = self._state()
+        self.assertEqual(fleet.part_attr(state, "bar", self._row()), 4096 | fleet.curses.A_BOLD)
+        self.assertEqual(fleet.part_attr(state, "bar", self._row(bucket="BLOCKED")), 256 | fleet.curses.A_BOLD)
+
+    def test_the_selected_name_goes_bold(self):
+        state = self._state()
+        self.assertTrue(fleet.part_attr(state, "name", self._row(), True) & fleet.curses.A_BOLD)
+        self.assertFalse(fleet.part_attr(state, "name", self._row(), False) & fleet.curses.A_BOLD)
+
+    def test_nothing_on_a_selected_row_uses_reverse_video(self):
+        state = self._state()
+        for kind in ("row", "context"):
+            self.assertFalse(fleet.line_attr(state, kind, self._row(), True) & fleet.curses.A_REVERSE)
+        for role in ("bar", "glyph", "short", "name", "age", "badge"):
+            self.assertFalse(fleet.part_attr(state, role, self._row(), True) & fleet.curses.A_REVERSE)
+
+    def test_the_context_line_stays_dim_under_the_selection(self):
+        self.assertTrue(fleet.line_attr(self._state(), "context", self._row(), True) & fleet.curses.A_DIM)
+
+    def test_only_the_selected_row_gets_a_bar_in_the_body(self):
+        rows = [self._row(session_id="0", name="first"), self._row(session_id="1", name="second")]
+        state = fleet.FleetState()
+        state.rows = rows
+        state.selected = 1
+        state.model = {"counts": {}, "lanes": [], "groups": [("WORKING", rows)]}
+        barred = set(index for text, _kind, _payload, index in fleet.body_lines(state, 120) if text.startswith(fleet.BAR_GLYPH))
+        self.assertEqual(barred, {1})
 
 
 class MarkdownNoise(unittest.TestCase):
@@ -1099,7 +1177,7 @@ class ActionDispatch(unittest.TestCase):
     def setUp(self):
         self.log = []
         self.names = (
-            "pair_handoff",
+            "pair_in",
             "peek",
             "toggle_star",
             "remodel",
@@ -1111,7 +1189,7 @@ class ActionDispatch(unittest.TestCase):
             "remove_session",
         )
         self._saved = dict((name, getattr(fleet, name)) for name in self.names)
-        fleet.pair_handoff = lambda short: self._record("pair", short)
+        fleet.pair_in = lambda screen, state, short: self._record("pair", short)
         fleet.peek = lambda screen, row: (self._record("peek", row["short"]), "")
         fleet.toggle_star = lambda path, session_id: self._record("star", session_id)
         fleet.remodel = lambda state: self._record("remodel", "")
@@ -1444,6 +1522,183 @@ class ReadNote(unittest.TestCase):
 
 def curses_backspace():
     return fleet.curses.KEY_BACKSPACE
+
+
+class PairTargetDecision(unittest.TestCase):
+    def test_a_free_pair_window_somewhere_else_takes_the_handoff(self):
+        self.assertEqual(fleet.pair_target(["deck", "pair"], "bash", "%1", "%9", True), "handoff")
+
+    def test_no_pair_window_attaches_in_place(self):
+        self.assertEqual(fleet.pair_target(["deck"], "", "%1", "", True), "inplace")
+
+    def test_a_busy_pair_window_attaches_in_place(self):
+        self.assertEqual(fleet.pair_target(["pair"], "python3", "%1", "%9", True), "inplace")
+
+    def test_fleet_sitting_in_the_pair_window_attaches_in_place(self):
+        self.assertEqual(fleet.pair_target(["pair"], "bash", "%9", "%9", True), "inplace")
+
+    def test_no_tmux_at_all_attaches_in_place(self):
+        self.assertEqual(fleet.pair_target(["pair"], "bash", "", "%9", False), "inplace")
+
+    def test_every_shell_the_pair_window_may_run_still_hands_off(self):
+        for shell in fleet.SHELL_COMMANDS:
+            self.assertEqual(fleet.pair_target(["pair"], shell, "%1", "%9", True), "handoff")
+
+    def test_unknown_pane_ids_do_not_block_the_handoff(self):
+        self.assertEqual(fleet.pair_target(["pair"], "bash", "", "", True), "handoff")
+
+
+class PairProbe(unittest.TestCase):
+    def setUp(self):
+        self._saved = (fleet.run_out, dict(os.environ))
+        self.calls = []
+
+    def tearDown(self):
+        fleet.run_out = self._saved[0]
+        os.environ.clear()
+        os.environ.update(self._saved[1])
+
+    def _stub(self, replies):
+        def fake(args, timeout=10):
+            self.calls.append(args)
+            return replies.pop(0)
+
+        fleet.run_out = fake
+
+    def test_outside_tmux_it_shells_out_to_nothing(self):
+        os.environ.pop("TMUX", None)
+        self._stub([])
+        self.assertEqual(fleet.pair_target(*fleet.pair_probe()), "inplace")
+        self.assertEqual(self.calls, [])
+
+    def test_one_display_message_carries_both_the_command_and_the_pane(self):
+        os.environ["TMUX"] = "/tmp/sock,1,0"
+        os.environ["TMUX_PANE"] = "%3"
+        self._stub([(0, "deck\npair\n"), (0, "bash %9\n")])
+        windows, command, own_pane, pair_pane, has_tmux = fleet.pair_probe()
+        self.assertEqual((windows, command, own_pane, pair_pane, has_tmux), (["deck", "pair"], "bash", "%3", "%9", True))
+        self.assertEqual(len(self.calls), 2)
+        self.assertEqual(fleet.pair_target(windows, command, own_pane, pair_pane, has_tmux), "handoff")
+
+    def test_a_missing_pair_window_skips_the_second_call(self):
+        os.environ["TMUX"] = "/tmp/sock,1,0"
+        os.environ["TMUX_PANE"] = "%3"
+        self._stub([(0, "deck\n")])
+        self.assertEqual(fleet.pair_target(*fleet.pair_probe()), "inplace")
+        self.assertEqual(len(self.calls), 1)
+
+    def test_fleet_running_in_the_pair_window_is_recognised_as_itself(self):
+        os.environ["TMUX"] = "/tmp/sock,1,0"
+        os.environ["TMUX_PANE"] = "%9"
+        self._stub([(0, "pair\n"), (0, "python3 %9\n")])
+        self.assertEqual(fleet.pair_target(*fleet.pair_probe()), "inplace")
+
+    def test_a_failed_list_windows_falls_back_to_in_place(self):
+        os.environ["TMUX"] = "/tmp/sock,1,0"
+        self._stub([(127, "no server running")])
+        self.assertEqual(fleet.pair_target(*fleet.pair_probe()), "inplace")
+
+
+class PairInRouting(unittest.TestCase):
+    def setUp(self):
+        self.names = ("pair_probe", "pair_target", "pair_handoff", "attach_in_place")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        self.log = []
+        fleet.pair_probe = lambda: ("facts",)
+        fleet.pair_handoff = lambda short: self.log.append(("handoff", short)) or "pair → %s" % short
+        fleet.attach_in_place = (
+            lambda screen, state, short: self.log.append(("inplace", short)) or "back from %s" % short
+        )
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+
+    def _pair(self, decision, short="abc12345"):
+        fleet.pair_target = lambda *facts: decision
+        return fleet.pair_in(None, fleet.FleetState(), short)
+
+    def test_handoff_goes_to_the_pair_window(self):
+        self.assertEqual(self._pair("handoff"), "pair → abc12345")
+        self.assertEqual(self.log, [("handoff", "abc12345")])
+
+    def test_inplace_attaches_over_the_fleet_screen(self):
+        self.assertEqual(self._pair("inplace"), "back from abc12345")
+        self.assertEqual(self.log, [("inplace", "abc12345")])
+
+    def test_an_empty_selection_probes_nothing(self):
+        fleet.pair_probe = lambda: self.log.append(("probe", "")) or ("facts",)
+        self.assertEqual(self._pair("handoff", ""), "nothing selected")
+        self.assertEqual(self.log, [])
+
+
+class AttachInPlace(unittest.TestCase):
+    class Screen(object):
+        def __init__(self, log):
+            self.log = log
+
+        def refresh(self):
+            self.log.append("refresh")
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self.log = []
+        self._saved = (
+            fleet.subprocess.call,
+            fleet.curses.endwin,
+            fleet.curses.flushinp,
+            fleet.curses.curs_set,
+            fleet.refresh_model,
+        )
+        fleet.curses.endwin = lambda: self.log.append("endwin")
+        fleet.curses.flushinp = lambda: None
+        fleet.curses.curs_set = lambda value: None
+        fleet.refresh_model = lambda state, **kwargs: self.log.append("model")
+
+    def tearDown(self):
+        (
+            fleet.subprocess.call,
+            fleet.curses.endwin,
+            fleet.curses.flushinp,
+            fleet.curses.curs_set,
+            fleet.refresh_model,
+        ) = self._saved
+
+    def _attach(self, rc):
+        def fake(args):
+            self.log.append(("call", tuple(args)))
+            return rc
+
+        fleet.subprocess.call = fake
+        return fleet.attach_in_place(self.Screen(self.log), fleet.FleetState(), "abc12345")
+
+    def test_the_screen_is_released_before_claude_takes_the_tty(self):
+        message = self._attach(0)
+        self.assertEqual(self.log[0], "endwin")
+        self.assertEqual(self.log[1], ("call", ("claude", "attach", "abc12345")))
+        self.assertEqual(message, "back from abc12345")
+
+    def test_the_repaint_and_the_model_refresh_both_follow_the_attach(self):
+        self._attach(0)
+        self.assertEqual(self.log, ["endwin", ("call", ("claude", "attach", "abc12345")), "refresh", "model"])
+
+    def test_a_failing_attach_still_resumes_and_names_the_code(self):
+        message = self._attach(3)
+        self.assertIn("abc12345", message)
+        self.assertIn("3", message)
+        self.assertIn("refresh", self.log)
+        self.assertIn("model", self.log)
+
+    def test_a_missing_claude_binary_is_reported_not_raised(self):
+        def boom(args):
+            raise OSError("no such file or directory: claude")
+
+        fleet.subprocess.call = boom
+        message = fleet.attach_in_place(self.Screen(self.log), fleet.FleetState(), "abc12345")
+        self.assertIn("127", message)
+        self.assertEqual(self.log[-2:], ["refresh", "model"])
 
 
 class Footer(unittest.TestCase):
