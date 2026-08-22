@@ -30,7 +30,7 @@ One terminal surface for the whole day loop: lane health at a glance, streams so
       INT-842 done, PR #9403                               ← sidecar note; PR # parsed from it
   ── AWAITING / STOPPED groups follow, same shape ──
 
-  [enter]actions [space]peek [j/k]move [q]quit
+  [enter]actions [space]peek [n]new [j/k]move [q]quit
                                                            ← key footer, verbatim
 ```
 
@@ -74,6 +74,7 @@ Every action lives in one dispatch table, reached either from the menu or from i
 | `1`–`9` | while peeking a BLOCKED row: answer via `send-keys` into the hidden attach, then kill it and re-poll |
 | `c` / `a` | mark the row complete/awaiting by hand: prompt for a one-line note on the message row (Esc cancels, nothing written; an empty line → `marked complete from fleet` / `marked awaiting from fleet`), then shell out to `fleet-status <verb> <note> --session <full session id>` — the sidecar keeps one writer — and re-model so the row moves in the same frame |
 | `p` | star/unstar the selected stream |
+| `n` | dispatch a new stream: lane prompt (first word validated as a dir under `$ENG_ROOT`, extra words pass through) then stream prompt, run via `new-agent` in a background process — outcome on the message line, one dispatch at a time, Esc cancels |
 | `r` | `claude rm` with confirm; warns when the worktree is provisioned (`claude rm` won't reap it — offer the `git worktree remove` + `branch -D` commands) |
 | `s` | `claude stop` with confirm |
 | `R` | force refresh |
