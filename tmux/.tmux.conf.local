@@ -429,10 +429,13 @@ tmux_conf_uninstall_plugins_on_reload=true
 set -g pane-border-status top
 set -g pane-border-format " #T "
 
-# NOTE: oh-my-tmux probes this file with 'cut -c3- ~/.tmux.conf.local | sh', so
-# every comment line runs as a command with its leading "# " stripped. Never
-# start a comment here with a word that is an executable on PATH; the bin tools
-# named below all are. Keep backticks out of comments here too.
+# NOTE: oh-my-tmux probes this file by piping 'cut -c3- ~/.tmux.conf.local' into
+# the shell. Every line below the heredoc closer near the top of this file runs
+# through that shell with its leading "# " stripped, and command substitution
+# expands everywhere in the file because that heredoc delimiter is unquoted.
+# Never start a comment here with any word that is an executable on PATH, which
+# the fleet tools named below all are. Keep backticks, semicolons, pipes and
+# stray apostrophes out of these comments too.
 
 # prefix ? — the deck cheat sheet popup, available from every window, including
 # the inbox pane, where the ops pane is not visible. Any key dismisses.
@@ -440,9 +443,9 @@ bind-key ? display-popup -w 46 -h 50 -T ' deck cheat sheet ' -E '"$(dirname "$(r
 
 # prefix P — attach a session into the pair window from any window, including
 # the inbox pane, which is a TUI with no shell to type into.
-bind-key P command-prompt -p "pair:" "run-shell 'bash -lc \"pair %%\"'"
+bind-key P command-prompt -p "pair:" "run-shell 'bash -lc \"pair \\\"%%\\\"\"'"
 
-# prefix F — swap the deck window's inbox pane between the native agent view
-# and the fleet TUI, for daily comparison. Runs in a login shell: the tmux
-# server env has no ~/.local/bin on PATH.
+# prefix F — swap the deck window inbox pane between the native agent view and
+# the fleet TUI, for daily comparison. Runs in a login shell for portability,
+# not every machine puts ~/.local/bin on the tmux server env PATH.
 bind-key F run-shell 'bash -lc fleet-toggle'

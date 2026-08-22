@@ -4,6 +4,7 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import tempfile
 import time
@@ -65,6 +66,17 @@ def agents_json(*rows):
 
 def iso_days_ago(days):
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - days * 86400))
+
+
+def tmux_conf_local_probe_payload():
+    text = (REPO / "tmux" / ".tmux.conf.local").read_text()
+    return [line[2:] for line in text.splitlines()]
+
+
+def tmux_conf_local_live_region():
+    payload = tmux_conf_local_probe_payload()
+    first = payload.index("EOF") + 1
+    return list(enumerate(payload[first:], start=first + 1))
 
 
 class ShellToolCase(unittest.TestCase):
@@ -907,6 +919,22 @@ class TmuxToolsSurvive(ShellToolCase):
                 self.assertTrue(path.exists(), "missing executable: %s" % path)
                 check = subprocess.run(["bash", "-n", str(path)], capture_output=True, encoding="utf-8")
                 self.assertEqual(check.returncode, 0, check.stderr)
+
+    def test_tmux_conf_local_probe_payload_parses(self):
+        payload = "\n".join(tmux_conf_local_probe_payload()) + "\n"
+        check = subprocess.run(["sh", "-n"], input=payload, capture_output=True, encoding="utf-8")
+        self.assertEqual(check.returncode, 0, check.stderr)
+
+    def test_tmux_conf_local_live_region_runs_no_bin_tools(self):
+        search_path = os.pathsep.join([str(BIN), os.environ.get("PATH", "")])
+        offenders = []
+        for number, text in tmux_conf_local_live_region():
+            if not text.strip() or text[:1].isspace():
+                continue
+            resolved = shutil.which(text.split()[0], path=search_path)
+            if resolved:
+                offenders.append("line %d starts %r -> %s" % (number, text.split()[0], resolved))
+        self.assertEqual([], offenders, "live region lines run commands: " + "; ".join(offenders))
 
     def test_deck_attaches_to_an_existing_session(self):
         result = self.run_tool("deck")
