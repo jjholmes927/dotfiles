@@ -72,7 +72,7 @@ Every action lives in one dispatch table, reached either from the menu or from i
 | `1` (menu) | hand the session to the pair window (send `claude attach <id>` to `:pair`, guarded like `pair()`: refuse if pair is busy, `C-u` first) |
 | `Space` | peek: BLOCKED → live question via hidden tmux attach + `capture-pane`; other states → last assistant text from the session transcript (`~/.claude/projects/<slug>/<sessionId>.jsonl`) |
 | `1`–`9` | while peeking a BLOCKED row: answer via `send-keys` into the hidden attach, then kill it and re-poll |
-| `c` / `a` | mark the row complete/awaiting by hand: prompt for a one-line note on the message row (Esc or an empty line → `marked complete from fleet` / `marked awaiting from fleet`), then shell out to `fleet-status <verb> <note> --session <full session id>` — the sidecar keeps one writer — and re-model so the row moves in the same frame |
+| `c` / `a` | mark the row complete/awaiting by hand: prompt for a one-line note on the message row (Esc cancels, nothing written; an empty line → `marked complete from fleet` / `marked awaiting from fleet`), then shell out to `fleet-status <verb> <note> --session <full session id>` — the sidecar keeps one writer — and re-model so the row moves in the same frame |
 | `p` | star/unstar the selected stream |
 | `r` | `claude rm` with confirm; warns when the worktree is provisioned (`claude rm` won't reap it — offer the `git worktree remove` + `branch -D` commands) |
 | `s` | `claude stop` with confirm |
