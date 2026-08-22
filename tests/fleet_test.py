@@ -1035,8 +1035,8 @@ class StatusNoteDefaults(unittest.TestCase):
         self.assertEqual(fleet.status_note("", "complete"), "marked complete from fleet")
         self.assertEqual(fleet.status_note("", "awaiting"), "marked awaiting from fleet")
 
-    def test_escape_and_whitespace_are_the_same_as_empty(self):
-        self.assertEqual(fleet.status_note(None, "complete"), fleet.status_note("   ", "complete"))
+    def test_whitespace_only_is_the_same_as_empty(self):
+        self.assertEqual(fleet.status_note("   ", "complete"), fleet.status_note("", "complete"))
         self.assertEqual(fleet.status_note("\t ", "awaiting"), "marked awaiting from fleet")
 
     def test_typed_note_wins_and_is_flattened(self):
@@ -1172,6 +1172,12 @@ class ActionDispatch(unittest.TestCase):
         self._dispatch("complete")
         self.assertEqual(self.log[0], ("mark", "complete marked complete from fleet"))
 
+    def test_an_escaped_note_marks_nothing(self):
+        fleet.read_note = lambda screen, prompt: self._record("prompt", prompt) and None
+        state = self._dispatch("complete")
+        self.assertEqual([kind for kind, _detail in self.log], ["prompt"])
+        self.assertEqual(state.message, fleet.NOTE_CANCELLED)
+
     def test_star_re_models_without_touching_the_cli(self):
         self._dispatch("star")
         self.assertEqual([kind for kind, _detail in self.log], ["star", "remodel"])
@@ -1210,6 +1216,53 @@ class ActionDispatch(unittest.TestCase):
             self.log = []
             self._dispatch(fleet.menu_choice(ord(str(index)), items))
             self.assertEqual(direct, self.log, "%s took two different routes" % action)
+
+
+class EscapedNoteNeverReachesFleetStatus(unittest.TestCase):
+    class Screen(object):
+        def getmaxyx(self):
+            return 40, 120
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self.calls = []
+        self.names = ("run_out", "read_note", "remodel")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        fleet.run_out = self._fake_run_out
+        fleet.remodel = lambda state: None
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+
+    def _fake_run_out(self, args, timeout=10):
+        self.calls.append(args)
+        return 0, ""
+
+    def _dispatch(self, note, action="complete"):
+        fleet.read_note = lambda screen, prompt: note
+        state = fleet.FleetState()
+        row = {"short": "abc12345", "session_id": "a" * 36, "bucket": "AWAITING", "starred": False}
+        fleet.dispatch_action(self.Screen(), state, row, action)
+        return state
+
+    def test_escape_shells_out_to_nothing_at_all(self):
+        state = self._dispatch(None)
+        self.assertEqual(self.calls, [])
+        self.assertEqual(state.message, "cancelled")
+
+    def test_escaped_awaiting_is_just_as_inert(self):
+        self._dispatch(None, "awaiting")
+        self.assertEqual(self.calls, [])
+
+    def test_empty_enter_still_writes_the_default_note(self):
+        state = self._dispatch("")
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.calls[0][0], "fleet-status")
+        self.assertEqual(self.calls[0][-2:], ["complete", "marked complete from fleet"])
+        self.assertIn("marked complete from fleet", state.message)
 
 
 class OpenMenu(unittest.TestCase):
@@ -1358,8 +1411,13 @@ class ReadNote(unittest.TestCase):
         self.assertEqual(text, "PR #7")
         self.assertEqual(screen.timeouts, [-1, fleet.POLL_MS])
 
-    def test_escape_yields_the_empty_note(self):
-        text, _screen = self._read([ord("a"), ord("b"), 27])
+    def test_escape_cancels_instead_of_yielding_a_note(self):
+        text, screen = self._read([ord("a"), ord("b"), 27])
+        self.assertIsNone(text)
+        self.assertEqual(screen.timeouts, [-1, fleet.POLL_MS])
+
+    def test_enter_on_an_empty_note_yields_the_empty_string(self):
+        text, _screen = self._read([10])
         self.assertEqual(text, "")
         self.assertEqual(fleet.status_note(text, "awaiting"), "marked awaiting from fleet")
 

@@ -89,6 +89,7 @@ MENU_TOO_SMALL = "window too small for the action menu"
 DEFAULT_NOTES = {"complete": "marked complete from fleet", "awaiting": "marked awaiting from fleet"}
 NOTE_PROMPT = "%s note for %s: "
 NOTE_LIMIT = 120
+NOTE_CANCELLED = "cancelled"
 PEEK_RATIO = 0.8
 PEEK_MIN_HEIGHT = 6
 PEEK_MIN_WIDTH = 24
@@ -892,6 +893,7 @@ def read_note(screen, prompt):
     if height < 2 or width < 4:
         return ""
     typed = bytearray()
+    cancelled = False
     screen.timeout(-1)
     curses.flushinp()
     try:
@@ -905,7 +907,7 @@ def read_note(screen, prompt):
             if key in ENTER_KEYS:
                 break
             if key == ESCAPE_KEY:
-                typed = bytearray()
+                cancelled = True
                 break
             if key in BACKSPACE_KEYS:
                 if typed:
@@ -918,6 +920,8 @@ def read_note(screen, prompt):
             curses.curs_set(0)
         except curses.error:
             pass
+    if cancelled:
+        return None
     return typed.decode("utf-8", "replace")
 
 
@@ -1111,9 +1115,12 @@ def dispatch_action(screen, state, row, action):
         toggle_star(STARS_PATH, row["session_id"])
         remodel(state)
     elif action in DEFAULT_NOTES:
-        note = status_note(read_note(screen, NOTE_PROMPT % (action, row["short"])), action)
-        state.message = mark_status(row, action, note)
-        remodel(state)
+        typed = read_note(screen, NOTE_PROMPT % (action, row["short"]))
+        if typed is None:
+            state.message = NOTE_CANCELLED
+        else:
+            state.message = mark_status(row, action, status_note(typed, action))
+            remodel(state)
     elif action == "stop":
         if confirm(screen, "stop %s?" % row["short"]):
             state.message = stop_session(row)
