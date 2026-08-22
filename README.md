@@ -7,7 +7,8 @@ Personal configuration files, symlinked into `~/`. Each top-level directory hold
 | Directory | Purpose |
 |-----------|---------|
 | `alacritty/` | Alacritty terminal config |
-| `bash/` | Bash shell config — includes the operator-workflow helpers (`deck`, `new-agent`, `lanes`); see [docs/operator-workflow.md](docs/operator-workflow.md) |
+| `bash/` | Bash shell config — aliases, exports, history and completion |
+| `bin/` | The operator-workflow tools (`deck`, `pair`, `new-agent`, `fleet`, `clone-status`, …), symlinked into `~/.local/bin` by `claude/install.sh`; see [docs/operator-workflow.md](docs/operator-workflow.md) |
 | `claude/` | Claude Code global config — `CLAUDE.md`, settings, commands, hooks, scripts |
 | `codex/` | Codex global config — `AGENTS.md`, skills, installer, MCP bootstrap |
 | `git/` | Git config |
