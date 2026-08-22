@@ -1,5 +1,5 @@
 deck() {
-  local name=${1:-interpret} root="${ENG_ROOT:-$HOME/engineering}" cheat fleet right ops w h ch
+  local name=${1:-interpret} root="${ENG_ROOT:-$HOME/engineering}" cheat fleet right ops w h ch inbox
   cheat="$(dirname "$(readlink "$HOME/.tmux.conf" 2>/dev/null)")/deck-cheat"
   if ! tmux has-session -t "=$name" 2>/dev/null; then
     if [ -n "$TMUX" ]; then
@@ -10,7 +10,11 @@ deck() {
     [ "${w:-0}" -ge 120 ] 2>/dev/null || w=200; [ "${h:-0}" -ge 35 ] 2>/dev/null || h=60
     fleet=$(tmux new-session -d -s "$name" -c "$root" -n deck -x "$w" -y "$h" -P -F '#{pane_id}')
     tmux set-option -w -t "=$name:deck" automatic-rename off
-    tmux send-keys -t "$fleet" "claude agents --cwd \"$root\" --dangerously-skip-permissions" C-m
+    case "${DECK_INBOX:-}" in
+      fleet) inbox='fleet' ;;
+      *) inbox="claude agents --cwd \"$root\" --dangerously-skip-permissions" ;;
+    esac
+    tmux send-keys -t "$fleet" "$inbox" C-m
     right=$(tmux split-window -h -l 56 -t "$fleet" -c "$root" -P -F '#{pane_id}')
     ops=$(tmux split-window -v -l 14 -t "$right" -c "$root" -P -F '#{pane_id}')
     if [ -x "$cheat" ]; then

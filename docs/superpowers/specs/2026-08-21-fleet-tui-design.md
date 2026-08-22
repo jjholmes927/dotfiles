@@ -10,7 +10,7 @@ One terminal surface for the whole day loop: lane health at a glance, streams so
 
 - `bin/fleet` — one Python 3 stdlib file (curses), symlinked into `~/.local/bin` like `fleet-status`. No dependencies.
 - `tests/fleet_test.py` — unit tests for the pure core (state derivation, sidecar parsing, row/strip formatting), run with `python3 -m unittest`.
-- Adoption path: run `fleet` in any pane/window while it earns trust; the native view keeps the deck fleet pane. Cutover later is a one-line change in `deck()` and is OUT of this spec's scope.
+- Adoption path: run `fleet` in any pane/window while it earns trust; the native view keeps the deck fleet pane. Cutover = `DECK_INBOX=fleet`, and is OUT of this spec's scope.
 
 ## Screen layout (locked with user, iterated 2026-08-21 evening)
 
