@@ -62,10 +62,37 @@ TMUX_TIMEOUT = 5
 TIMEOUT_RC = 124
 ORPHAN_WINDOW_WARNING = "tmux new-window gave no window id — a hidden attach window for %s may be live (check: tmux list-windows)"
 ENTER_KEYS = (curses.KEY_ENTER, 10, 13)
-FOOTER = "[j/k]move [p]star [space]peek [enter]pair [s]stop [r]rm [R]refresh [q]quit"
+ESCAPE_KEY = 27
+BACKSPACE_KEYS = (curses.KEY_BACKSPACE, 127, 8)
+FOOTER = "[enter]actions [space]peek [j/k]move [q]quit"
+MENU_ACTIONS = (
+    ("pair", "pair in", "enter"),
+    ("peek", "peek", "space"),
+    ("complete", "mark complete", "c"),
+    ("awaiting", "mark awaiting", "a"),
+    ("star", "star", "p"),
+    ("stop", "stop", "s"),
+    ("remove", "remove", "r"),
+)
+ACTION_KEYS = {
+    ord(" "): "peek",
+    ord("c"): "complete",
+    ord("a"): "awaiting",
+    ord("p"): "star",
+    ord("s"): "stop",
+    ord("r"): "remove",
+}
+BLOCKED_PEEK_LABEL = "peek + answer"
+UNSTAR_LABEL = "unstar"
+MENU_FOOTER = "1-%d choose · any other key close"
+MENU_TOO_SMALL = "window too small for the action menu"
+DEFAULT_NOTES = {"complete": "marked complete from fleet", "awaiting": "marked awaiting from fleet"}
+NOTE_PROMPT = "%s note for %s: "
+NOTE_LIMIT = 120
 PEEK_RATIO = 0.8
 PEEK_MIN_HEIGHT = 6
 PEEK_MIN_WIDTH = 24
+BOX_PADDING = 6
 ATTACH_WAIT = 4.0
 ANSWER_DELAY = 0.7
 QUESTION_PATTERN = re.compile(r"^[\s│┃|]*❯?\s*1\.")
@@ -844,12 +871,66 @@ def confirm(screen, prompt):
     return key in (ord("y"), ord("Y"))
 
 
-def overlay(screen, title, lines, footer):
+def note_line(screen, prompt, text, height, width):
+    try:
+        screen.move(height - 2, 0)
+        screen.clrtoeol()
+    except curses.error:
+        pass
+    line = _clip(prompt + text, width - 1)
+    _put(screen, height - 2, 0, line, curses.A_REVERSE, width - 1)
+    try:
+        screen.move(height - 2, min(cell_width(line), width - 1))
+    except curses.error:
+        pass
+    screen.noutrefresh()
+    curses.doupdate()
+
+
+def read_note(screen, prompt):
+    height, width = screen.getmaxyx()
+    if height < 2 or width < 4:
+        return ""
+    typed = bytearray()
+    screen.timeout(-1)
+    curses.flushinp()
+    try:
+        curses.curs_set(1)
+    except curses.error:
+        pass
+    try:
+        while True:
+            note_line(screen, prompt, typed.decode("utf-8", "replace"), height, width)
+            key = screen.getch()
+            if key in ENTER_KEYS:
+                break
+            if key == ESCAPE_KEY:
+                typed = bytearray()
+                break
+            if key in BACKSPACE_KEYS:
+                if typed:
+                    typed.pop()
+            elif 32 <= key <= 255 and len(typed) < NOTE_LIMIT:
+                typed.append(key)
+    finally:
+        screen.timeout(POLL_MS)
+        try:
+            curses.curs_set(0)
+        except curses.error:
+            pass
+    return typed.decode("utf-8", "replace")
+
+
+def overlay(screen, title, lines, footer, fit=False):
     height, width = screen.getmaxyx()
     if height < PEEK_MIN_HEIGHT or width < PEEK_MIN_WIDTH:
         return -1
     box_height = max(int(height * PEEK_RATIO), PEEK_MIN_HEIGHT)
     box_width = max(int(width * PEEK_RATIO), PEEK_MIN_WIDTH)
+    if fit:
+        widest = max([cell_width(text) for text in list(lines) + [title, footer]] or [0])
+        box_width = max(min(box_width, widest + BOX_PADDING), PEEK_MIN_WIDTH)
+        box_height = max(min(box_height, len(wrap_block(lines, box_width - 4)) + 2), PEEK_MIN_HEIGHT)
     try:
         window = curses.newwin(box_height, box_width, (height - box_height) // 2, (width - box_width) // 2)
     except curses.error:
@@ -978,6 +1059,82 @@ def remove_session(row):
     return "removed %s" % row["short"]
 
 
+def menu_items(row):
+    row = row or {}
+    blocked = row.get("bucket") == "BLOCKED"
+    starred = bool(row.get("starred"))
+    items = []
+    for action, label, hint in MENU_ACTIONS:
+        if action == "peek" and blocked:
+            label = BLOCKED_PEEK_LABEL
+        elif action == "star" and starred:
+            label = UNSTAR_LABEL
+        items.append((action, label, hint))
+    return items
+
+
+def menu_lines(items):
+    room = max([len(label) for _action, label, _hint in items] or [0])
+    return ["%d. %-*s (%s)" % (index, room, label, hint) for index, (_action, label, hint) in enumerate(items, 1)]
+
+
+def menu_choice(key, items):
+    if key in ENTER_KEYS:
+        return items[0][0] if items else ""
+    index = key - ord("1")
+    if 0 <= index < len(items):
+        return items[index][0]
+    return ""
+
+
+def status_note(text, action):
+    return _flatten(text or "").strip() or DEFAULT_NOTES.get(action, "")
+
+
+def mark_status(row, action, note):
+    session_id = row.get("session_id") or ""
+    rc, text = run_out(["fleet-status", "--session", session_id, "--", action, note], ACTION_TIMEOUT)
+    if rc != 0:
+        return "fleet-status %s failed: %s" % (action, sanitize_context(text))
+    return "marked %s %s · %s" % (row.get("short") or "", action, note)
+
+
+def dispatch_action(screen, state, row, action):
+    if action == "pair":
+        state.message = pair_handoff(row["short"])
+    elif action == "peek":
+        message, followup = peek(screen, row)
+        if followup == "refresh":
+            refresh_model(state)
+        state.message = pair_handoff(row["short"]) if followup == "pair" else message
+    elif action == "star":
+        toggle_star(STARS_PATH, row["session_id"])
+        remodel(state)
+    elif action in DEFAULT_NOTES:
+        note = status_note(read_note(screen, NOTE_PROMPT % (action, row["short"])), action)
+        state.message = mark_status(row, action, note)
+        remodel(state)
+    elif action == "stop":
+        if confirm(screen, "stop %s?" % row["short"]):
+            state.message = stop_session(row)
+            refresh_model(state)
+    elif action == "remove":
+        if confirm(screen, "rm %s?" % row["short"]):
+            state.message = remove_session(row)
+            refresh_model(state)
+
+
+def open_menu(screen, state, row):
+    items = menu_items(row)
+    key = overlay(screen, peek_title(row), menu_lines(items), MENU_FOOTER % len(items), fit=True)
+    if key == -1:
+        state.message = MENU_TOO_SMALL
+        return
+    action = menu_choice(key, items)
+    if action:
+        dispatch_action(screen, state, row, action)
+
+
 def init_colors():
     colors = {
         "red": curses.A_BOLD,
@@ -1018,32 +1175,14 @@ def run(screen, state):
             move_selection(state, 1)
         elif key in (ord("k"), curses.KEY_UP):
             move_selection(state, -1)
-        elif key == ord("p"):
+        elif key in ACTION_KEYS:
             row = selected_row(state)
             if row:
-                toggle_star(STARS_PATH, row["session_id"])
-                remodel(state)
-        elif key == ord("s"):
-            row = selected_row(state)
-            if row and confirm(screen, "stop %s?" % row["short"]):
-                state.message = stop_session(row)
-                refresh_model(state)
-        elif key == ord("r"):
-            row = selected_row(state)
-            if row and confirm(screen, "rm %s?" % row["short"]):
-                state.message = remove_session(row)
-                refresh_model(state)
-        elif key == ord(" "):
-            row = selected_row(state)
-            if row:
-                message, action = peek(screen, row)
-                if action == "refresh":
-                    refresh_model(state)
-                state.message = pair_handoff(row["short"]) if action == "pair" else message
+                dispatch_action(screen, state, row, ACTION_KEYS[key])
         elif key in ENTER_KEYS:
             row = selected_row(state)
             if row:
-                state.message = pair_handoff(row["short"])
+                open_menu(screen, state, row)
         elif key == ord("R"):
             refresh_model(state, lanes=True)
         elif key == curses.KEY_RESIZE:

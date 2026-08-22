@@ -922,5 +922,480 @@ class BodyLinesAndScroll(unittest.TestCase):
         self.assertEqual(fleet.scroll_top([], 0, 3, 10), 0)
 
 
+class ActionMenuItems(unittest.TestCase):
+    def _row(self, **extra):
+        row = {"short": "abc12345", "name": "mn3/thing", "bucket": "AWAITING", "starred": False}
+        row.update(extra)
+        return row
+
+    def test_seven_items_in_the_locked_order(self):
+        items = fleet.menu_items(self._row())
+        self.assertEqual(
+            [action for action, _label, _hint in items],
+            ["pair", "peek", "complete", "awaiting", "star", "stop", "remove"],
+        )
+        self.assertEqual(
+            [label for _action, label, _hint in items],
+            ["pair in", "peek", "mark complete", "mark awaiting", "star", "stop", "remove"],
+        )
+
+    def test_every_hint_is_the_direct_key_for_the_same_action(self):
+        for action, _label, hint in fleet.menu_items(self._row()):
+            if hint == "enter":
+                continue
+            key = ord(" ") if hint == "space" else ord(hint)
+            self.assertEqual(fleet.ACTION_KEYS[key], action)
+
+    def test_enter_hint_belongs_to_the_first_item_only(self):
+        items = fleet.menu_items(self._row())
+        self.assertEqual(items[0][2], "enter")
+        self.assertNotIn("enter", [hint for _action, _label, hint in items[1:]])
+
+    def test_no_direct_key_strays_outside_the_menu(self):
+        actions = set(action for action, _label, _hint in fleet.menu_items(self._row()))
+        self.assertEqual(set(fleet.ACTION_KEYS.values()) - actions, set())
+
+    def test_blocked_row_offers_peek_plus_answer(self):
+        labels = dict((action, label) for action, label, _hint in fleet.menu_items(self._row(bucket="BLOCKED")))
+        self.assertEqual(labels["peek"], "peek + answer")
+
+    def test_settled_row_keeps_the_plain_peek_label(self):
+        labels = dict((action, label) for action, label, _hint in fleet.menu_items(self._row(bucket="COMPLETE")))
+        self.assertEqual(labels["peek"], "peek")
+
+    def test_star_label_flips_when_the_row_is_already_starred(self):
+        labels = dict((action, label) for action, label, _hint in fleet.menu_items(self._row(starred=True)))
+        self.assertEqual(labels["star"], "unstar")
+
+    def test_unstarred_row_says_star(self):
+        labels = dict((action, label) for action, label, _hint in fleet.menu_items(self._row()))
+        self.assertEqual(labels["star"], "star")
+
+    def test_missing_row_still_builds_the_full_menu(self):
+        self.assertEqual(len(fleet.menu_items(None)), len(fleet.MENU_ACTIONS))
+
+
+class ActionMenuLines(unittest.TestCase):
+    def _lines(self, row=None):
+        return fleet.menu_lines(fleet.menu_items(row or {"bucket": "WORKING", "starred": False}))
+
+    def test_lines_are_numbered_from_one(self):
+        lines = self._lines()
+        self.assertEqual([line.split(".")[0] for line in lines], [str(n) for n in range(1, len(lines) + 1)])
+
+    def test_each_line_carries_its_shortcut_in_brackets(self):
+        for line, (_action, _label, hint) in zip(self._lines(), fleet.menu_items({})):
+            self.assertTrue(line.endswith("(%s)" % hint))
+
+    def test_hints_line_up_in_one_column(self):
+        columns = set(line.index("(") for line in self._lines())
+        self.assertEqual(len(columns), 1)
+
+    def test_blocked_label_widens_the_column_without_breaking_it(self):
+        lines = self._lines({"bucket": "BLOCKED", "starred": True})
+        self.assertIn("peek + answer", lines[1])
+        self.assertIn("unstar", lines[4])
+        self.assertEqual(len(set(line.index("(") for line in lines)), 1)
+
+
+class ActionMenuChoice(unittest.TestCase):
+    def setUp(self):
+        self.items = fleet.menu_items({"bucket": "BLOCKED", "starred": False})
+
+    def test_digits_select_their_row(self):
+        for index, (action, _label, _hint) in enumerate(self.items, 1):
+            self.assertEqual(fleet.menu_choice(ord(str(index)), self.items), action)
+
+    def test_enter_inside_the_menu_pairs_in(self):
+        for key in fleet.ENTER_KEYS:
+            self.assertEqual(fleet.menu_choice(key, self.items), "pair")
+
+    def test_digit_past_the_last_item_closes(self):
+        self.assertEqual(fleet.menu_choice(ord("8"), self.items), "")
+        self.assertEqual(fleet.menu_choice(ord("9"), self.items), "")
+
+    def test_zero_and_any_other_key_close(self):
+        for key in (ord("0"), ord("x"), ord("q"), curses_key_down(), -1):
+            self.assertEqual(fleet.menu_choice(key, self.items), "")
+
+    def test_digit_maps_to_the_same_action_as_its_direct_key(self):
+        for index, (_action, _label, hint) in enumerate(self.items, 1):
+            if hint == "enter":
+                continue
+            key = ord(" ") if hint == "space" else ord(hint)
+            self.assertEqual(fleet.menu_choice(ord(str(index)), self.items), fleet.ACTION_KEYS[key])
+
+
+def curses_key_down():
+    return fleet.curses.KEY_DOWN
+
+
+class StatusNoteDefaults(unittest.TestCase):
+    def test_empty_note_falls_back_per_action(self):
+        self.assertEqual(fleet.status_note("", "complete"), "marked complete from fleet")
+        self.assertEqual(fleet.status_note("", "awaiting"), "marked awaiting from fleet")
+
+    def test_escape_and_whitespace_are_the_same_as_empty(self):
+        self.assertEqual(fleet.status_note(None, "complete"), fleet.status_note("   ", "complete"))
+        self.assertEqual(fleet.status_note("\t ", "awaiting"), "marked awaiting from fleet")
+
+    def test_typed_note_wins_and_is_flattened(self):
+        self.assertEqual(fleet.status_note("  manual test PR #7 \n", "complete"), "manual test PR #7")
+
+
+class MarkStatusCall(unittest.TestCase):
+    def setUp(self):
+        self._real_run_out = fleet.run_out
+        self.calls = []
+
+    def tearDown(self):
+        fleet.run_out = self._real_run_out
+
+    def _stub(self, rc, text):
+        def fake(args, timeout=10):
+            self.calls.append(args)
+            return rc, text
+
+        fleet.run_out = fake
+
+    def _row(self):
+        return {"short": "abc12345", "session_id": "a" * 36}
+
+    def test_shells_out_to_fleet_status_with_the_full_session_id(self):
+        self._stub(0, "fleet-status: complete recorded for abc12345\n")
+        message = fleet.mark_status(self._row(), "complete", "manual test PR #7")
+        self.assertEqual(self.calls[0][0], "fleet-status")
+        self.assertEqual(self.calls[0][self.calls[0].index("--session") + 1], "a" * 36)
+        self.assertEqual(self.calls[0][-2:], ["complete", "manual test PR #7"])
+        self.assertIn("manual test PR #7", message)
+        self.assertIn("abc12345", message)
+
+    def test_awaiting_passes_its_own_verb(self):
+        self._stub(0, "")
+        fleet.mark_status(self._row(), "awaiting", "needs a decision")
+        self.assertIn("awaiting", self.calls[0])
+
+    def test_note_that_looks_like_a_flag_stays_a_note(self):
+        self._stub(0, "")
+        fleet.mark_status(self._row(), "complete", "--stop was not meant")
+        args = self.calls[0]
+        self.assertLess(args.index("--"), args.index("--stop was not meant"))
+
+    def test_failure_is_reported_on_the_message_line(self):
+        self._stub(127, "no such file or directory: fleet-status")
+        message = fleet.mark_status(self._row(), "complete", "note")
+        self.assertIn("fleet-status complete failed", message)
+        self.assertIn("no such file", message)
+
+
+class ActionDispatch(unittest.TestCase):
+    class Screen(object):
+        def getmaxyx(self):
+            return 40, 120
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self.log = []
+        self.names = (
+            "pair_handoff",
+            "peek",
+            "toggle_star",
+            "remodel",
+            "refresh_model",
+            "read_note",
+            "mark_status",
+            "confirm",
+            "stop_session",
+            "remove_session",
+        )
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        fleet.pair_handoff = lambda short: self._record("pair", short)
+        fleet.peek = lambda screen, row: (self._record("peek", row["short"]), "")
+        fleet.toggle_star = lambda path, session_id: self._record("star", session_id)
+        fleet.remodel = lambda state: self._record("remodel", "")
+        fleet.refresh_model = lambda state, **kwargs: self._record("refresh", "")
+        fleet.read_note = lambda screen, prompt: self._record("prompt", prompt) and "typed note"
+        fleet.mark_status = lambda row, action, note: self._record("mark", "%s %s" % (action, note))
+        fleet.confirm = lambda screen, prompt: self._record("confirm", prompt) and True
+        fleet.stop_session = lambda row: self._record("stop", row["short"])
+        fleet.remove_session = lambda row: self._record("rm", row["short"])
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+
+    def _record(self, kind, detail):
+        self.log.append((kind, detail))
+        return "%s %s" % (kind, detail)
+
+    def _row(self, **extra):
+        row = {"short": "abc12345", "session_id": "a" * 36, "bucket": "AWAITING", "starred": False}
+        row.update(extra)
+        return row
+
+    def _dispatch(self, action, row=None):
+        state = fleet.FleetState()
+        fleet.dispatch_action(self.Screen(), state, row or self._row(), action)
+        return state
+
+    def test_every_menu_action_reaches_a_handler(self):
+        first = {
+            "pair": "pair",
+            "peek": "peek",
+            "complete": "prompt",
+            "awaiting": "prompt",
+            "star": "star",
+            "stop": "confirm",
+            "remove": "confirm",
+        }
+        for action, _label, _hint in fleet.menu_items(self._row()):
+            self.log = []
+            self._dispatch(action)
+            self.assertTrue(self.log, "%s did nothing" % action)
+            self.assertEqual(self.log[0][0], first[action])
+
+    def test_marking_prompts_then_records_then_remodels(self):
+        state = self._dispatch("complete")
+        self.assertEqual([kind for kind, _detail in self.log], ["prompt", "mark", "remodel"])
+        self.assertEqual(self.log[1][1], "complete typed note")
+        self.assertEqual(state.message, "mark complete typed note")
+
+    def test_the_note_prompt_names_the_action_and_the_row(self):
+        self._dispatch("awaiting")
+        self.assertIn("awaiting", self.log[0][1])
+        self.assertIn("abc12345", self.log[0][1])
+
+    def test_an_empty_note_becomes_the_default(self):
+        fleet.read_note = lambda screen, prompt: ""
+        self._dispatch("complete")
+        self.assertEqual(self.log[0], ("mark", "complete marked complete from fleet"))
+
+    def test_star_re_models_without_touching_the_cli(self):
+        self._dispatch("star")
+        self.assertEqual([kind for kind, _detail in self.log], ["star", "remodel"])
+
+    def test_a_declined_confirm_stops_at_the_prompt(self):
+        fleet.confirm = lambda screen, prompt: self._record("confirm", prompt) and False
+        state = self._dispatch("stop")
+        self.assertEqual([kind for kind, _detail in self.log], ["confirm"])
+        self.assertEqual(state.message, "")
+
+    def test_remove_refreshes_after_a_confirmed_rm(self):
+        state = self._dispatch("remove")
+        self.assertEqual([kind for kind, _detail in self.log], ["confirm", "rm", "refresh"])
+        self.assertEqual(state.message, "rm abc12345")
+
+    def test_peek_handing_off_to_pair_still_pairs(self):
+        fleet.peek = lambda screen, row: (self._record("peek", row["short"]), "pair")
+        state = self._dispatch("peek")
+        self.assertEqual([kind for kind, _detail in self.log], ["peek", "pair"])
+        self.assertEqual(state.message, "pair abc12345")
+
+    def test_an_answered_gate_refreshes(self):
+        fleet.peek = lambda screen, row: (self._record("peek", row["short"]), "refresh")
+        self._dispatch("peek")
+        self.assertEqual([kind for kind, _detail in self.log], ["peek", "refresh"])
+
+    def test_direct_keys_and_menu_digits_land_on_the_same_handler(self):
+        items = fleet.menu_items(self._row())
+        for index, (action, _label, hint) in enumerate(items, 1):
+            if hint == "enter":
+                continue
+            key = ord(" ") if hint == "space" else ord(hint)
+            self.log = []
+            self._dispatch(fleet.ACTION_KEYS[key])
+            direct = list(self.log)
+            self.log = []
+            self._dispatch(fleet.menu_choice(ord(str(index)), items))
+            self.assertEqual(direct, self.log, "%s took two different routes" % action)
+
+
+class OpenMenu(unittest.TestCase):
+    class Screen(object):
+        def getmaxyx(self):
+            return 40, 120
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self._saved = (fleet.overlay, fleet.dispatch_action)
+        self.dispatched = []
+        fleet.dispatch_action = lambda screen, state, row, action: self.dispatched.append(action)
+
+    def tearDown(self):
+        fleet.overlay, fleet.dispatch_action = self._saved
+
+    def _row(self):
+        return {"short": "abc12345", "name": "mn3/thing", "bucket": "BLOCKED", "starred": False}
+
+    def test_the_overlay_is_titled_with_the_row_and_lists_every_item(self):
+        seen = {}
+
+        def fake(screen, title, lines, footer, fit=False):
+            seen.update(title=title, lines=lines, footer=footer, fit=fit)
+            return ord("3")
+
+        fleet.overlay = fake
+        fleet.open_menu(self.Screen(), fleet.FleetState(), self._row())
+        self.assertIn("mn3/thing", seen["title"])
+        self.assertIn("abc12345", seen["title"])
+        self.assertEqual(len(seen["lines"]), len(fleet.MENU_ACTIONS))
+        self.assertIn("1-7", seen["footer"])
+        self.assertTrue(seen["fit"])
+        self.assertEqual(self.dispatched, ["complete"])
+
+    def test_enter_inside_the_menu_pairs_in(self):
+        fleet.overlay = lambda screen, title, lines, footer, fit=False: 10
+        fleet.open_menu(self.Screen(), fleet.FleetState(), self._row())
+        self.assertEqual(self.dispatched, ["pair"])
+
+    def test_any_other_key_closes_without_acting(self):
+        fleet.overlay = lambda screen, title, lines, footer, fit=False: ord("z")
+        state = fleet.FleetState()
+        fleet.open_menu(self.Screen(), state, self._row())
+        self.assertEqual(self.dispatched, [])
+        self.assertEqual(state.message, "")
+
+    def test_a_window_too_small_for_the_overlay_says_so(self):
+        fleet.overlay = lambda screen, title, lines, footer, fit=False: -1
+        state = fleet.FleetState()
+        fleet.open_menu(self.Screen(), state, self._row())
+        self.assertEqual(self.dispatched, [])
+        self.assertEqual(state.message, fleet.MENU_TOO_SMALL)
+
+
+class OverlayFit(unittest.TestCase):
+    class Fake(object):
+        def getmaxyx(self):
+            return 50, 200
+
+        def getch(self):
+            return ord("x")
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self._saved = (fleet.curses.newwin, fleet.curses.flushinp, fleet.curses.doupdate)
+        self.boxes = []
+        fleet.curses.newwin = lambda *args: self.boxes.append(args) or self.Fake()
+        fleet.curses.flushinp = lambda: None
+        fleet.curses.doupdate = lambda: None
+
+    def tearDown(self):
+        fleet.curses.newwin, fleet.curses.flushinp, fleet.curses.doupdate = self._saved
+
+    def _menu(self):
+        items = fleet.menu_items({"bucket": "WORKING", "starred": False})
+        return fleet.menu_lines(items), fleet.MENU_FOOTER % len(items)
+
+    def test_a_fitted_box_hugs_the_menu_instead_of_the_pane(self):
+        lines, footer = self._menu()
+        fleet.overlay(self.Fake(), "abc12345 mn3/thing", lines, footer, fit=True)
+        box_height, box_width = self.boxes[0][0], self.boxes[0][1]
+        self.assertEqual(box_height, len(lines) + 2)
+        self.assertLess(box_width, int(200 * fleet.PEEK_RATIO))
+        for line in lines + [footer, "abc12345 mn3/thing"]:
+            self.assertLessEqual(fleet.cell_width(line) + fleet.BOX_PADDING, box_width)
+
+    def test_a_fitted_box_stays_centred(self):
+        lines, footer = self._menu()
+        fleet.overlay(self.Fake(), "t", lines, footer, fit=True)
+        box_height, box_width, top, left = self.boxes[0]
+        self.assertEqual(top, (50 - box_height) // 2)
+        self.assertEqual(left, (200 - box_width) // 2)
+
+    def test_peek_keeps_the_big_box(self):
+        fleet.overlay(self.Fake(), "t", ["one line"], "any key close")
+        self.assertEqual(self.boxes[0][:2], (int(50 * fleet.PEEK_RATIO), int(200 * fleet.PEEK_RATIO)))
+
+    def test_a_fitted_box_never_drops_below_the_minimums(self):
+        fleet.overlay(self.Fake(), "t", ["a"], "f", fit=True)
+        self.assertGreaterEqual(self.boxes[0][0], fleet.PEEK_MIN_HEIGHT)
+        self.assertGreaterEqual(self.boxes[0][1], fleet.PEEK_MIN_WIDTH)
+
+    def test_a_fitted_box_never_outgrows_the_pane(self):
+        fleet.overlay(self.Fake(), "t" * 400, ["x" * 400] * 80, "f", fit=True)
+        self.assertEqual(self.boxes[0][:2], (int(50 * fleet.PEEK_RATIO), int(200 * fleet.PEEK_RATIO)))
+
+
+class ReadNote(unittest.TestCase):
+    class Screen(object):
+        def __init__(self, keys):
+            self.keys = list(keys)
+            self.timeouts = []
+
+        def getmaxyx(self):
+            return 40, 120
+
+        def getch(self):
+            return self.keys.pop(0)
+
+        def timeout(self, value):
+            self.timeouts.append(value)
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self._saved = (fleet.curses.flushinp, fleet.curses.doupdate, fleet.curses.curs_set)
+        fleet.curses.flushinp = lambda: None
+        fleet.curses.doupdate = lambda: None
+        fleet.curses.curs_set = lambda value: None
+
+    def tearDown(self):
+        fleet.curses.flushinp, fleet.curses.doupdate, fleet.curses.curs_set = self._saved
+
+    def _read(self, keys):
+        screen = self.Screen(keys)
+        return fleet.read_note(screen, "complete note for abc12345: "), screen
+
+    def test_typed_text_comes_back_on_enter(self):
+        text, screen = self._read([ord(c) for c in "PR #7"] + [10])
+        self.assertEqual(text, "PR #7")
+        self.assertEqual(screen.timeouts, [-1, fleet.POLL_MS])
+
+    def test_escape_yields_the_empty_note(self):
+        text, _screen = self._read([ord("a"), ord("b"), 27])
+        self.assertEqual(text, "")
+        self.assertEqual(fleet.status_note(text, "awaiting"), "marked awaiting from fleet")
+
+    def test_backspace_erases_the_last_character(self):
+        text, _screen = self._read([ord("a"), ord("b"), 127, ord("c"), 10])
+        self.assertEqual(text, "ac")
+
+    def test_backspace_on_an_empty_note_is_harmless(self):
+        text, _screen = self._read([curses_backspace(), 10])
+        self.assertEqual(text, "")
+
+    def test_a_very_long_note_is_capped(self):
+        text, _screen = self._read([ord("x")] * (fleet.NOTE_LIMIT + 40) + [10])
+        self.assertEqual(len(text), fleet.NOTE_LIMIT)
+
+    def test_arrow_keys_are_ignored(self):
+        text, _screen = self._read([fleet.curses.KEY_DOWN, ord("o"), fleet.curses.KEY_UP, ord("k"), 10])
+        self.assertEqual(text, "ok")
+
+    def test_utf8_bytes_are_reassembled(self):
+        text, _screen = self._read(list("é".encode("utf-8")) + [10])
+        self.assertEqual(text, "é")
+
+
+def curses_backspace():
+    return fleet.curses.KEY_BACKSPACE
+
+
+class Footer(unittest.TestCase):
+    def test_footer_advertises_the_menu_and_the_survivors(self):
+        self.assertEqual(fleet.FOOTER, "[enter]actions [space]peek [j/k]move [q]quit")
+
+    def test_footer_no_longer_lists_the_keys_the_menu_teaches(self):
+        for hint in ("[p]star", "[s]stop", "[r]rm", "[enter]pair"):
+            self.assertNotIn(hint, fleet.FOOTER)
+
+
 if __name__ == "__main__":
     unittest.main()
