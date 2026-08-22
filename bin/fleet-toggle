@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+want="${1:-}"
+root="${ENG_ROOT:-$HOME/engineering}"
+sess=''
+if [ -n "${TMUX_PANE:-}" ]; then
+  sess=$(tmux display-message -p -t "$TMUX_PANE" '#{session_id}' 2>/dev/null)
+elif [ -n "${TMUX:-}" ]; then
+  sess="\$${TMUX##*,}"
+fi
+win="${sess}:deck"
+panes=$(tmux list-panes -t "$win" -F '#{pane_id} #{pane_left} #{pane_current_command}' 2>/dev/null)
+if [ -z "$panes" ]; then
+  echo "no 'deck' window in this session — run deck first"; exit 1
+fi
+pane=$(printf '%s\n' "$panes" | awk '$2 == 0 { print $1; exit }')
+if [ -z "$pane" ]; then
+  echo "no leftmost pane in the deck window"; exit 1
+fi
+cmd=$(printf '%s\n' "$panes" | awk -v p="$pane" '$1 == p { print $3; exit }')
+case "$cmd" in
+  python|Python|python3) cur=fleet ;;
+  bash|zsh|sh|-bash|-zsh|-sh) cur=none ;;
+  *) cur=native ;;
+esac
+case "$want" in
+  fleet|native) ;;
+  '') case "$cur" in fleet) want=native ;; *) want=fleet ;; esac ;;
+  *) echo "usage: fleet-toggle [fleet|native]"; exit 1 ;;
+esac
+if [ "$want" = "$cur" ]; then
+  echo "deck inbox already showing $want"; exit 0
+fi
+if [ "$cur" != none ]; then
+  tries=0
+  while [ "$tries" -lt 2 ]; do
+    if [ "$cur" = fleet ]; then
+      tmux send-keys -t "$pane" q
+    else
+      tmux send-keys -t "$pane" -H 1b
+    fi
+    waits=0
+    while [ "$waits" -lt 3 ]; do
+      sleep 1
+      cmd=$(tmux display-message -p -t "$pane" '#{pane_current_command}' 2>/dev/null)
+      case "$cmd" in bash|zsh|sh|-bash|-zsh|-sh) break 2 ;; esac
+      waits=$((waits + 1))
+    done
+    tries=$((tries + 1))
+  done
+  case "$cmd" in
+    bash|zsh|sh|-bash|-zsh|-sh) ;;
+    *) echo "deck inbox pane still running '$cmd' after 2 tries — quit it by hand"; exit 1 ;;
+  esac
+fi
+tmux send-keys -t "$pane" C-u
+if [ "$want" = fleet ]; then
+  tmux send-keys -t "$pane" 'fleet' C-m
+else
+  tmux send-keys -t "$pane" "claude agents --cwd \"$root\" --dangerously-skip-permissions" C-m
+fi
+echo "deck inbox: $cur -> $want"

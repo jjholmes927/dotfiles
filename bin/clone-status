@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+lane_default_branch() {
+  local b
+  b=$(git -C "$1" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  b=${b#origin/}
+  echo "${b:-main}"
+}
+
+lane_live() {
+  claude agents --json 2>/dev/null | python3 -c '
+import json,sys
+try: rows=json.load(sys.stdin)
+except Exception: rows=[]
+print(sum(1 for r in rows if r.get("kind")=="interactive" and r.get("cwd")==sys.argv[1]))' "$1" 2>/dev/null || echo 0
+}
+
+printf '%-5s %-42s %6s %7s %4s %5s\n' LANE BRANCH DIRTY BEHIND WTS LIVE
+for lane in ${LANES:-mn1 mn2 mn3 mn4 mn5}; do
+  root=${ENG_ROOT:-$HOME/engineering}/$lane
+  [ -d "$root" ] || continue
+  git -C "$root" fetch origin "$(lane_default_branch "$root")" --quiet 2>/dev/null
+  branch=$(git -C "$root" branch --show-current)
+  dirty=$(git -C "$root" status --porcelain | wc -l | tr -d ' ')
+  behind=$(git -C "$root" rev-list --count "$(lane_default_branch "$root")..origin/$(lane_default_branch "$root")" 2>/dev/null || echo '?')
+  wts=$(git -C "$root" worktree list | grep -c worktrees)
+  live=$(lane_live "$root")
+  printf '%-5s %-42s %6s %7s %4s %5s\n' "$lane" "$branch" "$dirty" "$behind" "$wts" "$live"
+done

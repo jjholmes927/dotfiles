@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+name=${1:-interpret}
+root="${ENG_ROOT:-$HOME/engineering}"
+cheat="$(dirname "$(readlink "$HOME/.tmux.conf" 2>/dev/null)")/deck-cheat"
+
+if ! tmux has-session -t "=$name" 2>/dev/null; then
+  if [ -n "${TMUX:-}" ]; then
+    w=$(tmux display -p '#{client_width}'); h=$(tmux display -p '#{client_height}')
+  else
+    w=$(tput cols 2>/dev/null || echo 200); h=$(tput lines 2>/dev/null || echo 60)
+  fi
+  [ "${w:-0}" -ge 120 ] 2>/dev/null || w=200; [ "${h:-0}" -ge 35 ] 2>/dev/null || h=60
+  fleet=$(tmux new-session -d -s "$name" -c "$root" -n deck -x "$w" -y "$h" -P -F '#{pane_id}')
+  tmux set-option -w -t "=$name:deck" automatic-rename off
+  case "${DECK_INBOX:-}" in
+    fleet) inbox='fleet' ;;
+    *) inbox="claude agents --cwd \"$root\" --dangerously-skip-permissions" ;;
+  esac
+  tmux send-keys -t "$fleet" "$inbox" C-m
+  right=$(tmux split-window -h -l 56 -t "$fleet" -c "$root" -P -F '#{pane_id}')
+  ops=$(tmux split-window -v -l 14 -t "$right" -c "$root" -P -F '#{pane_id}')
+  if [ -x "$cheat" ]; then
+    ch=$(tmux display -p -t "$right" '#{pane_height}')
+    [ "${ch:-0}" -gt 8 ] 2>/dev/null || ch=20
+    tmux send-keys -t "$right" "clear; \"$cheat\" | head -n $((ch-4))" C-m
+  fi
+  tmux send-keys -t "$ops" 'clone-status' C-m
+  tmux select-pane -t "$fleet"
+  tmux new-window -t "=$name" -n pair -c "$root"
+  tmux select-window -t "=$name:deck"
+fi
+tmux source-file "$HOME/.tmux.conf" >/dev/null 2>&1 || true
+if [ -n "${TMUX:-}" ]; then tmux switch-client -t "=$name"; else tmux attach -t "=$name"; fi

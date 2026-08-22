@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+agent_pick() {
+  claude agents --json 2>/dev/null | python3 -c '
+import json,sys
+q=(sys.argv[1] if len(sys.argv)>1 else "").lower()
+try: rows=json.load(sys.stdin)
+except Exception: rows=[]
+rows=[r for r in rows if r.get("sessionId")]
+for r in rows: r["short"]=r["sessionId"][:8]
+me=(sys.argv[2] if len(sys.argv)>2 else "")
+rows=[r for r in rows if r["sessionId"]!=me]
+if q:
+    hits=[r for r in rows if r["short"].startswith(q)] \
+      or [r for r in rows if q in (r.get("name") or "").lower()]
+else:
+    hits=[r for r in rows if r.get("kind")=="background"]
+if len(hits)==1:
+    print("OK", hits[0]["short"], hits[0].get("name") or "")
+else:
+    print("AMBIGUOUS" if hits else "NONE")
+    for r in (hits or rows):
+        print("  %-9s %-11s %-7s %s" % (r["short"], r.get("kind",""), r.get("status",""), r.get("name") or ""))
+' "$1" "${CLAUDE_CODE_SESSION_ID:-${CLAUDE_SESSION_ID:-}}"
+}
+
+res=$(agent_pick "${1:-}")
+verdict=$(printf '%s' "$res" | head -1 | awk '{print $1}')
+if [ "$verdict" != "OK" ]; then
+  printf '%s\n' "$res" | sed '1s/^NONE$/no match — running sessions:/;1s/^AMBIGUOUS$/more than one match:/'
+  exit 1
+fi
+id=$(printf '%s' "$res" | head -1 | awk '{print $2}')
+nm=$(printf '%s' "$res" | head -1 | cut -d' ' -f3-)
+if [ -z "${TMUX:-}" ]; then claude attach "$id"; exit; fi
+if ! tmux list-windows -F '#W' | grep -qx pair; then
+  echo "no 'pair' window in this session — run deck first"; exit 1
+fi
+cmd=$(tmux display-message -p -t ':pair' '#{pane_current_command}')
+case "$cmd" in
+  bash|zsh|sh) ;;
+  *) echo "pair window is busy running '$cmd' — detach it first (<-)"; exit 1 ;;
+esac
+tmux send-keys -t ':pair' C-u
+tmux send-keys -t ':pair' "claude attach $id" C-m
+tmux select-window -t ':pair'
+echo "pair -> $id  $nm"

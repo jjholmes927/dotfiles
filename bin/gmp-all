@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+lane_default_branch() {
+  local b
+  b=$(git -C "$1" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  b=${b#origin/}
+  echo "${b:-main}"
+}
+
+for lane in ${LANES:-mn1 mn2 mn3 mn4 mn5}; do
+  root=${ENG_ROOT:-$HOME/engineering}/$lane
+  [ -d "$root" ] || continue
+  if [ "$(git -C "$root" branch --show-current)" != "$(lane_default_branch "$root")" ] || [ -n "$(git -C "$root" status --porcelain | head -1)" ]; then
+    lane-sweep "$lane"; rc=$?
+    if [ "$rc" != "0" ]; then echo "SKIP $lane: needs sweep but $([ "$rc" = "2" ] && echo "a live session is in the lane root" || echo "sweep failed")"; continue; fi
+  fi
+  git -C "$root" fetch origin "$(lane_default_branch "$root")" --quiet
+  if git -C "$root" pull --ff-only --quiet 2>/dev/null; then
+    echo "$lane: main @ $(git -C "$root" log --oneline -1 | cut -c1-60)"
+  else
+    echo "SKIP $lane: pull --ff-only failed"
+  fi
+done

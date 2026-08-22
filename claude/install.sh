@@ -87,8 +87,10 @@ chmod +x "$SCRIPT_DIR/sync-mcps.sh"
 
 header "Fleet tools (~/.local/bin)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-link "$REPO_DIR/bin/fleet-status" "$HOME/.local/bin/fleet-status"
-link "$REPO_DIR/bin/fleet" "$HOME/.local/bin/fleet"
+for tool in fleet fleet-status deck pair new-agent clone-status lane-sweep gmp-all closure-sweep fleet-toggle; do
+  chmod +x "$REPO_DIR/bin/$tool"
+  link "$REPO_DIR/bin/$tool" "$HOME/.local/bin/$tool"
+done
 
 header "Done"
 if [[ -d "$BACKUP_DIR" ]]; then
