@@ -23,14 +23,14 @@ One terminal surface for the whole day loop: lane health at a glance, streams so
   ★ 7feaaa4d mn3/phone-hub-routing   12m
       verify run.services.list permission?
   ── WORKING ──────────────────────────
-    092b2a4b mn2/check-alert         41m
+  ● 092b2a4b mn2/check-alert         41m
       > Finding ElevenLabs callers                         ← live row: the transcript tail
   ── COMPLETE ─────────────────────────
-    ad68d9fc gather-feedback         2h
+  ● ad68d9fc gather-feedback         2h
       INT-842 done, PR #9403                               ← sidecar note; PR # parsed from it
   ── AWAITING / STOPPED groups follow, same shape ──
 
-  [j/k]move [p]star [space]peek [enter]pair [s]stop [r]rm [R]refresh [q]quit
+  [enter]actions [space]peek [j/k]move [q]quit
                                                            ← key footer, verbatim
 ```
 
@@ -63,13 +63,17 @@ Sidecars are consulted only for ended sessions; a stale sidecar from a previous 
 
 ## Keys
 
+Every action lives in one dispatch table, reached either from the menu or from its own key on the selected row; the footer lists only the four keys the menu cannot teach.
+
 | Key | Action |
 |-----|--------|
 | `j`/`k`, arrows | move selection |
-| `p` | star/unstar the selected stream |
+| `Enter` | open the **action menu** on the selected row — a bordered overlay titled with the row, seven items in a fixed order: `1` pair in, `2` peek (`peek + answer` on a BLOCKED row), `3` mark complete, `4` mark awaiting, `5` star (`unstar` when starred), `6` stop, `7` remove. Digits `1`–`7` fire an item; `Enter` inside the menu fires item 1, so `Enter Enter` stays the pair hand-off; any other key closes it |
+| `1` (menu) | hand the session to the pair window (send `claude attach <id>` to `:pair`, guarded like `pair()`: refuse if pair is busy, `C-u` first) |
 | `Space` | peek: BLOCKED → live question via hidden tmux attach + `capture-pane`; other states → last assistant text from the session transcript (`~/.claude/projects/<slug>/<sessionId>.jsonl`) |
 | `1`–`9` | while peeking a BLOCKED row: answer via `send-keys` into the hidden attach, then kill it and re-poll |
-| `Enter` | hand the session to the pair window (send `claude attach <id>` to `:pair`, guarded like `pair()`: refuse if pair is busy, `C-u` first) |
+| `c` / `a` | mark the row complete/awaiting by hand: prompt for a one-line note on the message row (Esc or an empty line → `marked complete from fleet` / `marked awaiting from fleet`), then shell out to `fleet-status <verb> <note> --session <full session id>` — the sidecar keeps one writer — and re-model so the row moves in the same frame |
+| `p` | star/unstar the selected stream |
 | `r` | `claude rm` with confirm; warns when the worktree is provisioned (`claude rm` won't reap it — offer the `git worktree remove` + `branch -D` commands) |
 | `s` | `claude stop` with confirm |
 | `R` | force refresh |
