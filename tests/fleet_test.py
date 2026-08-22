@@ -90,7 +90,7 @@ class RemodelBucketsFromRawCliStatus(unittest.TestCase):
         state = fleet.FleetState()
         state.sessions = fleet.enrich_sessions([session], {})
         fleet.remodel(state)
-        return state.rows[0]
+        return fleet.model_rows(state.model)[0]
 
     def _session(self, session_id, **extra):
         session = {
@@ -1159,14 +1159,30 @@ class HasQuestion(unittest.TestCase):
 
 
 class BellCheck(unittest.TestCase):
+    def _model(self, pairs):
+        rows = [{"session_id": session_id, "bucket": bucket} for session_id, bucket in pairs]
+        return {"counts": {}, "lanes": [], "groups": [("ALL", rows)]}
+
     def _state(self, pairs):
         state = fleet.FleetState()
-        state.rows = [{"session_id": session_id, "bucket": bucket} for session_id, bucket in pairs]
+        state.model = self._model(pairs)
         return state
 
     def _poll(self, state, pairs):
-        state.rows = [{"session_id": session_id, "bucket": bucket} for session_id, bucket in pairs]
+        state.model = self._model(pairs)
         return fleet.bell_check(state)
+
+    def test_a_folded_row_still_rings(self):
+        state = self._state([("a", "WORKING")])
+        fleet.bell_check(state)
+        state.model = {
+            "counts": {},
+            "lanes": [],
+            "groups": [("COMPLETE", [{"session_id": "a", "bucket": "COMPLETE", "age_seconds": fleet.FOLD_AFTER + 60}])],
+        }
+        fleet.reflow(state)
+        self.assertEqual(state.rows, [])
+        self.assertTrue(fleet.bell_check(state))
 
     def test_first_poll_is_a_silent_baseline(self):
         state = self._state([("a", "BLOCKED"), ("b", "COMPLETE")])
@@ -2759,6 +2775,314 @@ class NewStreamKey(unittest.TestCase):
         fleet.poll_dispatch = lambda state: polls.append(1) and False
         self._run([-1, -1, ord("q")])
         self.assertGreaterEqual(len(polls), 3)
+
+
+OLD_ENOUGH = fleet.FOLD_AFTER + 60
+STILL_FRESH = fleet.FOLD_AFTER - 60
+
+
+def fold_row_fixture(bucket, age, starred=False, session_id="a"):
+    return {
+        "session_id": session_id,
+        "short": session_id,
+        "name": "row-%s" % session_id,
+        "age": "1d",
+        "age_seconds": age,
+        "starred": starred,
+        "bucket": bucket,
+        "context": "context",
+        "pr": None,
+    }
+
+
+def fold_state(groups, expanded=False):
+    state = fleet.FleetState()
+    state.model = {"counts": {}, "lanes": [], "groups": groups}
+    state.expanded = expanded
+    fleet.reflow(state)
+    return state
+
+
+class FoldRules(unittest.TestCase):
+    def test_every_bucket_folds_only_where_it_should(self):
+        expected = {
+            ("BLOCKED", True): False,
+            ("BLOCKED", False): False,
+            ("WORKING", True): False,
+            ("WORKING", False): False,
+            ("COMPLETE", True): True,
+            ("COMPLETE", False): False,
+            ("AWAITING", True): True,
+            ("AWAITING", False): False,
+            ("STOPPED", True): True,
+            ("STOPPED", False): True,
+        }
+        for (bucket, old), folded in sorted(expected.items()):
+            age = OLD_ENOUGH if old else STILL_FRESH
+            self.assertEqual(fleet.fold_row(bucket, age, False), folded, (bucket, old))
+            self.assertFalse(fleet.fold_row(bucket, age, True), (bucket, old))
+            self.assertFalse(fleet.fold_row(bucket, age, False, True), (bucket, old))
+
+    def test_every_bucket_is_covered_by_the_rule(self):
+        self.assertEqual(sorted(fleet.FOLD_BUCKETS + fleet.FOLD_ALWAYS), ["AWAITING", "COMPLETE", "STOPPED"])
+
+    def test_the_threshold_is_forty_eight_hours_and_exclusive(self):
+        self.assertEqual(fleet.FOLD_AFTER, 48 * 3600)
+        self.assertFalse(fleet.fold_row("COMPLETE", fleet.FOLD_AFTER, False))
+        self.assertTrue(fleet.fold_row("COMPLETE", fleet.FOLD_AFTER + 1, False))
+
+    def test_an_unreadable_age_folds_only_the_stopped_row(self):
+        self.assertFalse(fleet.fold_row("COMPLETE", None, False))
+        self.assertFalse(fleet.fold_row("AWAITING", None, False))
+        self.assertTrue(fleet.fold_row("STOPPED", None, False))
+
+    def test_the_row_wrapper_reads_the_same_fields_the_model_writes(self):
+        self.assertTrue(fleet.row_folded(fold_row_fixture("AWAITING", OLD_ENOUGH)))
+        self.assertFalse(fleet.row_folded(fold_row_fixture("AWAITING", OLD_ENOUGH, starred=True)))
+        self.assertFalse(fleet.row_folded(fold_row_fixture("AWAITING", OLD_ENOUGH), True))
+
+    def test_age_seconds_reads_the_stamp_the_age_column_reads(self):
+        started = 1000.0 * 1000
+        self.assertEqual(fleet.age_seconds(started, 1000.0 + fleet.FOLD_AFTER), fleet.FOLD_AFTER)
+        self.assertEqual(fleet.format_age(started, 1000.0 + fleet.FOLD_AFTER), "2d")
+        self.assertEqual(fleet.age_seconds(started, 500.0), 0.0)
+        self.assertIsNone(fleet.age_seconds("not-a-stamp"))
+        self.assertEqual(fleet.format_age("not-a-stamp"), "?")
+
+    def test_the_model_carries_the_age_in_seconds(self):
+        sessions = [
+            {"sessionId": "z" * 36, "id": "zzzzzzzz", "name": "n", "state": "done", "status": "idle", "cwd": "/e", "startedAt": 1}
+        ]
+        row = fleet.build_model(sessions, {}, set(), [])["groups"][0][1][0]
+        self.assertGreater(row["age_seconds"], fleet.FOLD_AFTER)
+        self.assertTrue(fleet.row_folded(row))
+
+
+class FoldedGroups(unittest.TestCase):
+    def test_fold_groups_splits_visible_rows_from_a_hidden_count(self):
+        rows = [
+            fold_row_fixture("COMPLETE", STILL_FRESH, session_id="fresh"),
+            fold_row_fixture("COMPLETE", OLD_ENOUGH, session_id="old"),
+        ]
+        self.assertEqual(fleet.fold_groups([("COMPLETE", rows)]), [("COMPLETE", [rows[0]], 1)])
+        self.assertEqual(fleet.fold_groups([("COMPLETE", rows)], True), [("COMPLETE", rows, 0)])
+
+    def test_a_starred_old_row_survives_the_fold(self):
+        rows = [
+            fold_row_fixture("STOPPED", OLD_ENOUGH, starred=True, session_id="star"),
+            fold_row_fixture("STOPPED", STILL_FRESH, session_id="plain"),
+        ]
+        self.assertEqual(fleet.fold_groups([("STOPPED", rows)]), [("STOPPED", [rows[0]], 1)])
+
+    def test_foldable_count_ignores_the_current_view(self):
+        rows = [
+            fold_row_fixture("AWAITING", OLD_ENOUGH, session_id="a"),
+            fold_row_fixture("AWAITING", OLD_ENOUGH, session_id="b"),
+            fold_row_fixture("AWAITING", STILL_FRESH, session_id="c"),
+        ]
+        self.assertEqual(fleet.foldable_count([("AWAITING", rows)]), 2)
+
+    def test_a_fully_folded_group_renders_only_its_header(self):
+        rows = [fold_row_fixture("STOPPED", STILL_FRESH, session_id=str(index)) for index in range(3)]
+        state = fold_state([("STOPPED", rows)])
+        lines = fleet.body_lines(state, 120)
+        self.assertEqual([line[1] for line in lines], ["spacer", "header"])
+        self.assertTrue(lines[1][0].endswith("· 3 hidden"))
+        self.assertEqual(state.rows, [])
+
+    def test_a_partly_folded_group_keeps_its_rows_and_counts_the_rest(self):
+        rows = [
+            fold_row_fixture("AWAITING", STILL_FRESH, session_id="live"),
+            fold_row_fixture("AWAITING", OLD_ENOUGH, session_id="old"),
+        ]
+        state = fold_state([("AWAITING", rows)])
+        lines = fleet.body_lines(state, 120)
+        self.assertEqual([line[1] for line in lines], ["spacer", "header", "row", "context"])
+        self.assertTrue(lines[1][0].endswith("· 1 hidden"))
+        self.assertEqual([line[3] for line in lines if line[1] == "row"], [0])
+
+    def test_no_spacer_is_left_where_a_folded_row_used_to_sit(self):
+        rows = [
+            fold_row_fixture("COMPLETE", STILL_FRESH, session_id="a"),
+            fold_row_fixture("COMPLETE", OLD_ENOUGH, session_id="b"),
+            fold_row_fixture("COMPLETE", STILL_FRESH, session_id="c"),
+        ]
+        kinds = [line[1] for line in fleet.body_lines(fold_state([("COMPLETE", rows)]), 120)]
+        self.assertEqual(kinds, ["spacer", "header", "row", "context", "spacer", "row", "context"])
+
+    def test_an_unfolded_header_carries_no_count(self):
+        rows = [fold_row_fixture("COMPLETE", OLD_ENOUGH, session_id="a")]
+        header = fleet.body_lines(fold_state([("COMPLETE", rows)], expanded=True), 120)[1][0]
+        self.assertNotIn("hidden", header)
+        self.assertEqual(header, fleet.format_group_header("COMPLETE", 120))
+
+    def test_the_header_count_stays_inside_a_narrow_window(self):
+        header = fleet.format_group_header("COMPLETE", 24, 4)
+        self.assertLessEqual(fleet.cell_width(header), 24)
+
+    def test_the_body_index_still_addresses_the_visible_rows(self):
+        rows = [
+            fold_row_fixture("STOPPED", STILL_FRESH, session_id="gone"),
+            fold_row_fixture("AWAITING", STILL_FRESH, session_id="here"),
+        ]
+        state = fold_state([("STOPPED", [rows[0]]), ("AWAITING", [rows[1]])])
+        state.selected = 0
+        lines = fleet.body_lines(state, 120)
+        selected = [line[2] for line in lines if line[3] == 0 and line[1] == "row"]
+        self.assertEqual(state.rows, [rows[1]])
+        self.assertEqual(selected, [rows[1]])
+
+    def test_the_banner_counts_everything_even_when_nothing_shows(self):
+        sessions = [
+            {"sessionId": "s" * 36, "id": "ssssssss", "name": "old", "state": "stopped", "status": "idle", "cwd": "/e", "startedAt": 1}
+        ]
+        state = fleet.FleetState()
+        state.model = fleet.build_model(sessions, {}, set(), [])
+        fleet.reflow(state)
+        self.assertEqual(state.rows, [])
+        self.assertEqual(state.model["counts"]["STOPPED"], 1)
+        self.assertIn("1 STOPPED", fleet.format_banner(state, 120))
+
+
+class FoldFooter(unittest.TestCase):
+    def _state(self, groups, expanded=False):
+        return fold_state(groups, expanded)
+
+    def test_nothing_foldable_leaves_the_footer_alone(self):
+        rows = [fold_row_fixture("WORKING", OLD_ENOUGH, session_id="w")]
+        self.assertEqual(fleet.footer_text(self._state([("WORKING", rows)])), fleet.FOOTER)
+        self.assertEqual(fleet.fold_hint(0, False), "")
+        self.assertEqual(fleet.fold_hint(0, True), "")
+
+    def test_hidden_rows_advertise_the_show_key_with_the_live_count(self):
+        rows = [
+            fold_row_fixture("COMPLETE", OLD_ENOUGH, session_id="a"),
+            fold_row_fixture("COMPLETE", OLD_ENOUGH, session_id="b"),
+            fold_row_fixture("COMPLETE", STILL_FRESH, session_id="c"),
+        ]
+        self.assertEqual(fleet.footer_text(self._state([("COMPLETE", rows)])), fleet.FOOTER + " [S]show 2")
+
+    def test_the_expanded_footer_offers_to_hide_them_again(self):
+        rows = [fold_row_fixture("STOPPED", STILL_FRESH, session_id="a")]
+        self.assertEqual(fleet.footer_text(self._state([("STOPPED", rows)], True)), fleet.FOOTER + " [S]hide")
+
+    def test_an_empty_fleet_keeps_the_plain_footer(self):
+        self.assertEqual(fleet.footer_text(fleet.FleetState()), fleet.FOOTER)
+
+
+class FoldToggle(unittest.TestCase):
+    def _rows(self):
+        return [
+            fold_row_fixture("COMPLETE", STILL_FRESH, session_id="live"),
+            fold_row_fixture("COMPLETE", OLD_ENOUGH, session_id="old"),
+        ]
+
+    def test_toggling_flips_the_view_both_ways(self):
+        state = fold_state([("COMPLETE", self._rows())])
+        self.assertEqual(len(state.rows), 1)
+        self.assertTrue(fleet.toggle_fold(state))
+        self.assertEqual(len(state.rows), 2)
+        self.assertTrue(fleet.toggle_fold(state))
+        self.assertEqual(len(state.rows), 1)
+
+    def test_toggling_is_a_no_op_when_nothing_would_fold(self):
+        rows = [fold_row_fixture("WORKING", OLD_ENOUGH, session_id="w")]
+        state = fold_state([("WORKING", rows)])
+        self.assertFalse(fleet.toggle_fold(state))
+        self.assertFalse(state.expanded)
+        self.assertEqual(len(state.rows), 1)
+
+    def test_refolding_moves_the_selection_off_the_hidden_row(self):
+        rows = self._rows()
+        state = fold_state([("COMPLETE", rows)], expanded=True)
+        state.selected, state.selected_id = 1, "old"
+        fleet.toggle_fold(state)
+        self.assertEqual(state.rows, [rows[0]])
+        self.assertEqual((state.selected, state.selected_id), (0, "live"))
+        self.assertEqual(fleet.selected_row(state), rows[0])
+
+    def test_a_visible_selection_survives_the_toggle(self):
+        rows = self._rows()
+        state = fold_state([("COMPLETE", rows)])
+        self.assertEqual(state.selected_id, "live")
+        fleet.toggle_fold(state)
+        self.assertEqual((state.selected, state.selected_id), (0, "live"))
+
+    def test_folding_everything_empties_the_selection_until_it_is_shown(self):
+        rows = [fold_row_fixture("STOPPED", STILL_FRESH, session_id=name) for name in ("s1", "s2")]
+        state = fold_state([("STOPPED", rows)])
+        self.assertEqual((state.rows, state.selected, state.selected_id), ([], 0, ""))
+        self.assertIsNone(fleet.selected_row(state))
+        fleet.toggle_fold(state)
+        self.assertEqual(len(state.rows), 2)
+        self.assertEqual(state.selected_id, "s1")
+
+
+class FoldKeyRouting(unittest.TestCase):
+    class Screen(object):
+        def __init__(self, keys):
+            self.keys = list(keys)
+
+        def getmaxyx(self):
+            return 40, 120
+
+        def getch(self):
+            return self.keys.pop(0) if self.keys else ord("q")
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self.names = ("paint", "init_colors", "start_worker")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        self._curs_set = fleet.curses.curs_set
+        self.worker = fleet.DataWorker()
+        self.footers = []
+        fleet.paint = lambda screen, state: self.footers.append(fleet.footer_text(state))
+        fleet.init_colors = lambda: {}
+        fleet.start_worker = self._start
+        fleet.curses.curs_set = lambda value: None
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+        fleet.curses.curs_set = self._curs_set
+
+    def _start(self, state):
+        state.worker = self.worker
+        return self.worker
+
+    def _state(self):
+        rows = [
+            fold_row_fixture("COMPLETE", STILL_FRESH, session_id="live"),
+            fold_row_fixture("COMPLETE", OLD_ENOUGH, session_id="old"),
+        ]
+        return fold_state([("COMPLETE", rows)])
+
+    def _run(self, keys, state):
+        fleet.run(self.Screen(keys), state)
+        return state
+
+    def test_S_shows_the_folded_rows_and_hides_them_again(self):
+        state = self._run([fleet.FOLD_KEY, fleet.FOLD_KEY, ord("q")], self._state())
+        self.assertEqual(
+            self.footers,
+            [fleet.FOOTER + " [S]show 1", fleet.FOOTER + " [S]hide", fleet.FOOTER + " [S]show 1"],
+        )
+        self.assertFalse(state.expanded)
+        self.assertEqual(len(state.rows), 1)
+
+    def test_S_does_nothing_when_nothing_would_fold(self):
+        rows = [fold_row_fixture("WORKING", OLD_ENOUGH, session_id="w")]
+        state = self._run([fleet.FOLD_KEY, ord("q")], fold_state([("WORKING", rows)]))
+        self.assertFalse(state.expanded)
+        self.assertEqual(self.footers, [fleet.FOOTER, fleet.FOOTER])
+
+    def test_the_fold_key_never_collides_with_the_action_keys(self):
+        self.assertEqual(fleet.FOLD_KEY, ord("S"))
+        self.assertNotIn(fleet.FOLD_KEY, fleet.ACTION_KEYS)
+        self.assertEqual(fleet.ACTION_KEYS[ord("s")], "stop")
+        self.assertNotEqual(fleet.FOLD_KEY, fleet.DISPATCH_KEY)
 
 
 class InputLoopLatency(unittest.TestCase):

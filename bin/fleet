@@ -94,6 +94,13 @@ ENTER_KEYS = (curses.KEY_ENTER, 10, 13)
 ESCAPE_KEY = 27
 BACKSPACE_KEYS = (curses.KEY_BACKSPACE, 127, 8)
 FOOTER = "[enter]actions [space]peek [n]new [j/k]move [q]quit"
+FOLD_AFTER = 48 * 3600
+FOLD_BUCKETS = ("COMPLETE", "AWAITING")
+FOLD_ALWAYS = ("STOPPED",)
+FOLD_KEY = ord("S")
+FOLD_SHOW = " [S]show %d"
+FOLD_HIDE = " [S]hide"
+HIDDEN_SUFFIX = " · %d hidden"
 DISPATCH_TOOL = "new-agent"
 DISPATCH_KEY = ord("n")
 LANE_PROMPT = "new stream lane: "
@@ -313,14 +320,20 @@ def toggle_star(path, session_id):
     return stars
 
 
-def format_age(started_at, now=None):
+def age_seconds(started_at, now=None):
     try:
         started = float(started_at) / 1000.0
     except (TypeError, ValueError):
+        return None
+    elapsed = (time.time() if now is None else now) - started
+    return elapsed if elapsed > 0 else 0.0
+
+
+def format_age(started_at, now=None):
+    elapsed = age_seconds(started_at, now)
+    if elapsed is None:
         return "?"
-    elapsed = int((time.time() if now is None else now) - started)
-    if elapsed < 0:
-        elapsed = 0
+    elapsed = int(elapsed)
     if elapsed < 60:
         return "%ds" % elapsed
     if elapsed < 3600:
@@ -371,6 +384,7 @@ def build_model(sessions, sidecars, stars, lanes):
             "bucket": bucket,
             "started_at": started_at,
             "age": format_age(started_at),
+            "age_seconds": age_seconds(started_at),
             "note": note,
             "pr": parse_pr(note),
             "starred": session_id in stars,
@@ -393,6 +407,42 @@ def _sort_key(started_at):
         return float(started_at)
     except (TypeError, ValueError):
         return float("inf")
+
+
+def fold_row(bucket, age, starred, expanded=False):
+    if expanded or starred:
+        return False
+    if bucket in FOLD_ALWAYS:
+        return True
+    if bucket not in FOLD_BUCKETS:
+        return False
+    return age is not None and age > FOLD_AFTER
+
+
+def row_folded(row, expanded=False):
+    return fold_row(row.get("bucket"), row.get("age_seconds"), row.get("starred"), expanded)
+
+
+def fold_groups(groups, expanded=False):
+    folded = []
+    for bucket, rows in groups or []:
+        visible = [row for row in rows if not row_folded(row, expanded)]
+        folded.append((bucket, visible, len(rows) - len(visible)))
+    return folded
+
+
+def foldable_count(groups):
+    return sum(hidden for _bucket, _rows, hidden in fold_groups(groups, False))
+
+
+def fold_hint(hidden, expanded):
+    if not hidden:
+        return ""
+    return FOLD_HIDE if expanded else FOLD_SHOW % hidden
+
+
+def model_rows(model):
+    return [row for _bucket, rows in (model or {}).get("groups") or [] for row in rows]
 
 
 def count_segments(counts):
@@ -943,6 +993,7 @@ class FleetState(object):
         self.colors = {}
         self.message = ""
         self.buckets = None
+        self.expanded = False
         self.worker = None
         self.dispatch = None
         self.dirty = True
@@ -974,7 +1025,7 @@ def take_snapshot(state):
 
 
 def bell_check(state):
-    current = dict((row["session_id"], row["bucket"]) for row in state.rows)
+    current = dict((row["session_id"], row["bucket"]) for row in model_rows(state.model))
     previous = state.buckets
     state.buckets = current
     if previous is None:
@@ -995,8 +1046,24 @@ def ring_bell(state):
 
 def remodel(state):
     state.model = build_model(state.sessions, read_sidecars(SIDECAR_DIR), read_stars(STARS_PATH), state.lanes)
-    state.rows = [row for _, rows in state.model["groups"] for row in rows]
+    reflow(state)
+
+
+def reflow(state):
+    state.rows = [
+        row
+        for _bucket, rows, _hidden in fold_groups(state.model.get("groups") or [], state.expanded)
+        for row in rows
+    ]
     restore_selection(state)
+
+
+def toggle_fold(state):
+    if not foldable_count(state.model.get("groups") or []):
+        return False
+    state.expanded = not state.expanded
+    reflow(state)
+    return True
 
 
 def restore_selection(state):
@@ -1033,20 +1100,25 @@ def format_banner(state, width):
     return text
 
 
-def format_group_header(bucket, width):
+def format_group_header(bucket, width, hidden=0):
     prefix = "%s%s " % (HEADER_PREFIX, bucket)
     rule = min(width, HEADER_WIDTH)
-    if rule <= len(prefix):
-        return _clip(prefix, width)
-    return prefix + "─" * (rule - len(prefix))
+    line = prefix if rule <= len(prefix) else prefix + "─" * (rule - len(prefix))
+    if hidden:
+        line += HIDDEN_SUFFIX % hidden
+    return _clip(line, width)
+
+
+def footer_text(state):
+    return FOOTER + fold_hint(foldable_count(state.model.get("groups") or []), state.expanded)
 
 
 def body_lines(state, width):
     lines = []
     index = 0
-    for bucket, rows in state.model.get("groups") or []:
+    for bucket, rows, hidden in fold_groups(state.model.get("groups") or [], state.expanded):
         lines.append(("", "spacer", None, -1))
-        lines.append((format_group_header(bucket, width), "header", bucket, -1))
+        lines.append((format_group_header(bucket, width, hidden), "header", bucket, -1))
         for position, row in enumerate(rows):
             if position:
                 lines.append(("", "spacer", None, -1))
@@ -1155,7 +1227,7 @@ def paint(screen, state):
     if state.message:
         attr = color_attr(state, "yellow")
         _put(screen, height - 2, 0, _clip(_flatten(state.message), width - 1), attr, width - 1)
-    _put(screen, height - 1, 0, _clip(FOOTER, width - 1), curses.A_DIM, width - 1)
+    _put(screen, height - 1, 0, _clip(footer_text(state), width - 1), curses.A_DIM, width - 1)
     screen.noutrefresh()
     curses.doupdate()
 
@@ -1678,6 +1750,8 @@ def run(screen, state):
                     open_menu(screen, state, row)
             elif key == DISPATCH_KEY:
                 state.message = new_stream(screen, state)
+            elif key == FOLD_KEY:
+                toggle_fold(state)
             elif key == ord("R"):
                 refresh_model(state, lanes=True)
             elif key == curses.KEY_RESIZE:

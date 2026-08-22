@@ -38,6 +38,8 @@ Decisions from the workstyle interview (usage is a mix of glance / batch visits 
 - **Counts banner** is the first line — readable in two seconds from across the window.
 - **Lanes strip** second: configured `$LANES` always (branch ✓/DIRTY, worktree count); other `$ENG_ROOT` repos appear only while they host a stream. Streams in `$ENG_ROOT` itself show untagged.
 - **State groups**, attention-first: BLOCKED → WORKING → COMPLETE → AWAITING → STOPPED. Empty groups collapse.
+- **Old settled rows fold** (display only): every STOPPED row, plus COMPLETE/AWAITING rows older than 48h by the same `startedAt` the age column reads, are hidden by default; their group header gains a dim ` · N hidden` and a fully folded group renders as just that header, with no rows and no spacers. BLOCKED/WORKING rows and starred rows never fold. Selection and scrolling skip the hidden rows — a selection that folds away moves to the nearest visible row — while the counts banner, the bell and bucketing keep seeing everything.
+- **`S` shows them**: the footer gains ` [S]show N` with the live count while anything is hidden and reads ` [S]hide` while expanded; when nothing would fold there is no footer entry and `S` does nothing.
 - **Every row is two lines**: id · name · age, then a dim context line (dropped below 80 cols) — live rows (BLOCKED/WORKING) show the transcript tail, falling back to the CLI activity string; settled rows (COMPLETE/AWAITING/STOPPED) show the sidecar note, falling back to that same tail. Any `PR #NNNN` parsed from the note (no GitHub calls) renders as a bold badge on the row's **first** line, after the age — not inside the context line.
 - **Stars**: `p` toggles a star on a stream; starred rows sort first inside their group and render ★. Persisted one session id per line in `~/.claude/fleet-stars`; stale ids are harmless and ignored.
 
@@ -63,7 +65,7 @@ Sidecars are consulted only for ended sessions; a stale sidecar from a previous 
 
 ## Keys
 
-Every action lives in one dispatch table, reached either from the menu or from its own key on the selected row; the footer lists only the four keys the menu cannot teach.
+Every action lives in one dispatch table, reached either from the menu or from its own key on the selected row; the footer lists only the four keys the menu cannot teach, plus the `S` fold toggle while there is anything to fold.
 
 | Key | Action |
 |-----|--------|
@@ -77,6 +79,7 @@ Every action lives in one dispatch table, reached either from the menu or from i
 | `n` | dispatch a new stream: lane prompt (first word validated as a dir under `$ENG_ROOT`, extra words pass through) then stream prompt, run via `new-agent` in a background process — outcome on the message line, one dispatch at a time, Esc cancels |
 | `r` | `claude rm` with confirm; warns when the worktree is provisioned (`claude rm` won't reap it — offer the `git worktree remove` + `branch -D` commands) |
 | `s` | `claude stop` with confirm |
+| `S` | show/hide the folded rows — every STOPPED row and every COMPLETE/AWAITING row older than 48h, starred rows excepted; a no-op when nothing would fold |
 | `R` | force refresh |
 | `q` | quit |
 
