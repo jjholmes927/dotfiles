@@ -364,6 +364,90 @@ class Formatting(unittest.TestCase):
         row = {"short": "aaaaaaaa", "name": "n", "age": "2h", "context": "c", "starred": False, "bucket": "COMPLETE", "pr": None}
         self.assertNotIn("PR", fleet.format_row(row, 120, False)[0])
 
+    def test_row_opens_with_the_state_dot(self):
+        row = {"short": "aaaaaaaa", "name": "n", "age": "2h", "context": "c", "starred": False, "bucket": "WORKING"}
+        self.assertTrue(fleet.format_row(row, 120, False)[0].startswith("● aaaaaaaa"))
+
+    def test_star_replaces_the_dot_and_keeps_the_width(self):
+        plain = {"short": "aaaaaaaa", "name": "n", "age": "2h", "context": "c", "starred": False, "bucket": "WORKING"}
+        starred = dict(plain, starred=True)
+        first = fleet.format_row(plain, 120, False)[0]
+        second = fleet.format_row(starred, 120, False)[0]
+        self.assertTrue(second.startswith("★ aaaaaaaa"))
+        self.assertNotIn("●", second)
+        self.assertEqual(len(first), len(second))
+
+    def test_parts_line_up_with_the_rendered_line(self):
+        row = {"short": "aaaaaaaa", "name": "mn3/thing", "age": "12m", "context": "c", "starred": False, "bucket": "BLOCKED", "pr": "#9403"}
+        parts, text = fleet.row_parts(row, 120)
+        self.assertEqual([role for _column, _chunk, role in parts], ["glyph", "short", "name", "age", "badge"])
+        for column, chunk, _role in parts:
+            self.assertEqual(text[column : column + len(chunk)], chunk)
+
+
+class MarkdownNoise(unittest.TestCase):
+    def test_context_line_drops_bold_markers_and_backticks(self):
+        row = {"short": "aaaaaaaa", "name": "n", "age": "1m", "starred": False, "bucket": "WORKING",
+               "context": "**Done** — ran `pytest` and it passed"}
+        line = fleet.format_row(row, 120, False)[1]
+        self.assertNotIn("**", line)
+        self.assertNotIn("`", line)
+        self.assertIn("Done — ran pytest and it passed", line)
+
+    def test_sanitize_context_drops_markdown_too(self):
+        self.assertEqual(fleet.sanitize_context("**Plan**: run `make`"), "Plan: run make")
+
+    def test_single_asterisk_is_left_alone(self):
+        self.assertEqual(fleet.sanitize_context("2 * 3 stays"), "2 * 3 stays")
+
+
+class WideGlyphClipping(unittest.TestCase):
+    def test_emoji_context_never_spills_past_the_pane(self):
+        row = {"short": "aaaaaaaa", "name": "n", "age": "1m", "starred": False, "bucket": "COMPLETE",
+               "context": "🟢 ✅ " + "x" * 400}
+        line = fleet.format_row(row, 120, False)[1]
+        self.assertLessEqual(fleet.cell_width(line), 120)
+        self.assertTrue(line.endswith("…"))
+
+    def test_plain_text_still_clips_by_characters(self):
+        self.assertEqual(fleet._clip("abcdef", 4), "abc…")
+        self.assertEqual(fleet._clip("abc", 4), "abc")
+
+    def test_row_line_fits_the_pane_with_a_starred_glyph(self):
+        row = {"short": "aaaaaaaa", "name": "n" * 300, "age": "1m", "starred": True, "bucket": "WORKING"}
+        self.assertLessEqual(fleet.cell_width(fleet.format_row(row, 100, False)[0]), 100)
+
+
+class ColorSystem(unittest.TestCase):
+    def test_every_bucket_has_its_own_colour(self):
+        names = [fleet.BUCKET_COLORS[bucket] for bucket in fleet.BUCKET_ORDER]
+        self.assertEqual(len(set(names)), len(fleet.BUCKET_ORDER))
+
+    def test_count_segments_columns_match_the_banner_text(self):
+        counts = {"BLOCKED": 2, "WORKING": 3, "COMPLETE": 1}
+        text = fleet.format_counts(counts, 120)
+        for column, chunk, bucket in fleet.count_segments(counts):
+            self.assertEqual(text[column : column + len(chunk)], chunk)
+            self.assertIn(bucket, chunk)
+
+    def test_header_label_sits_after_the_prefix(self):
+        header = fleet.format_group_header("WORKING", 120)
+        start = len(fleet.HEADER_PREFIX)
+        self.assertEqual(header[start : start + len("WORKING")], "WORKING")
+
+    def test_lane_marks_locate_the_glyphs(self):
+        line = fleet.format_lane_strip(
+            [{"name": "mn1", "dirty": False, "worktrees": 2}, {"name": "mn3", "dirty": True, "worktrees": 1}], 120
+        )[0]
+        marks = fleet.lane_marks(line)
+        self.assertEqual([(chunk, name) for _column, chunk, name in marks], [("✓", "green"), ("DIRTY", "red")])
+        for column, chunk, _name in marks:
+            self.assertEqual(line[column : column + len(chunk)], chunk)
+
+    def test_error_lane_mark_is_yellow(self):
+        line = fleet.format_lane_strip([{"name": "mn9", "error": True}], 120)[0]
+        self.assertEqual([(chunk, name) for _column, chunk, name in fleet.lane_marks(line)], [("?", "yellow")])
+
 
 class LaneStrip(unittest.TestCase):
     def test_clean_and_dirty_lanes(self):
@@ -768,9 +852,36 @@ class BodyLinesAndScroll(unittest.TestCase):
 
     def test_header_and_two_lines_per_row_with_only_rows_indexed(self):
         lines = fleet.body_lines(self._state(3, 0), 120)
-        self.assertEqual(len(lines), 1 + 2 * 3)
-        self.assertEqual(lines[0][3], -1)
-        self.assertEqual([line[3] for line in lines[1:]], [0, 0, 1, 1, 2, 2])
+        self.assertEqual([line[1] for line in lines[:3]], ["spacer", "header", "row"])
+        self.assertEqual([line[3] for line in lines if line[1] in ("row", "context")], [0, 0, 1, 1, 2, 2])
+        self.assertTrue(all(line[3] == -1 for line in lines if line[1] in ("spacer", "header")))
+
+    def test_a_blank_spacer_sits_between_rows_and_before_the_header(self):
+        lines = fleet.body_lines(self._state(3, 0), 120)
+        self.assertEqual(lines[0], ("", "spacer", None, -1))
+        kinds = [line[1] for line in lines]
+        self.assertEqual(
+            kinds,
+            ["spacer", "header"] + ["row", "context", "spacer"] * 2 + ["row", "context"],
+        )
+        self.assertTrue(all(not line[0] for line in lines if line[1] == "spacer"))
+
+    def test_two_groups_get_one_spacer_before_each_header(self):
+        state = self._state(2, 0)
+        first, second = state.rows[0], state.rows[1]
+        second["bucket"] = "COMPLETE"
+        state.model["groups"] = [("WORKING", [first]), ("COMPLETE", [second])]
+        kinds = [line[1] for line in fleet.body_lines(state, 120)]
+        self.assertEqual(kinds, ["spacer", "header", "row", "context", "spacer", "header", "row", "context"])
+
+    def test_spacers_never_take_the_selection_and_stay_out_of_the_scroll_spots(self):
+        state = self._state(4, 2)
+        lines = fleet.body_lines(state, 120)
+        spots = [position for position, line in enumerate(lines) if line[3] == state.selected]
+        self.assertEqual([lines[spot][1] for spot in spots], ["row", "context"])
+        top = fleet.scroll_top(lines, state.selected, 0, 5)
+        self.assertGreaterEqual(spots[0], top)
+        self.assertLess(spots[-1], top + 5)
 
     def test_selected_row_is_fully_visible_at_a_small_height(self):
         state = self._state(12, 9)

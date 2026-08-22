@@ -10,6 +10,7 @@ import subprocess
 import sys
 import textwrap
 import time
+import unicodedata
 
 BUCKET_ORDER = ["BLOCKED", "WORKING", "COMPLETE", "AWAITING", "STOPPED"]
 ENG_ROOT = os.environ.get("ENG_ROOT", os.path.expanduser("~/engineering"))
@@ -25,12 +26,33 @@ SLUG_PATTERN = re.compile(r"[^A-Za-z0-9]")
 ANSI_PATTERN = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]|\x1b[@-Z\\-_]")
 CONTROL_PATTERN = re.compile(r"[\x00-\x1f\x7f]")
 BLANK_PATTERN = re.compile(r"\s+")
+MARKDOWN_PATTERN = re.compile(r"\*\*|`")
+WIDE_WIDTHS = ("W", "F")
 TAIL_BYTES = 65536
 SESSION_INTERVAL = 3.0
 LANE_INTERVAL = 15.0
 POLL_MS = 250
 HEADER_WIDTH = 60
-STAR_COLUMN = 2
+HEADER_PREFIX = "── "
+COUNT_SEPARATOR = " · "
+STALE_PREFIX = "stale since "
+ROW_GLYPH = "●"
+STAR_GLYPH = "★"
+COLOR_SLOTS = (
+    ("red", curses.COLOR_RED),
+    ("yellow", curses.COLOR_YELLOW),
+    ("green", curses.COLOR_GREEN),
+    ("cyan", curses.COLOR_CYAN),
+)
+BUCKET_COLORS = {
+    "BLOCKED": "red",
+    "WORKING": "cyan",
+    "COMPLETE": "green",
+    "AWAITING": "yellow",
+    "STOPPED": "dim",
+}
+LANE_MARK_PATTERN = re.compile(r"DIRTY|✓|\?")
+LANE_MARK_COLORS = {"DIRTY": "red", "✓": "green", "?": "yellow"}
 WORKTREE_CONTAINERS = ((".worktrees",), (".claude", "worktrees"))
 PAIR_WINDOW = "pair"
 PAIR_TARGET = ":pair"
@@ -61,14 +83,26 @@ class FleetError(Exception):
     pass
 
 
+def cell_width(text):
+    return sum(2 if unicodedata.east_asian_width(char) in WIDE_WIDTHS else 1 for char in text or "")
+
+
 def _clip(text, width):
     if width <= 0:
         return ""
-    if len(text) <= width:
+    if cell_width(text) <= width:
         return text
     if width == 1:
         return text[:1]
-    return text[: width - 1] + "…"
+    used = 0
+    kept = []
+    for char in text:
+        step = 2 if unicodedata.east_asian_width(char) in WIDE_WIDTHS else 1
+        if used + step > width - 1:
+            break
+        kept.append(char)
+        used += step
+    return "".join(kept) + "…"
 
 
 def _flatten(text):
@@ -289,9 +323,24 @@ def _sort_key(started_at):
         return float("inf")
 
 
+def count_segments(counts):
+    segments = []
+    column = 0
+    for bucket in BUCKET_ORDER:
+        if not (counts or {}).get(bucket):
+            continue
+        if segments:
+            column += len(COUNT_SEPARATOR)
+        text = "%d %s" % (counts[bucket], bucket)
+        segments.append((column, text, bucket))
+        column += len(text)
+    return segments
+
+
 def format_counts(counts, width):
-    parts = ["%d %s" % (counts.get(bucket, 0), bucket) for bucket in BUCKET_ORDER if counts.get(bucket)]
-    return _clip(" · ".join(parts) if parts else "no streams", width)
+    segments = count_segments(counts)
+    joined = COUNT_SEPARATOR.join(text for _column, text, _bucket in segments)
+    return _clip(joined if segments else "no streams", width)
 
 
 def _lane_cell(lane):
@@ -328,17 +377,38 @@ def pr_badge(row):
     return ("PR %s" % number) if number else ""
 
 
-def format_row(row, width, selected):
-    marker = ">" if selected else " "
-    star = "★" if row.get("starred") else " "
+def lane_marks(line):
+    return [
+        (match.start(), match.group(), LANE_MARK_COLORS[match.group()])
+        for match in LANE_MARK_PATTERN.finditer(line or "")
+    ]
+
+
+def row_parts(row, width):
+    glyph = STAR_GLYPH if row.get("starred") else ROW_GLYPH
+    short = (row.get("short") or "")[:8]
+    age = row.get("age") or ""
     badge = pr_badge(row)
-    tail = (row.get("age") or "") + ("  " + badge if badge else "")
-    head = "%s %s %-8s " % (marker, star, (row.get("short") or "")[:8])
+    tail = age + ("  " + badge if badge else "")
+    head = "%s %-8s " % (glyph, short)
     room = max(width - len(head) - len(tail) - 1, 8)
     name = _clip(row.get("name") or "", room)
-    lines = [_clip(head + name.ljust(room) + " " + tail, width)]
+    tail_column = len(head) + room + 1
+    parts = [(0, glyph, "glyph"), (2, short, "short"), (len(head), name, "name"), (tail_column, age, "age")]
+    if badge:
+        parts.append((tail_column + len(age) + 2, badge, "badge"))
+    text = _clip(head + name.ljust(room) + " " + tail, width)
+    return [part for part in parts if part[1]], text
+
+
+def row_context(row):
+    return strip_markdown(_flatten(row.get("context") or "")).strip()
+
+
+def format_row(row, width, selected=False):
+    lines = [row_parts(row, width)[1]]
     if width >= NARROW_WIDTH:
-        lines.append(_clip(CONTEXT_INDENT + _flatten(row.get("context") or "").strip(), width))
+        lines.append(_clip(CONTEXT_INDENT + row_context(row), width))
     return lines
 
 
@@ -371,8 +441,12 @@ def strip_visual(text):
     return CONTROL_PATTERN.sub(" ", ANSI_PATTERN.sub("", text or ""))
 
 
+def strip_markdown(text):
+    return MARKDOWN_PATTERN.sub("", text or "")
+
+
 def sanitize_context(text):
-    return BLANK_PATTERN.sub(" ", strip_visual(text)).strip()
+    return BLANK_PATTERN.sub(" ", strip_markdown(strip_visual(text))).strip()
 
 
 def capture_lines(text):
@@ -617,7 +691,7 @@ def format_banner(state, width):
 
 
 def format_group_header(bucket, width):
-    prefix = "── %s " % bucket
+    prefix = "%s%s " % (HEADER_PREFIX, bucket)
     rule = min(width, HEADER_WIDTH)
     if rule <= len(prefix):
         return _clip(prefix, width)
@@ -628,10 +702,12 @@ def body_lines(state, width):
     lines = []
     index = 0
     for bucket, rows in state.model.get("groups") or []:
-        lines.append((format_group_header(bucket, width), "header", None, -1))
-        for row in rows:
-            chosen = index == state.selected
-            for offset, text in enumerate(format_row(row, width, chosen)):
+        lines.append(("", "spacer", None, -1))
+        lines.append((format_group_header(bucket, width), "header", bucket, -1))
+        for position, row in enumerate(rows):
+            if position:
+                lines.append(("", "spacer", None, -1))
+            for offset, text in enumerate(format_row(row, width, index == state.selected)):
                 lines.append((text, "row" if offset == 0 else "context", row, index))
             index += 1
     return lines
@@ -649,12 +725,33 @@ def scroll_top(lines, selected, top, height):
     return max(0, min(top, max(0, len(lines) - height)))
 
 
-def line_attr(state, kind, row, chosen):
+def color_attr(state, name, bold=True):
+    attr = state.colors.get(name, curses.A_NORMAL)
+    if bold and name != "dim":
+        attr |= curses.A_BOLD
+    return attr
+
+
+def bucket_attr(state, bucket, bold=True):
+    return color_attr(state, BUCKET_COLORS.get(bucket, "dim"), bold)
+
+
+def part_attr(state, role, row):
+    if role == "glyph":
+        return color_attr(state, "yellow") if row.get("starred") else bucket_attr(state, row.get("bucket"))
+    if role == "name":
+        return curses.A_BOLD if row.get("bucket") == "BLOCKED" else curses.A_NORMAL
+    if role == "badge":
+        return color_attr(state, "green")
+    return color_attr(state, "dim")
+
+
+def line_attr(state, kind, payload, chosen):
+    if kind == "spacer":
+        return curses.A_NORMAL
     if kind == "header":
-        return curses.A_DIM
+        return color_attr(state, "dim")
     attr = curses.A_NORMAL
-    if row.get("bucket") == "BLOCKED":
-        attr |= state.colors.get("red", curses.A_NORMAL)
     if kind == "context":
         attr |= curses.A_DIM
     if chosen:
@@ -672,6 +769,12 @@ def _put(screen, y, x, text, attr, width):
         pass
 
 
+def _put_part(screen, y, x, text, attr, line, width):
+    if x < 0 or x + len(text) > len(line):
+        return
+    _put(screen, y, x, text, attr, width)
+
+
 def paint(screen, state):
     screen.erase()
     height, width = screen.getmaxyx()
@@ -680,30 +783,34 @@ def paint(screen, state):
         screen.noutrefresh()
         curses.doupdate()
         return
-    y = 0
-    _put(screen, y, 0, format_banner(state, width), curses.A_BOLD, width)
-    y += 2
+    banner = format_banner(state, width)
+    _put(screen, 0, 0, banner, color_attr(state, "dim"), width)
+    for column, text, bucket in count_segments(state.model.get("counts") or {}):
+        _put_part(screen, 0, column, text, bucket_attr(state, bucket), banner, width)
+    stale = banner.find(STALE_PREFIX)
+    if stale >= 0:
+        _put(screen, 0, stale, banner[stale:], color_attr(state, "yellow"), width)
+    y = 2
     for line in format_lane_strip(state.lanes, width):
         _put(screen, y, 0, line, curses.A_NORMAL, width)
+        for column, mark, name in lane_marks(line):
+            _put_part(screen, y, column, mark, color_attr(state, name), line, width)
         y += 1
-    y += 1
     region = height - 1 - y - (1 if state.message else 0)
     lines = body_lines(state, width)
     state.top = scroll_top(lines, state.selected, state.top, region)
-    for offset, (text, kind, row, index) in enumerate(lines[state.top : state.top + max(region, 0)]):
+    for offset, (text, kind, payload, index) in enumerate(lines[state.top : state.top + max(region, 0)]):
         chosen = index == state.selected and index >= 0
-        attr = line_attr(state, kind, row, chosen)
+        attr = line_attr(state, kind, payload, chosen)
         _put(screen, y + offset, 0, text, attr, width)
-        if kind == "row" and row.get("starred") and width > STAR_COLUMN:
-            star = state.colors.get("yellow", curses.A_NORMAL) | (curses.A_REVERSE if chosen else 0)
-            _put(screen, y + offset, STAR_COLUMN, "★", star, width)
-        if kind == "row":
-            badge = pr_badge(row)
-            column = text.rfind(badge) if badge else -1
-            if column >= 0:
-                _put(screen, y + offset, column, badge, attr | curses.A_BOLD, width)
+        if kind == "header":
+            _put_part(screen, y + offset, len(HEADER_PREFIX), payload, bucket_attr(state, payload), text, width)
+        elif kind == "row":
+            reverse = curses.A_REVERSE if chosen else 0
+            for column, chunk, role in row_parts(payload, width)[0]:
+                _put_part(screen, y + offset, column, chunk, part_attr(state, role, payload) | reverse, text, width)
     if state.message:
-        attr = state.colors.get("yellow", curses.A_NORMAL)
+        attr = color_attr(state, "yellow")
         _put(screen, height - 2, 0, _clip(_flatten(state.message), width - 1), attr, width - 1)
     _put(screen, height - 1, 0, _clip(FOOTER, width - 1), curses.A_DIM, width - 1)
     screen.noutrefresh()
@@ -872,15 +979,23 @@ def remove_session(row):
 
 
 def init_colors():
-    colors = {"red": curses.A_BOLD, "yellow": curses.A_BOLD}
+    colors = {
+        "red": curses.A_BOLD,
+        "yellow": curses.A_BOLD,
+        "green": curses.A_BOLD,
+        "cyan": curses.A_NORMAL,
+        "dim": curses.A_DIM,
+    }
     try:
         curses.start_color()
         curses.use_default_colors()
-        curses.init_pair(1, curses.COLOR_RED, -1)
-        curses.init_pair(2, curses.COLOR_YELLOW, -1)
+        for slot, (_name, color) in enumerate(COLOR_SLOTS, 1):
+            curses.init_pair(slot, color, -1)
     except curses.error:
         return colors
-    return {"red": curses.color_pair(1) | curses.A_BOLD, "yellow": curses.color_pair(2) | curses.A_BOLD}
+    for slot, (name, _color) in enumerate(COLOR_SLOTS, 1):
+        colors[name] = curses.color_pair(slot)
+    return colors
 
 
 def run(screen, state):
