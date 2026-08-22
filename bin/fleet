@@ -9,6 +9,7 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 import textwrap
 import threading
 import time
@@ -92,7 +93,22 @@ ORPHAN_WINDOW_WARNING = "tmux new-window gave no window id — a hidden attach w
 ENTER_KEYS = (curses.KEY_ENTER, 10, 13)
 ESCAPE_KEY = 27
 BACKSPACE_KEYS = (curses.KEY_BACKSPACE, 127, 8)
-FOOTER = "[enter]actions [space]peek [j/k]move [q]quit"
+FOOTER = "[enter]actions [space]peek [n]new [j/k]move [q]quit"
+DISPATCH_TOOL = "new-agent"
+DISPATCH_KEY = ord("n")
+LANE_PROMPT = "new stream lane: "
+STREAM_PROMPT = "new stream in %s: "
+PROMPT_LIMIT = 400
+DISPATCH_LOG_PREFIX = "fleet-dispatch-"
+BACKGROUNDED_PATTERN = re.compile(r"backgrounded\s*·\s*(\S+)\s*·\s*(\S+)")
+DISPATCH_BUSY = "dispatch already running"
+DISPATCH_STARTED = "dispatching %s…"
+DISPATCH_DONE = "dispatched %s %s"
+DISPATCH_FAILED = "new-agent failed: %s"
+DISPATCH_QUIET = "new-agent said nothing about a stream: %s"
+DISPATCH_NO_LANE = "no such lane: %s"
+DISPATCH_NO_INPUT = "no lane typed"
+DISPATCH_NO_OUTPUT = "no output"
 MENU_ACTIONS = (
     ("pair", "pair in", "enter"),
     ("peek", "peek", "space"),
@@ -928,6 +944,7 @@ class FleetState(object):
         self.message = ""
         self.buckets = None
         self.worker = None
+        self.dispatch = None
         self.dirty = True
 
 
@@ -1186,7 +1203,7 @@ def note_line(screen, prompt, text, height, width):
     curses.doupdate()
 
 
-def read_note(screen, prompt):
+def read_note(screen, prompt, limit=NOTE_LIMIT):
     height, width = screen.getmaxyx()
     if height < 2 or width < 4:
         return ""
@@ -1210,7 +1227,7 @@ def read_note(screen, prompt):
             if key in BACKSPACE_KEYS:
                 if typed:
                     typed.pop()
-            elif 32 <= key <= 255 and len(typed) < NOTE_LIMIT:
+            elif 32 <= key <= 255 and len(typed) < limit:
                 typed.append(key)
     finally:
         screen.timeout(POLL_MS)
@@ -1419,6 +1436,109 @@ def remove_session(row):
     return "removed %s" % row["short"]
 
 
+class DispatchJob(object):
+    def __init__(self, proc, log, lane):
+        self.proc = proc
+        self.log = log
+        self.lane = lane
+
+
+def split_lane_input(text):
+    fields = _flatten(text or "").split()
+    if not fields:
+        return "", []
+    return fields[0], fields[1:]
+
+
+def lane_exists(lane, eng_root=None):
+    if not lane or lane.startswith(".") or os.sep in lane:
+        return False
+    return os.path.isdir(os.path.join(os.path.normpath(eng_root or ENG_ROOT), lane))
+
+
+def dispatch_argv(lane, extra, prompt):
+    return [DISPATCH_TOOL, lane] + list(extra or []) + [prompt]
+
+
+def dispatch_outcome(rc, text):
+    lines = [strip_visual(line) for line in (text or "").splitlines() if line.strip()]
+    last = sanitize_context(lines[-1]) if lines else DISPATCH_NO_OUTPUT
+    if rc != 0:
+        return DISPATCH_FAILED % last
+    for line in reversed(lines):
+        match = BACKGROUNDED_PATTERN.search(line)
+        if match:
+            return DISPATCH_DONE % (match.group(1), match.group(2))
+    return DISPATCH_QUIET % last
+
+
+def read_dispatch_log(job):
+    try:
+        job.log.close()
+    except OSError:
+        pass
+    try:
+        with open(job.log.name, "r", encoding="utf-8", errors="replace") as handle:
+            text = handle.read()
+    except OSError:
+        text = ""
+    try:
+        os.unlink(job.log.name)
+    except OSError:
+        pass
+    return text
+
+
+def start_dispatch(state, lane, extra, prompt):
+    try:
+        log = tempfile.NamedTemporaryFile(prefix=DISPATCH_LOG_PREFIX, suffix=".log", delete=False)
+    except OSError as error:
+        return DISPATCH_FAILED % (str(error) or "no scratch file")
+    try:
+        proc = subprocess.Popen(
+            dispatch_argv(lane, extra, prompt),
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        job = DispatchJob(None, log, lane)
+        read_dispatch_log(job)
+        return DISPATCH_FAILED % (str(error) or DISPATCH_TOOL)
+    state.dispatch = DispatchJob(proc, log, lane)
+    return DISPATCH_STARTED % lane
+
+
+def poll_dispatch(state):
+    job = state.dispatch
+    if job is None or job.proc.poll() is None:
+        return False
+    state.dispatch = None
+    state.message = dispatch_outcome(job.proc.returncode, read_dispatch_log(job))
+    refresh_model(state)
+    return True
+
+
+def new_stream(screen, state):
+    if state.dispatch is not None:
+        return DISPATCH_BUSY
+    typed = read_note(screen, LANE_PROMPT)
+    if typed is None:
+        return NOTE_CANCELLED
+    lane, extra = split_lane_input(typed)
+    if not lane:
+        return DISPATCH_NO_INPUT
+    if not lane_exists(lane):
+        return DISPATCH_NO_LANE % lane
+    prompt = read_note(screen, STREAM_PROMPT % lane, PROMPT_LIMIT)
+    if prompt is None:
+        return NOTE_CANCELLED
+    prompt = _flatten(prompt).strip()
+    if not prompt:
+        return NOTE_CANCELLED
+    return start_dispatch(state, lane, extra, prompt)
+
+
 def menu_items(row):
     row = row or {}
     blocked = row.get("bucket") == "BLOCKED"
@@ -1532,6 +1652,8 @@ def run(screen, state):
         while True:
             if take_snapshot(state):
                 state.dirty = True
+            if poll_dispatch(state):
+                state.dirty = True
             if state.dirty:
                 paint(screen, state)
                 state.dirty = False
@@ -1554,6 +1676,8 @@ def run(screen, state):
                 row = selected_row(state)
                 if row:
                     open_menu(screen, state, row)
+            elif key == DISPATCH_KEY:
+                state.message = new_stream(screen, state)
             elif key == ord("R"):
                 refresh_model(state, lanes=True)
             elif key == curses.KEY_RESIZE:

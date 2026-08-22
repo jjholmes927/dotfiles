@@ -2026,7 +2026,10 @@ class AttachInPlace(unittest.TestCase):
 
 class Footer(unittest.TestCase):
     def test_footer_advertises_the_menu_and_the_survivors(self):
-        self.assertEqual(fleet.FOOTER, "[enter]actions [space]peek [j/k]move [q]quit")
+        self.assertEqual(fleet.FOOTER, "[enter]actions [space]peek [n]new [j/k]move [q]quit")
+
+    def test_footer_teaches_the_new_stream_key(self):
+        self.assertIn("[n]new", fleet.FOOTER)
 
     def test_footer_no_longer_lists_the_keys_the_menu_teaches(self):
         for hint in ("[p]star", "[s]stop", "[r]rm", "[enter]pair"):
@@ -2427,6 +2430,335 @@ class UiLoopPainting(unittest.TestCase):
 
     def _boom(self, screen, state):
         raise RuntimeError("paint blew up")
+
+
+class FakeProc(object):
+    def __init__(self, rc=0, alive=0):
+        self.rc = rc
+        self.alive = alive
+        self.returncode = None
+        self.polls = 0
+
+    def poll(self):
+        self.polls += 1
+        if self.polls <= self.alive:
+            return None
+        self.returncode = self.rc
+        return self.rc
+
+
+class DispatchCase(unittest.TestCase):
+    class Screen(object):
+        def getmaxyx(self):
+            return 40, 120
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self._temp = tempfile.TemporaryDirectory()
+        self.eng = self._temp.name
+        for name in ("t1", "t2"):
+            os.makedirs(os.path.join(self.eng, name))
+        self.names = ("read_note", "ENG_ROOT")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        self._popen = fleet.subprocess.Popen
+        fleet.ENG_ROOT = self.eng
+        fleet.subprocess.Popen = self._fake_popen
+        self.typed = []
+        self.prompts = []
+        self.argvs = []
+        self.streams = []
+        self.output = ""
+        self.rc = 0
+        self.alive = 0
+        self.procs = []
+        self.logs = []
+        self.explode = None
+        fleet.read_note = self._fake_read_note
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+        fleet.subprocess.Popen = self._popen
+        self._temp.cleanup()
+
+    def _fake_read_note(self, screen, prompt, limit=None):
+        self.prompts.append((prompt, limit))
+        return self.typed.pop(0) if self.typed else ""
+
+    def _fake_popen(self, argv, stdin=None, stdout=None, stderr=None):
+        self.argvs.append(list(argv))
+        self.streams.append((stdin, stderr))
+        if self.explode:
+            raise self.explode
+        self.logs.append(getattr(stdout, "name", ""))
+        if stdout is not None and self.output:
+            stdout.write(self.output.encode("utf-8"))
+            stdout.flush()
+        proc = FakeProc(self.rc, self.alive)
+        self.procs.append(proc)
+        return proc
+
+    def _state(self):
+        state = fleet.FleetState()
+        state.worker = fleet.DataWorker()
+        return state
+
+    def _new_stream(self, *typed):
+        self.typed = list(typed)
+        state = self._state()
+        message = fleet.new_stream(self.Screen(), state)
+        return message, state
+
+
+class LaneInputValidation(DispatchCase):
+    def test_a_real_lane_directory_passes(self):
+        self.assertTrue(fleet.lane_exists("t1"))
+        self.assertTrue(fleet.lane_exists("t2", self.eng))
+
+    def test_junk_is_not_a_lane(self):
+        for junk in ("nope", "", "t1/x", "../etc", "/tmp", ".hidden", "t3"):
+            self.assertFalse(fleet.lane_exists(junk), junk)
+
+    def test_a_file_under_eng_root_is_not_a_lane(self):
+        with open(os.path.join(self.eng, "notes.txt"), "w") as handle:
+            handle.write("x\n")
+        self.assertFalse(fleet.lane_exists("notes.txt"))
+
+    def test_only_the_first_token_is_the_lane(self):
+        self.assertEqual(fleet.split_lane_input("t1 --effort low"), ("t1", ["--effort", "low"]))
+        self.assertEqual(fleet.split_lane_input("  t1  "), ("t1", []))
+        self.assertEqual(fleet.split_lane_input(""), ("", []))
+        self.assertEqual(fleet.split_lane_input(None), ("", []))
+
+    def test_junk_lane_is_refused_with_a_message_and_no_dispatch(self):
+        message, state = self._new_stream("nope", "some prompt")
+        self.assertEqual(message, fleet.DISPATCH_NO_LANE % "nope")
+        self.assertEqual(self.argvs, [])
+        self.assertIsNone(state.dispatch)
+
+    def test_an_empty_lane_line_is_refused_before_the_prompt(self):
+        message, state = self._new_stream("   ", "some prompt")
+        self.assertEqual(message, fleet.DISPATCH_NO_INPUT)
+        self.assertEqual(len(self.prompts), 1)
+        self.assertEqual(self.argvs, [])
+        self.assertIsNone(state.dispatch)
+
+    def test_a_path_escape_never_reaches_new_agent(self):
+        message, _state = self._new_stream("../%s" % os.path.basename(self.eng), "some prompt")
+        self.assertIn("no such lane", message)
+        self.assertEqual(self.argvs, [])
+
+
+class DispatchArgv(DispatchCase):
+    def test_the_plain_case_is_tool_lane_prompt(self):
+        message, state = self._new_stream("t1", "fix the thing")
+        self.assertEqual(self.argvs, [["new-agent", "t1", "fix the thing"]])
+        self.assertEqual(message, fleet.DISPATCH_STARTED % "t1")
+        self.assertIsNotNone(state.dispatch)
+
+    def test_extra_words_pass_through_verbatim(self):
+        self._new_stream("t2 --effort low --safe", "fix the thing")
+        self.assertEqual(self.argvs, [["new-agent", "t2", "--effort", "low", "--safe", "fix the thing"]])
+
+    def test_argv_builder_is_pure(self):
+        self.assertEqual(fleet.dispatch_argv("mn3", [], "hi"), ["new-agent", "mn3", "hi"])
+        self.assertEqual(fleet.dispatch_argv("mn3", ["--safe"], "hi"), ["new-agent", "mn3", "--safe", "hi"])
+        self.assertEqual(fleet.dispatch_argv("mn3", None, "hi"), ["new-agent", "mn3", "hi"])
+
+    def test_the_prompt_is_never_split_into_argv(self):
+        self._new_stream("t1", "fix the thing --safe now")
+        self.assertEqual(self.argvs[0][2:], ["fix the thing --safe now"])
+
+    def test_the_child_never_shares_the_curses_terminal(self):
+        self._new_stream("t1", "fix the thing")
+        stdin, stderr = self.streams[0]
+        self.assertEqual(stdin, fleet.subprocess.DEVNULL)
+        self.assertEqual(stderr, fleet.subprocess.STDOUT)
+
+    def test_the_stream_prompt_takes_more_than_a_note(self):
+        self._new_stream("t1", "fix the thing")
+        self.assertEqual(self.prompts[0][0], fleet.LANE_PROMPT)
+        self.assertEqual(self.prompts[1][0], fleet.STREAM_PROMPT % "t1")
+        self.assertEqual(self.prompts[1][1], fleet.PROMPT_LIMIT)
+        self.assertGreater(fleet.PROMPT_LIMIT, fleet.NOTE_LIMIT)
+
+    def test_a_failed_spawn_reports_instead_of_raising(self):
+        self.explode = OSError("new-agent: not found")
+        message, state = self._new_stream("t1", "fix the thing")
+        self.assertIn("new-agent", message)
+        self.assertIsNone(state.dispatch)
+
+
+class DispatchOutcomeParsing(unittest.TestCase):
+    def test_a_backgrounded_block_yields_the_short_and_the_name(self):
+        text = "warm-up noise\nbackgrounded · abc12345 · mn3/thing\nattach with: claude attach abc12345\n"
+        self.assertEqual(fleet.dispatch_outcome(0, text), "dispatched abc12345 mn3/thing")
+
+    def test_ansi_paint_does_not_hide_the_block(self):
+        text = "\x1b[32mbackgrounded\x1b[0m · aaaabbbb · t1/test\n"
+        self.assertEqual(fleet.dispatch_outcome(0, text), "dispatched aaaabbbb t1/test")
+
+    def test_the_last_block_wins_when_the_log_repeats_itself(self):
+        text = "backgrounded · 11111111 · a/one\nbackgrounded · 22222222 · b/two\n"
+        self.assertEqual(fleet.dispatch_outcome(0, text), "dispatched 22222222 b/two")
+
+    def test_a_failure_shows_the_last_non_empty_line(self):
+        text = "fetching origin\nno such lane: zz\n\n   \n"
+        self.assertEqual(fleet.dispatch_outcome(1, text), fleet.DISPATCH_FAILED % "no such lane: zz")
+
+    def test_a_silent_failure_still_says_something(self):
+        self.assertEqual(fleet.dispatch_outcome(1, ""), fleet.DISPATCH_FAILED % fleet.DISPATCH_NO_OUTPUT)
+
+    def test_a_clean_exit_without_a_block_is_not_reported_as_a_stream(self):
+        message = fleet.dispatch_outcome(0, "worktree ready\n")
+        self.assertNotIn("dispatched", message)
+        self.assertIn("worktree ready", message)
+
+
+class DispatchLifecycle(DispatchCase):
+    def test_a_running_dispatch_keeps_the_ui_quiet(self):
+        self.alive = 2
+        _message, state = self._new_stream("t1", "fix the thing")
+        state.message = fleet.DISPATCH_STARTED % "t1"
+        self.assertFalse(fleet.poll_dispatch(state))
+        self.assertEqual(state.message, fleet.DISPATCH_STARTED % "t1")
+        self.assertFalse(state.worker.wake.is_set())
+        self.assertIsNotNone(state.dispatch)
+
+    def test_a_finished_dispatch_surfaces_the_stream_and_asks_for_a_sweep(self):
+        self.output = "backgrounded · aaaabbbb · t1/test\n"
+        _message, state = self._new_stream("t1", "fix the thing")
+        self.assertTrue(fleet.poll_dispatch(state))
+        self.assertEqual(state.message, "dispatched aaaabbbb t1/test")
+        self.assertTrue(state.worker.wake.is_set())
+        self.assertIsNone(state.dispatch)
+
+    def test_a_failed_dispatch_surfaces_the_last_line(self):
+        self.rc = 1
+        self.output = "no such lane: t9\n"
+        _message, state = self._new_stream("t1", "fix the thing")
+        self.assertTrue(fleet.poll_dispatch(state))
+        self.assertEqual(state.message, fleet.DISPATCH_FAILED % "no such lane: t9")
+
+    def test_the_scratch_log_is_cleaned_up(self):
+        self.output = "backgrounded · aaaabbbb · t1/test\n"
+        _message, state = self._new_stream("t1", "fix the thing")
+        fleet.poll_dispatch(state)
+        self.assertTrue(self.logs[0])
+        self.assertFalse(os.path.exists(self.logs[0]))
+
+    def test_polling_an_idle_state_is_inert(self):
+        state = self._state()
+        self.assertFalse(fleet.poll_dispatch(state))
+        self.assertEqual(state.message, "")
+        self.assertFalse(state.worker.wake.is_set())
+
+    def test_a_second_new_stream_while_one_runs_is_refused(self):
+        self.alive = 5
+        _message, state = self._new_stream("t1", "fix the thing")
+        self.prompts = []
+        self.typed = ["t2", "another thing"]
+        self.assertEqual(fleet.new_stream(self.Screen(), state), fleet.DISPATCH_BUSY)
+        self.assertEqual(self.prompts, [])
+        self.assertEqual(len(self.argvs), 1)
+
+    def test_the_next_stream_goes_out_once_the_first_lands(self):
+        self.output = "backgrounded · aaaabbbb · t1/test\n"
+        _message, state = self._new_stream("t1", "fix the thing")
+        fleet.poll_dispatch(state)
+        self.typed = ["t2", "another thing"]
+        self.assertEqual(fleet.new_stream(self.Screen(), state), fleet.DISPATCH_STARTED % "t2")
+        self.assertEqual(len(self.argvs), 2)
+
+
+class DispatchCancelling(DispatchCase):
+    def test_escape_at_the_lane_prompt_spawns_nothing(self):
+        message, state = self._new_stream(None, "fix the thing")
+        self.assertEqual(message, fleet.NOTE_CANCELLED)
+        self.assertEqual(self.argvs, [])
+        self.assertEqual(len(self.prompts), 1)
+        self.assertIsNone(state.dispatch)
+
+    def test_escape_at_the_stream_prompt_spawns_nothing(self):
+        message, state = self._new_stream("t1", None)
+        self.assertEqual(message, fleet.NOTE_CANCELLED)
+        self.assertEqual(self.argvs, [])
+        self.assertEqual(len(self.prompts), 2)
+        self.assertIsNone(state.dispatch)
+
+    def test_an_empty_stream_prompt_spawns_nothing(self):
+        message, state = self._new_stream("t1", "   ")
+        self.assertEqual(message, fleet.NOTE_CANCELLED)
+        self.assertEqual(self.argvs, [])
+        self.assertIsNone(state.dispatch)
+
+
+class NewStreamKey(unittest.TestCase):
+    class Screen(object):
+        def __init__(self, keys):
+            self.keys = list(keys)
+
+        def getmaxyx(self):
+            return 40, 120
+
+        def getch(self):
+            return self.keys.pop(0) if self.keys else ord("q")
+
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+    def setUp(self):
+        self.names = ("paint", "init_colors", "start_worker", "new_stream", "open_menu", "poll_dispatch")
+        self._saved = dict((name, getattr(fleet, name)) for name in self.names)
+        self._curs_set = fleet.curses.curs_set
+        self.worker = fleet.DataWorker()
+        self.calls = []
+        self.messages = []
+        fleet.paint = lambda screen, state: self.messages.append(state.message)
+        fleet.init_colors = lambda: {}
+        fleet.start_worker = self._start
+        fleet.open_menu = lambda screen, state, row: self.calls.append("menu")
+        fleet.new_stream = lambda screen, state: self.calls.append("new") or "dispatching t1…"
+        fleet.curses.curs_set = lambda value: None
+
+    def tearDown(self):
+        for name in self.names:
+            setattr(fleet, name, self._saved[name])
+        fleet.curses.curs_set = self._curs_set
+
+    def _start(self, state):
+        state.worker = self.worker
+        return self.worker
+
+    def _run(self, keys):
+        state = fleet.FleetState()
+        state.rows = [{"session_id": "0"}]
+        fleet.run(self.Screen(keys), state)
+        return state
+
+    def test_n_anywhere_in_the_main_view_starts_a_new_stream(self):
+        self._run([ord("n"), ord("q")])
+        self.assertEqual(self.calls, ["new"])
+        self.assertIn("dispatching t1…", self.messages)
+
+    def test_the_action_menu_never_offers_a_dispatch(self):
+        for action, label, hint in fleet.menu_items({"bucket": "WORKING", "starred": False}):
+            self.assertNotIn(action, ("new", "dispatch"))
+            self.assertNotIn("new stream", label)
+            self.assertNotEqual(hint, "n")
+        self.assertNotIn(fleet.DISPATCH_KEY, fleet.ACTION_KEYS)
+
+    def test_enter_still_opens_the_per_row_menu(self):
+        self._run([10, ord("q")])
+        self.assertEqual(self.calls, ["menu"])
+
+    def test_the_loop_polls_the_dispatch_every_tick(self):
+        polls = []
+        fleet.poll_dispatch = lambda state: polls.append(1) and False
+        self._run([-1, -1, ord("q")])
+        self.assertGreaterEqual(len(polls), 3)
 
 
 class InputLoopLatency(unittest.TestCase):
