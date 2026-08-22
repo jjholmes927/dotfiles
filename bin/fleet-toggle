@@ -9,15 +9,15 @@ elif [ -n "${TMUX:-}" ]; then
   sess="\$${TMUX##*,}"
 fi
 win="${sess}:deck"
-panes=$(tmux list-panes -t "$win" -F '#{pane_id} #{pane_left} #{pane_current_command}' 2>/dev/null)
+panes=$(tmux list-panes -t "$win" -F '#{pane_id} #{pane_left} #{pane_top} #{pane_current_command}' 2>/dev/null)
 if [ -z "$panes" ]; then
   echo "no 'deck' window in this session — run deck first"; exit 1
 fi
-pane=$(printf '%s\n' "$panes" | awk '$2 == 0 { print $1; exit }')
+pane=$(printf '%s\n' "$panes" | awk '$2 == 0 { if (!seen || $3 + 0 < top + 0) { seen = 1; top = $3; id = $1 } } END { if (seen) print id }')
 if [ -z "$pane" ]; then
-  echo "no leftmost pane in the deck window"; exit 1
+  echo "no top-left inbox pane in the deck window"; exit 1
 fi
-cmd=$(printf '%s\n' "$panes" | awk -v p="$pane" '$1 == p { print $3; exit }')
+cmd=$(printf '%s\n' "$panes" | awk -v p="$pane" '$1 == p { print $4; exit }')
 case "$cmd" in
   python|Python|python3) cur=fleet ;;
   bash|zsh|sh|-bash|-zsh|-sh) cur=none ;;

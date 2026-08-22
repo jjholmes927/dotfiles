@@ -1008,13 +1008,13 @@ class TmuxToolsSurvive(ShellToolCase):
         self.assertFalse(any(call["argv"][:1] == ["send-keys"] for call in self.stub_calls("tmux")))
 
     def test_fleet_toggle_rejects_an_unknown_target(self):
-        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 bash\n%2 60 bash\n"
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 0 bash\n%2 60 0 bash\n"
         result = self.run_tool("fleet-toggle", "sideways")
         self.assertEqual(result.returncode, 1)
         self.assertIn("usage: fleet-toggle [fleet|native]", result.stdout)
 
     def test_fleet_toggle_starts_fleet_in_an_idle_pane(self):
-        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 bash\n%2 60 bash\n"
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 0 bash\n%2 60 0 bash\n"
         result = self.run_tool("fleet-toggle", "fleet")
         self.assertEqual(result.returncode, 0)
         self.assertIn("deck inbox: none -> fleet", result.stdout)
@@ -1023,12 +1023,93 @@ class TmuxToolsSurvive(ShellToolCase):
         self.assertTrue(all("%1" in argv for argv in sends))
 
     def test_fleet_toggle_starts_the_native_view_in_an_idle_pane(self):
-        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 bash\n"
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 0 bash\n"
         result = self.run_tool("fleet-toggle", "native")
         self.assertEqual(result.returncode, 0)
         self.assertIn("deck inbox: none -> native", result.stdout)
         sends = [call["argv"] for call in self.stub_calls("tmux") if call["argv"][:1] == ["send-keys"]]
         self.assertTrue(any("claude agents --cwd" in " ".join(argv) for argv in sends))
+
+    def test_fleet_toggle_targets_the_top_left_pane_in_the_wide_layout(self):
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 0 bash\n%2 94 0 bash\n%3 94 20 bash\n"
+        result = self.run_tool("fleet-toggle", "fleet")
+        self.assertEqual(result.returncode, 0)
+        sends = [call["argv"] for call in self.stub_calls("tmux") if call["argv"][:1] == ["send-keys"]]
+        self.assertTrue(sends)
+        self.assertTrue(all("%1" in argv for argv in sends))
+
+    def test_fleet_toggle_skips_the_narrow_bottom_strip_under_a_top_status_bar(self):
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 1 bash\n%2 0 35 bash\n"
+        result = self.run_tool("fleet-toggle", "fleet")
+        self.assertEqual(result.returncode, 0)
+        sends = [call["argv"] for call in self.stub_calls("tmux") if call["argv"][:1] == ["send-keys"]]
+        self.assertTrue(sends)
+        self.assertTrue(all("%1" in argv for argv in sends))
+        self.assertFalse(any("%2" in argv for argv in sends))
+
+    def test_fleet_toggle_picks_the_inbox_when_the_strip_is_listed_first(self):
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%2 0 35 bash\n%1 0 1 bash\n"
+        result = self.run_tool("fleet-toggle", "fleet")
+        self.assertEqual(result.returncode, 0)
+        sends = [call["argv"] for call in self.stub_calls("tmux") if call["argv"][:1] == ["send-keys"]]
+        self.assertTrue(sends)
+        self.assertTrue(all("%1" in argv for argv in sends))
+
+    def test_fleet_toggle_skips_the_narrow_bottom_strip(self):
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 0 bash\n%2 0 34 bash\n"
+        result = self.run_tool("fleet-toggle", "fleet")
+        self.assertEqual(result.returncode, 0)
+        sends = [call["argv"] for call in self.stub_calls("tmux") if call["argv"][:1] == ["send-keys"]]
+        self.assertTrue(sends)
+        self.assertTrue(all("%1" in argv for argv in sends))
+        self.assertFalse(any("%2" in argv for argv in sends))
+
+    def test_fleet_toggle_reads_the_inbox_command_past_the_new_top_column(self):
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 0 Python\n%2 0 34 bash\n"
+        result = self.run_tool("fleet-toggle", "fleet")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("deck inbox already showing fleet", result.stdout)
+
+    def deck_build_calls(self, columns, lines):
+        self.env["STUB_TMUX_RC"] = "1"
+        self.env["COLUMNS"] = str(columns)
+        self.env["LINES"] = str(lines)
+        self.run_tool("deck", "scratch")
+        return [call["argv"] for call in self.stub_calls("tmux")]
+
+    def test_deck_builds_the_wide_layout_for_a_wide_client(self):
+        calls = self.deck_build_calls(220, 60)
+        splits = [argv for argv in calls if argv[:1] == ["split-window"]]
+        self.assertEqual(len(splits), 2)
+        self.assertIn("-h", splits[0])
+        self.assertEqual(flag_value(splits[0], "-l"), "56")
+        self.assertIn("-v", splits[1])
+        self.assertEqual(flag_value(splits[1], "-l"), "14")
+
+    def test_deck_builds_one_bottom_strip_for_a_narrow_client(self):
+        calls = self.deck_build_calls(150, 45)
+        splits = [argv for argv in calls if argv[:1] == ["split-window"]]
+        self.assertEqual(len(splits), 1)
+        self.assertIn("-v", splits[0])
+        self.assertEqual(flag_value(splits[0], "-l"), "10")
+        self.assertFalse(any("-h" in argv for argv in splits))
+
+    def test_deck_keeps_the_wide_layout_for_a_tiny_probe(self):
+        calls = self.deck_build_calls(80, 24)
+        splits = [argv for argv in calls if argv[:1] == ["split-window"]]
+        self.assertEqual(len(splits), 2)
+        self.assertIn("-h", splits[0])
+
+    def test_deck_still_names_the_session_and_runs_the_inbox_when_narrow(self):
+        calls = self.deck_build_calls(150, 45)
+        news = [argv for argv in calls if argv[:1] == ["new-session"]]
+        self.assertEqual(flag_value(news[0], "-x"), "150")
+        self.assertEqual(flag_value(news[0], "-y"), "45")
+        sends = [" ".join(argv) for argv in calls if argv[:1] == ["send-keys"]]
+        self.assertTrue(any("claude agents --cwd" in send for send in sends))
+        self.assertTrue(any("clone-status" in send for send in sends))
+        self.assertFalse(any("deck-cheat" in send for send in sends))
+        self.assertTrue(any(argv[:2] == ["new-window", "-t"] and "pair" in argv for argv in calls))
 
 
 if __name__ == "__main__":
