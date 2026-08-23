@@ -160,7 +160,9 @@ tmux_sync() {
 
     local current
     current=$(tmux display-message -p -t "$pane" '#{window_name}' 2>/dev/null)
-    [[ "$current" != "$tab_name" ]] && tmux rename-window -t "$pane" "$tab_name" 2>/dev/null
+    local is_deck
+    is_deck=$(tmux display-message -p -t "$pane" '#{?@deck,1,0}' 2>/dev/null)
+    [[ "$is_deck" != 1 && "$current" != "$tab_name" ]] && tmux rename-window -t "$pane" "$tab_name" 2>/dev/null
     tmux set-option -w -t "$pane" window-status-format "#[fg=#080808,bg=$fg,none]#{?window_bell_flag,#[fg=#ffffff]#[bg=#d70000],} #I #W " 2>/dev/null
     tmux set-option -w -t "$pane" window-status-current-format "#[fg=#080808,bg=$fg,bold,underscore] ▶ #I #W " 2>/dev/null
 }

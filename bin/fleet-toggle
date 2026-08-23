@@ -8,21 +8,79 @@ if [ -n "${TMUX_PANE:-}" ]; then
 elif [ -n "${TMUX:-}" ]; then
   sess="\$${TMUX##*,}"
 fi
-win="${sess}:deck"
-panes=$(tmux list-panes -t "$win" -F '#{pane_id} #{pane_left} #{pane_top} #{pane_current_command}' 2>/dev/null)
-if [ -z "$panes" ]; then
-  echo "no 'deck' window in this session — run deck first"; exit 1
-fi
-pane=$(printf '%s\n' "$panes" | awk '$2 == 0 { if (!seen || $3 + 0 < top + 0) { seen = 1; top = $3; id = $1 } } END { if (seen) print id }')
+pane_of() {
+  tmux list-panes -t "$1" -F '#{pane_id} #{pane_left} #{pane_top} #{pane_current_command}' 2>/dev/null |
+    awk '$2 == 0 { if (!seen || $3 + 0 < top + 0) { seen = 1; top = $3; id = $1; cmd = $4 } } END { if (seen) print id, cmd }'
+}
+
+kind_of() {
+  local p="$1" c="$2" pid kids
+  case "$c" in
+    python|Python|python3) echo fleet; return ;;
+    bash|zsh|sh|-bash|-zsh|-sh) echo none; return ;;
+  esac
+  pid=$(tmux display-message -p -t "$p" '#{pane_pid}' 2>/dev/null)
+  case "$pid" in ''|*[!0-9]*) echo native; return ;; esac
+  kids=$(ps -eo ppid=,command= 2>/dev/null | awk -v pp="$pid" '$1 + 0 == pp + 0 { $1 = ""; print }')
+  case "$kids" in
+    '') echo native ;;
+    *"claude agents"*) echo native ;;
+    *fleet*) echo fleet ;;
+    *) echo other ;;
+  esac
+}
+
+candidates=''
+named=$(pane_of "${sess}:deck")
+[ -n "$named" ] && candidates="${sess}:deck $named name"
+scan=$(tmux list-panes -s -t "$sess" -F '#{window_id} #{?@deck,1,0} #{window_panes} #{pane_id} #{pane_left} #{pane_top} #{pane_current_command}' 2>/dev/null)
+tagged=$(printf '%s\n' "$scan" | awk '
+  $5 == 0 && (!(($1) in top) || $6 + 0 < top[$1] + 0) { top[$1] = $6; id[$1] = $4; tag[$1] = $2; cmd[$1] = $7 }
+  END { for (w in id) if (tag[w] == 1) print w, id[w], cmd[w], "tag" }
+')
+[ "$(printf '%s' "$tagged" | grep -c .)" = 1 ] && candidates="${candidates}${candidates:+
+}$tagged"
+shaped=$(printf '%s\n' "$scan" | awk '
+  $5 == 0 && (!(($1) in top) || $6 + 0 < top[$1] + 0) { top[$1] = $6; id[$1] = $4; cmd[$1] = $7 }
+  END { for (w in id) print w, id[w], cmd[w], "shape" }
+')
+
+win=''
+pane=''
+cur=''
+route=''
+while read -r w p c r _; do
+  [ -n "$p" ] || continue
+  k=$(kind_of "$p" "$c")
+  case "$k" in fleet|native|none) win="$w"; pane="$p"; cur="$k"; route="$r"; break ;; esac
+done <<EOF
+$candidates
+EOF
+
 if [ -z "$pane" ]; then
-  echo "no top-left inbox pane in the deck window"; exit 1
+  hits=''''
+  while read -r w p c r _; do
+    [ -n "$p" ] || continue
+    k=$(kind_of "$p" "$c")
+    case "$k" in fleet|native) hits="${hits}${hits:+
+}$w $p $k" ;; esac
+  done <<EOF
+$shaped
+EOF
+  if [ "$(printf '%s' "$hits" | grep -c .)" != 1 ]; then
+    echo "no 'deck' window in this session — run deck first"; exit 1
+  fi
+  win=$(printf '%s\n' "$hits" | awk '{ print $1 }')
+  pane=$(printf '%s\n' "$hits" | awk '{ print $2 }')
+  cur=$(printf '%s\n' "$hits" | awk '{ print $3 }')
+  route=shape
 fi
-cmd=$(printf '%s\n' "$panes" | awk -v p="$pane" '$1 == p { print $4; exit }')
-case "$cmd" in
-  python|Python|python3) cur=fleet ;;
-  bash|zsh|sh|-bash|-zsh|-sh) cur=none ;;
-  *) cur=native ;;
-esac
+
+if [ "$route" != name ]; then
+  name=$(tmux display-message -p -t "$win" '#{window_name}' 2>/dev/null)
+  echo "deck window is named '${name}' — found its inbox by $route"
+fi
+tmux set-option -w -t "$win" @deck 1 2>/dev/null
 case "$want" in
   fleet|native) ;;
   '') case "$cur" in fleet) want=native ;; *) want=fleet ;; esac ;;
@@ -37,7 +95,9 @@ if [ "$cur" != none ]; then
     if [ "$cur" = fleet ]; then
       tmux send-keys -t "$pane" q
     else
-      tmux send-keys -t "$pane" -H 1b
+      tmux send-keys -t "$pane" C-c
+      sleep 0.3
+      tmux send-keys -t "$pane" C-c
     fi
     waits=0
     while [ "$waits" -lt 3 ]; do

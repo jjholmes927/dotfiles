@@ -14,6 +14,7 @@ if ! tmux has-session -t "=$name" 2>/dev/null; then
   if [ "$w" -ge 170 ]; then layout=wide; else layout=narrow; fi
   fleet=$(tmux new-session -d -s "$name" -c "$root" -n deck -x "$w" -y "$h" -P -F '#{pane_id}')
   tmux set-option -w -t "=$name:deck" automatic-rename off
+  tmux set-option -w -t "=$name:deck" @deck 1
   case "${DECK_INBOX:-}" in
     fleet) inbox='fleet' ;;
     *) inbox="claude agents --cwd \"$root\" --dangerously-skip-permissions" ;;

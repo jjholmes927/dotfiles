@@ -33,6 +33,18 @@ sys.stdout.write(out)
 sys.exit(int(os.environ.get(key + "_RC", "0")))
 '''
 
+TMUX_RENAMED_DECK_STUB = r'''#!/usr/bin/env python3
+import json, os, sys
+
+with open(os.path.join(os.environ["STUB_LOG_DIR"], "tmux.jsonl"), "a") as fh:
+    fh.write(json.dumps({"argv": sys.argv[1:], "cwd": os.getcwd()}) + "\n")
+if sys.argv[1:2] == ["list-panes"]:
+    key = "STUB_TMUX_SESSION_PANES_OUT" if "-s" in sys.argv else "STUB_TMUX_LIST_PANES_OUT"
+    sys.stdout.write(os.environ.get(key, ""))
+elif sys.argv[1:2] == ["display-message"]:
+    sys.stdout.write(os.environ.get("STUB_TMUX_DISPLAY_MESSAGE_OUT", ""))
+'''
+
 CREATE_WORKTREE_STUB = r'''#!/usr/bin/env python3
 import json, os, subprocess, sys
 
@@ -1069,6 +1081,36 @@ class TmuxToolsSurvive(ShellToolCase):
         result = self.run_tool("fleet-toggle", "fleet")
         self.assertEqual(result.returncode, 0)
         self.assertIn("deck inbox already showing fleet", result.stdout)
+
+    def test_fleet_toggle_recovers_a_deck_window_that_was_renamed(self):
+        self.write_stub("tmux", TMUX_RENAMED_DECK_STUB)
+        self.env["STUB_TMUX_SESSION_PANES_OUT"] = "@3 0 2 %7 0 1 claude\n@3 0 2 %8 97 1 bash\n@1 0 1 %5 0 1 bash\n"
+        self.env["STUB_TMUX_DISPLAY_MESSAGE_OUT"] = "bash\n"
+        result = self.run_tool("fleet-toggle", "fleet")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("found its inbox by shape", result.stdout)
+        self.assertIn("deck inbox: native -> fleet", result.stdout)
+        tags = [call["argv"] for call in self.stub_calls("tmux") if call["argv"][:1] == ["set-option"] and "@deck" in call["argv"]]
+        self.assertTrue(tags)
+        sends = [call["argv"] for call in self.stub_calls("tmux") if call["argv"][:1] == ["send-keys"]]
+        self.assertTrue(sends)
+        self.assertTrue(all("%7" in argv for argv in sends))
+
+    def test_fleet_toggle_refuses_to_guess_between_two_inbox_candidates(self):
+        self.write_stub("tmux", TMUX_RENAMED_DECK_STUB)
+        self.env["STUB_TMUX_SESSION_PANES_OUT"] = "@1 0 1 %5 0 1 claude\n@3 0 1 %7 0 1 Python\n"
+        result = self.run_tool("fleet-toggle", "fleet")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no 'deck' window in this session", result.stdout)
+        self.assertFalse(any(call["argv"][:1] == ["send-keys"] for call in self.stub_calls("tmux")))
+
+    def test_fleet_toggle_leaves_a_healthy_deck_window_alone(self):
+        self.write_stub("tmux", TMUX_RENAMED_DECK_STUB)
+        self.env["STUB_TMUX_LIST_PANES_OUT"] = "%1 0 0 bash\n"
+        self.env["STUB_TMUX_SESSION_PANES_OUT"] = "@9 0 1 %9 0 1 claude\n"
+        result = self.run_tool("fleet-toggle", "fleet")
+        self.assertEqual(result.returncode, 0)
+        self.assertNotIn("found its inbox by", result.stdout)
 
     def deck_build_calls(self, columns, lines):
         self.env["STUB_TMUX_RC"] = "1"
