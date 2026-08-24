@@ -48,7 +48,7 @@ positional=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --effort=*) effort="${1#*=}"; shift ;;
-    --effort)   effort="$2"; shift 2 ;;
+    --effort)   effort="${2:-}"; shift; shift ;;
     --model=*)  model="${1#*=}"; shift ;;
     --model)    model="$2"; shift; shift ;;
     --safe)     perm=auto; shift ;;
