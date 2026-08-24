@@ -1,8 +1,8 @@
  DECK CHEAT SHEET  ? = this  P = pair
  ──────────────────────────────────────
  deck [name]       layout + attach
- new-agent <lane> [branch] \
-   [--effort low|high] [--safe] "<prompt>"
+ new-agent <lane> [branch] "<prompt>"
+   [--effort low] [--model fable] [--safe]
        provision + dispatch (BYPASS
        perms; --safe = auto mode)
        base: FRESH origin/<default>

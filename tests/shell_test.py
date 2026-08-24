@@ -403,6 +403,17 @@ class NewAgentArguments(ShellToolCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("bad --effort: turbo", result.stderr)
 
+    def test_model_without_a_value_is_usage(self):
+        self.make_lane("mn1")
+        result = self.run_tool("new-agent", "mn1", "jjholmes927-add-thing", "--model")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("usage: new-agent", result.stderr)
+        self.assertEqual(self.stub_calls("claude"), [])
+
+    def test_usage_lists_the_model_flag(self):
+        result = self.run_tool("new-agent")
+        self.assertIn("[--model fable|sonnet|...]", result.stderr)
+
     def test_missing_lane_is_reported(self):
         result = self.run_tool("new-agent", "ghost", "do the thing")
         self.assertEqual(result.returncode, 1)
@@ -446,6 +457,7 @@ class NewAgentWithBranch(ShellToolCase):
         self.assertIn("--bg", call["argv"])
         self.assertEqual(flag_value(call["argv"], "--name"), "add-thing")
         self.assertEqual(flag_value(call["argv"], "--effort"), "high")
+        self.assertEqual(flag_value(call["argv"], "--model"), "fable")
         self.assertEqual(flag_value(call["argv"], "--permission-mode"), "bypassPermissions")
 
     def test_prompt_words_are_joined_and_carry_only_the_status_note(self):
@@ -492,6 +504,23 @@ class NewAgentWithBranch(ShellToolCase):
         self.make_lane("mn1")
         self.run_tool("new-agent", "mn1", "jjholmes927-add-thing", "--effort=low", "one two three")
         self.assertEqual(flag_value(self.dispatch()["argv"], "--effort"), "low")
+
+    def test_model_space_form(self):
+        self.make_lane("mn1")
+        self.run_tool("new-agent", "mn1", "jjholmes927-add-thing", "--model", "sonnet", "one two three")
+        self.assertEqual(flag_value(self.dispatch()["argv"], "--model"), "sonnet")
+
+    def test_model_equals_form_takes_any_model_id(self):
+        self.make_lane("mn1")
+        self.run_tool("new-agent", "mn1", "jjholmes927-add-thing", "--model=claude-opus-5", "one two three")
+        self.assertEqual(flag_value(self.dispatch()["argv"], "--model"), "claude-opus-5")
+
+    def test_effort_and_model_are_independent(self):
+        self.make_lane("mn1")
+        self.run_tool("new-agent", "mn1", "jjholmes927-add-thing", "--effort", "low", "one two three")
+        argv = self.dispatch()["argv"]
+        self.assertEqual(flag_value(argv, "--effort"), "low")
+        self.assertEqual(flag_value(argv, "--model"), "fable")
 
     def test_safe_drops_to_auto_mode(self):
         self.make_lane("mn1")
@@ -556,6 +585,10 @@ class NewAgentWithoutBranch(ShellToolCase):
     def test_dispatch_runs_inside_the_new_worktree(self):
         self.run_tool("new-agent", "mn1", "Fix the flaky login spec on staging")
         self.assertEqual(self.dispatch()["cwd"], self.worktrees()[0])
+
+    def test_model_is_pinned_on_the_detached_path(self):
+        self.run_tool("new-agent", "mn1", "Fix the flaky login spec on staging")
+        self.assertEqual(flag_value(self.dispatch()["argv"], "--model"), "fable")
 
 
 class NewAgentCreateWorktree(ShellToolCase):

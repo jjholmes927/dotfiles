@@ -40,13 +40,17 @@ Run fleet-status yourself in your own shell, never via a subagent.
 NOTE
 }
 
-lane="" branch="" effort=high perm=bypassPermissions
+usage="usage: new-agent <lane> [branch-name] [--effort high|low] [--model fable|sonnet|...] [--safe] <prompt>"
+
+lane="" branch="" effort=high model=fable perm=bypassPermissions
 positional=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --effort=*) effort="${1#*=}"; shift ;;
     --effort)   effort="$2"; shift 2 ;;
+    --model=*)  model="${1#*=}"; shift ;;
+    --model)    model="$2"; shift; shift ;;
     --safe)     perm=auto; shift ;;
     --perm=*)   perm="${1#*=}"; shift ;;
     --)         shift; while [ $# -gt 0 ]; do positional+=("$1"); shift; done ;;
@@ -56,8 +60,8 @@ while [ $# -gt 0 ]; do
 done
 
 case "$effort" in high|low|medium|xhigh|max) ;; *) echo "bad --effort: $effort" >&2; exit 1 ;; esac
+if [ -z "$model" ]; then echo "$usage" >&2; exit 1; fi
 
-usage="usage: new-agent <lane> [branch-name] [--effort high|low] [--safe] <prompt>"
 if [ "${#positional[@]}" -lt 2 ]; then echo "$usage" >&2; exit 1; fi
 
 lane="${positional[0]}"
@@ -134,4 +138,4 @@ fi
 
 prompt="$prompt$(status_note)"
 
-(cd "$wt" && claude --bg --name "$name" --effort "$effort" --permission-mode "$perm" "$prompt")
+(cd "$wt" && claude --bg --name "$name" --effort "$effort" --model "$model" --permission-mode "$perm" "$prompt")
