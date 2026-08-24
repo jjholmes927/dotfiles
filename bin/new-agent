@@ -40,9 +40,9 @@ Run fleet-status yourself in your own shell, never via a subagent.
 NOTE
 }
 
-usage="usage: new-agent <lane> [branch-name] [--effort high|low] [--model fable|sonnet|...] [--safe] <prompt>"
+usage="usage: new-agent <lane> [branch-name] [--effort medium|high|low] [--model fable|sonnet|...] [--safe] <prompt>"
 
-lane="" branch="" effort=high model=fable perm=bypassPermissions
+lane="" branch="" effort=medium model=fable perm=bypassPermissions
 positional=()
 
 while [ $# -gt 0 ]; do
