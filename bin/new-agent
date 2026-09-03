@@ -76,6 +76,19 @@ root=${ENG_ROOT:-$HOME/engineering}/$lane
 if [ ! -d "$root" ]; then echo "no such lane: $lane" >&2; exit 1; fi
 if [ -z "$prompt" ]; then echo "$usage" >&2; exit 1; fi
 
+if [ ! -e "$root/.git" ]; then
+  nested=()
+  for d in "$root"/*/; do
+    d="${d%/}"
+    [ -e "$d/.git" ] && nested+=("$d")
+  done
+  case "${#nested[@]}" in
+    1) root="${nested[0]}" ;;
+    0) echo "fatal: no git repo at $root or one level below" >&2; exit 1 ;;
+    *) echo "lane '$lane' has multiple nested repos, disambiguate: ${nested[*]}" >&2; exit 1 ;;
+  esac
+fi
+
 base=$(repo_default_branch "$root")
 git -C "$root" fetch origin "$base" --quiet || echo "warn: fetch failed, basing on last-known origin/$base" >&2
 
