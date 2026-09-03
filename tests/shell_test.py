@@ -456,7 +456,7 @@ class NewAgentWithBranch(ShellToolCase):
         self.assertEqual(call["cwd"], os.path.join(lane, ".worktrees", "add-thing"))
         self.assertIn("--bg", call["argv"])
         self.assertEqual(flag_value(call["argv"], "--name"), "add-thing")
-        self.assertEqual(flag_value(call["argv"], "--effort"), "medium")
+        self.assertEqual(flag_value(call["argv"], "--effort"), "low")
         self.assertEqual(flag_value(call["argv"], "--model"), "fable")
         self.assertEqual(flag_value(call["argv"], "--permission-mode"), "bypassPermissions")
 
