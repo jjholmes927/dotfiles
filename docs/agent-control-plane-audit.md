@@ -633,6 +633,22 @@ Sol (codex, effort high, thread `01a06e03-3ef7-7372-b464-80d14653a2d4`) was give
 
 ---
 
+## 26a. Experiment 1 result (run 2026-09-04, ~14 minutes wall clock)
+
+**Verdict: PASS on the decisive criteria; one Kandev limitation found.** Kandev v0.93.0 on loopback, mn3 registered with `dotfiles/magicnotes/kandev_worktree_setup.sh` as the repository setup script, seeded Claude profile (`fable[1m]`, auto-approve on), Worktree executor, task prompt `/e2e --dry-run "<tiny spec task>"`.
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| (a) installed plugin skills run under ACP | ✅ | transcript: `Load skill: joel-workflow:e2e`, `superpowers:brainstorming`, `superpowers:writing-plans`; `e2e-codex.sh audit` ran twice (`.e2e/plan-audit-1.md`, `-2.md`, REVISE → READY) |
+| (b) DB/port isolation from the lane | ✅ | `.env` `WORKTREE_OFFSET=kandev-exp1-…`, `PORT=3006`; DBs `beamai_development_kandev_exp1_…` created; `bin/setup` ran twice in 65 s |
+| (c) plan gate as a structured Kandev question | ✅ and better than expected | the agent called `mcp__kandev__create_task_plan_kandev` and `mcp__kandev__ask_user_question_kandev` on its own; `GET /api/v1/clarification/<id>` returned title, prompt, Approve/Revise options and the audit trail as context |
+| (d) backend restart, then answer via API resumes once | 🟡 | after `kill kandev` + restart, Kandev relaunched agentctl and reattached to the *same* Claude conversation via ACP `session/load` ("Session resumed"); but the pending clarification was gone (`POST …/respond` → "no longer active"). A chat message "Approve" (`message.queue.add` + `send_now`) resumed the run exactly once and correctly |
+| (e) no nested worktree, no unintended mutation | ✅ | `git worktree list` shows one Kandev worktree; dirty files are `db/schema.rb` (rewritten by `bin/setup`, the known schema-dump landmine) and the `.claude/settings.json` symlink, both provisioning noise the agent itself excluded from its commit plan |
+
+Setup friction worth recording: the Claude ACP capability probe first failed with npm `ETARGET` (stale local npm metadata); one `npx --prefer-online` fetch plus a Kandev restart fixed it. Profile edits over HTTP need the `X-Kandev-Interim-Settings-Interlock` header from the boot payload. There is no HTTP route to send a chat message; it is the `message.queue.add` WebSocket action.
+
+Consequences: pending clarifications are in-memory in v0.93 — an inbox must derive "needs answer" from `session.state == WAITING_FOR_INPUT` plus the last `clarification_request` message, and fall back to a chat message when the bundle has expired (this is what Kandev's own UI does). Worth an upstream issue: durable clarifications across restart. Untested but promising for pairing: the ACP session wrote its transcript to `~/.claude/projects/-Users-joelholmes--kandev-tasks-…/be671791….jsonl`, the same store the CLI uses, so `claude --resume <id>` from the worktree may attach to the same conversation.
+
 ## 27. Open questions / uncertainties
 
 1. **Claude Code plugin skills under ACP** — decisive; Experiment 1.
