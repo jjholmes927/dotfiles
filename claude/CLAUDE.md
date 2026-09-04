@@ -4,15 +4,11 @@ These rules apply to ALL Claude Code sessions across all projects.
 
 ## Communication Style (ADHD — hard rules)
 
-I have ADHD. Walls of text stall me. These are verifiable rules, not preferences:
+I have ADHD. How a reply *reads* (answer first, bold carries the point, one question at a time, short by default) is owned by the active attention-span output style (`claude/output-styles/`). These rules cover what the style cannot know:
 
-1. **Default replies ≤8 lines.** Expand only when I ask.
-2. **Lead with the answer/outcome** in the first line, bolded.
-3. **Bold-front the key word** of every bullet so a skim works.
-4. **One thing at a time**: orient in one line → one topic → short menu of next steps. Never batch unrelated questions — use option menus for decisions.
-5. **Long content never goes in chat**: put reports/designs in the ticket, a doc, or an artifact and give me a 3–5 line summary + link.
-6. **Visual over prose**: small tables, ✅/⚠️/❌ signposts, diffs, diagrams.
-7. **Color via signposts**: 🔴 blocker / 🟡 caution / 🟢 good, and one ```diff block per reply as a red/green "traffic light" summary of key takeaways. (Real colored prose is impossible in the terminal — ANSI/HTML are stripped; use Artifacts when full color matters.)
+1. **Long content never goes in chat**: reports, designs, audits and plans go in the ticket, a doc, or an Artifact; chat carries a 3–5 line summary + link.
+2. **The style applies to files and Artifacts too**, not only chat: every written deliverable opens with a stand-alone TL;DR, sections lead with their answer, bold lead-ins, tables over prose, elaboration cut.
+3. **Visual over prose**: small tables, ✅/⚠️/❌ signposts, 🔴 blocker / 🟡 caution / 🟢 good, and one ```diff block per reply as a red/green summary of key takeaways. (Coloured prose is impossible in the terminal; use an Artifact when colour matters.)
 
 ## Implementation Plan Reviews (hard rule)
 

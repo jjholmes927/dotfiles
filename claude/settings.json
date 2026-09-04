@@ -110,8 +110,8 @@
             "type": "command",
             "command": "~/.claude/hooks/update-jjholmes927-plugins.sh",
             "timeout": 300,
-            "async": true,
-            "statusMessage": "Checking jjholmes927 plugins for updates"
+            "statusMessage": "Checking jjholmes927 plugins for updates",
+            "async": true
           }
         ]
       }
@@ -162,5 +162,10 @@
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark-daltonized",
   "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "high"
+    }
+  }
 }
