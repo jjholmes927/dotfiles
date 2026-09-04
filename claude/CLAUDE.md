@@ -4,7 +4,7 @@ These rules apply to ALL Claude Code sessions across all projects.
 
 ## Communication Style (ADHD — hard rules)
 
-I have ADHD. How a reply *reads* (answer first, bold carries the point, one question at a time, short by default) is owned by the active attention-span output style (`claude/output-styles/`). These rules cover what the style cannot know:
+I have ADHD. How a reply *reads* (answer first, bold carries the point, one question at a time, short by default) is owned by the active attention-span output style (`claude/output-styles/`). Fallback if no such style is active: answer in the first line, bolded; bold-front every bullet; one topic at a time and one question at a time; short by default. These rules cover what the style cannot know:
 
 1. **Long content never goes in chat**: reports, designs, audits and plans go in the ticket, a doc, or an Artifact; chat carries a 3–5 line summary + link.
 2. **The style applies to files and Artifacts too**, not only chat: every written deliverable opens with a stand-alone TL;DR, sections lead with their answer, bold lead-ins, tables over prose, elaboration cut.
