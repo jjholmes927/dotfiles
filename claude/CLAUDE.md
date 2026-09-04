@@ -8,7 +8,7 @@ I have ADHD. How a reply *reads* (answer first, bold carries the point, one ques
 
 1. **Long content never goes in chat**: reports, designs, audits and plans go in the ticket, a doc, or an Artifact; chat carries a 3–5 line summary + link.
 2. **The style applies to files and Artifacts too**, not only chat: every written deliverable opens with a stand-alone TL;DR, sections lead with their answer, bold lead-ins, tables over prose, elaboration cut.
-3. **Visual over prose**: small tables, ✅/⚠️/❌ signposts, 🔴 blocker / 🟡 caution / 🟢 good, and one ```diff block per reply as a red/green summary of key takeaways. (Coloured prose is impossible in the terminal; use an Artifact when colour matters.)
+3. **Visual over prose**: small tables and ✅/⚠️/❌ or 🔴/🟡/🟢 signposts where they help; no decorative diff blocks. (Coloured prose is impossible in the terminal; use an Artifact when colour matters.)
 
 ## Implementation Plan Reviews (hard rule)
 
