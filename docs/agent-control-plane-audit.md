@@ -649,6 +649,18 @@ Setup friction worth recording: the Claude ACP capability probe first failed wit
 
 Consequences: pending clarifications are in-memory in v0.93 — an inbox must derive "needs answer" from `session.state == WAITING_FOR_INPUT` plus the last `clarification_request` message, and fall back to a chat message when the bundle has expired (this is what Kandev's own UI does). Worth an upstream issue: durable clarifications across restart. Untested but promising for pairing: the ACP session wrote its transcript to `~/.claude/projects/-Users-joelholmes--kandev-tasks-…/be671791….jsonl`, the same store the CLI uses, so `claude --resume <id>` from the worktree may attach to the same conversation.
 
+## 26b. First real ticket through the autonomous path (2026-09-04, INT-773)
+
+**Verdict: PASS end to end.** Ticket labelled `agent:implement` in Linear at 22:26Z → Kandev issue watch created the task at 22:28Z → `/e2e INT-773` planned, Sol audit ×2, plan gate answered by Joel in the Kandev UI → Codex implemented, self-review, Claude refute-first review with one fix loop, branch review → `/ship`: format, `/verify` with the new tree-fingerprint record (`.verify/cb4024c6….json`), simplify ×4 (no changes), fingerprint gate passed, push, PR #9724, CI 44/44 green, AI review no findings, Bugbot clean → ticket moved to In Review → `fleet-status complete` at 23:10Z. 42 minutes wall clock including the human gate; zero human touches other than the one Approve.
+
+Setup findings that changed the configuration:
+- Kandev's label filter is OR-only, so the work-type labels are the GO switch: `agent:implement` and `agent:investigate` (workspace labels), each with its own issue watch (team INT, Todo, assignee me, priority sort, 2 in flight, 60 s poll). `ready-for-agent` is left to the Notes team.
+- The ACP adapter bundles its own Claude Code (2.1.232) and the `fable` alias there means Fable 5.0; pinning an explicit model id is refused by Kandev ("requested_not_advertised") and `ANTHROPIC_MODEL` failed with "version 2.1.251 or newer is required". Fix: profile env `CLAUDE_CODE_EXECUTABLE=<installed claude>` → sessions run the installed CLI (2.1.261) and `fable[1m]` resolves to `claude-fable-5-1` (verified with a probe task).
+- Under ACP, the session shows `WAITING_FOR_INPUT` between turns while Codex runs in the background and resumes by itself when the background task completes; an inbox must not read that state alone as "needs human".
+- A stale mn4 stream on the same ticket was stopped by hand; nothing in either system prevents two runtimes claiming one ticket. The Linear watch dedupes only against itself.
+
+Open: the gate text and plan are dense paragraphs; `/e2e`'s gate template should follow the attention style (TL;DR, three bold bullets, question). Kandev is still a hand-started process, not a launchd service.
+
 ## 27. Open questions / uncertainties
 
 1. **Claude Code plugin skills under ACP** — decisive; Experiment 1.
