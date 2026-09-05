@@ -1,0 +1,41 @@
+{
+  "workspace": "Default Workspace",
+  "workflow": "Development",
+  "executor": "worktree",
+  "claude_acp_version": "0.70.0",
+  "claude_profile": {
+    "auto_approve": true,
+    "model": "fable[1m]"
+  },
+  "lanes": [
+    {
+      "name": "mn3",
+      "path": "~/engineering/mn3",
+      "default_branch": "main",
+      "setup_script": "~/engineering/dotfiles/magicnotes/kandev_worktree_setup.sh",
+      "cleanup_script": "~/engineering/dotfiles/magicnotes/kandev_worktree_cleanup.sh"
+    }
+  ],
+  "linear": {
+    "keychain_item": "linear-api-key",
+    "team": "INT",
+    "state": "Todo",
+    "assigned": "me",
+    "poll_seconds": 60,
+    "max_inflight": 2,
+    "watches": [
+      {
+        "label": "agent:implement",
+        "repository": "mn3",
+        "prompt": "/e2e {{issue.identifier}}",
+        "label_id": "b2d348cd-1204-4e22-b320-30b3bf1f6162"
+      },
+      {
+        "label": "agent:investigate",
+        "repository": "mn3",
+        "prompt": "Investigate Linear ticket {{issue.identifier}} ({{issue.url}}): {{issue.title}}. Read the ticket and its comments first. Root-cause with evidence (logs, Honeycomb, BigQuery, code); use the matching investigation skill when one applies. NO code changes and no PR. Post the findings as a Linear comment on the ticket, then move the ticket to In Review. Run fleet-status complete with a one-line summary if the command is on PATH.",
+        "label_id": "083e7f8b-8a56-403a-b96d-7b73376f81b5"
+      }
+    ]
+  }
+}
