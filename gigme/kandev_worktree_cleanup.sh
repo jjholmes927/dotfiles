@@ -9,6 +9,10 @@ case "$db_suffix" in
   *) echo "kandev-worktree-cleanup: DB_SUFFIX '$db_suffix' is not a kandev_* suffix, leaving databases alone"; exit 0 ;;
 esac
 
-for db in $(psql -lqt 2>/dev/null | cut -d'|' -f1 | tr -d ' ' | grep -E "^gigme_(development|test)(_queue)?_${db_suffix}$"); do
-  dropdb "$db" && echo "kandev-worktree-cleanup: dropped $db"
-done
+if [ -x "$wt/bin/remove_worktree" ]; then
+  "$wt/bin/remove_worktree" "$wt" --databases-only
+else
+  for db in $(psql -lqt 2>/dev/null | cut -d'|' -f1 | tr -d ' ' | grep -E "^gigme_(development|test)(_queue)?_${db_suffix}$"); do
+    dropdb "$db" && echo "kandev-worktree-cleanup: dropped $db"
+  done
+fi
