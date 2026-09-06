@@ -20,7 +20,7 @@ What `configure.py` ensures, all by lookup-then-create/patch: lane repositories 
 ## Operating model
 
 - **READY = Linear state Todo + assigned to me + one work-type label.** `agent:implement` → `/e2e <ticket>`; `agent:investigate` → findings comment, no code. The label is the go switch; remove it to withdraw. Kandev never picks the same ticket twice per watch.
-- **Lanes** (`mn1`…`mn5`) are registered as repositories; each task gets its own worktree under `~/.kandev/tasks/…` with its own database and ports via `magicnotes/kandev_worktree_setup.sh` (unique `WORKTREE_OFFSET=kandev-<task dir>`). `kandev_worktree_cleanup.sh` drops those databases when Kandev reaps the worktree.
+- **Lanes** are registered as repositories. Beam lanes (`mn1`…`mn5`) use the magicnotes adapters below; the personal GigMe lane uses `gigme/kandev_worktree_setup.sh` / `kandev_worktree_cleanup.sh`, which write `DB_SUFFIX=kandev_<task dir>` and `PORT` into the worktree `.env` (dotenv-rails, GigMe PR #353), copy `config/master.key` from the lane, and run `bin/setup --skip-server`; cleanup drops only `gigme_*_kandev_<task dir>` databases. Beam lanes (`mn1`…`mn5`) each task gets its own worktree under `~/.kandev/tasks/…` with its own database and ports via `magicnotes/kandev_worktree_setup.sh` (unique `WORKTREE_OFFSET=kandev-<task dir>`). `kandev_worktree_cleanup.sh` drops those databases when Kandev reaps the worktree.
 - **Human gate** = the `/e2e` plan question, posted through Kandev's own question tool; answer it in the task or on `/threads` at http://localhost:38429.
 - **Completion**: `/ship` opens the PR, moves the ticket to In Review and records `fleet-status complete`; Linear's GitHub integration moves it to Done on merge.
 
@@ -43,4 +43,5 @@ What `configure.py` ensures, all by lookup-then-create/patch: lane repositories 
 | While Codex works in the background the session shows `WAITING_FOR_INPUT` and resumes by itself | never read that state alone as "needs human"; look for a pending question |
 | Task list is `GET /api/v1/workspaces/<ws>/tasks`; `/api/v1/tasks?workspace_id=` is a 404 | |
 | The `/ws` API has no client auth and defaults to `0.0.0.0` | keep `server.host: 127.0.0.1`; no Tailscale/mobile exposure |
+| `linear.team` in the fleet config is the team **key** (`INT`, `NEV`), not the team name; the name makes every state/label lookup return empty ("state Todo not found") | |
 | Kandev dedupes tickets only against its own watches | stop any hand-started stream on the same ticket (`claude stop <id>`) before labelling it |
