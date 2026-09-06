@@ -13,6 +13,7 @@ STATE_FILE = os.environ.get("KANDEV_QUOTA_STATE", os.path.expanduser("~/.kandev/
 FALLBACK_WAIT = int(os.environ.get("KANDEV_QUOTA_FALLBACK_SECONDS", "1800"))
 RESET_BUFFER = 90
 PAST_RESET_RETRY = 900
+PAST_RESET_WINDOW = 2 * 3600
 LINEAR_TO_KANDEV = {1: "high", 2: "high", 3: "medium", 4: "low"}
 QUOTA_RE = re.compile(r"(?i)usage limit|session limit|hit your .{0,20}limit|limit reached|rate.?limit|too many requests|quota exceeded|\b429\b")
 CONTINUE_PROMPT = ("You can continue now. Continue the task you were working on when the usage limit was reached; "
@@ -58,8 +59,10 @@ def parse_reset(text, now=None):
             hour = 0
         lt = time.localtime(now)
         target = time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, hour, minute, 0, 0, 0, -1))
-        if target <= now:
+        if now - PAST_RESET_WINDOW <= target <= now:
             return now + PAST_RESET_RETRY
+        if target <= now:
+            target += 86400
         return target + RESET_BUFFER
     return None
 
