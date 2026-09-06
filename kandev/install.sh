@@ -83,6 +83,11 @@ if [ ! -f "$plist" ] || ! cmp -s "$plist.tmp" "$plist"; then
   say "observer installed as launchd agent com.jjholmes927.kandev-observer"
 else
   rm -f "$plist.tmp"
-  launchctl print "gui/$(id -u)/com.jjholmes927.kandev-observer" >/dev/null 2>&1 || launchctl bootstrap "gui/$(id -u)" "$plist"
-  say "observer already installed"
+  if launchctl print "gui/$(id -u)/com.jjholmes927.kandev-observer" >/dev/null 2>&1; then
+    launchctl kickstart -k "gui/$(id -u)/com.jjholmes927.kandev-observer"
+    say "observer restarted on the current scripts"
+  else
+    launchctl bootstrap "gui/$(id -u)" "$plist"
+    say "observer started"
+  fi
 fi
