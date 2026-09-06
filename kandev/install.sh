@@ -40,8 +40,12 @@ printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocol
   || say "warning: adapter did not answer initialize; Kandev's Claude probe may fail until npm metadata refreshes"
 
 if kandev service status >/dev/null 2>&1; then
-  say "restarting kandev service"
-  kandev service restart >/dev/null
+  if [ "${KANDEV_RESTART:-0}" = 1 ]; then
+    say "restarting kandev service (KANDEV_RESTART=1; pending plan-gate questions will be lost)"
+    kandev service restart >/dev/null
+  else
+    say "kandev service already running; not restarting (set KANDEV_RESTART=1 to force)"
+  fi
 else
   say "installing kandev as a launchd service"
   kandev service install >/dev/null
@@ -55,3 +59,30 @@ curl -sf -o /dev/null "$base/api/v1/workspaces" || fail "kandev did not become r
 say "kandev ready on $base"
 
 python3 "$here/configure.py" --conf "$conf" --base "$base"
+
+plist="$HOME/Library/LaunchAgents/com.jjholmes927.kandev-observer.plist"
+mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.kandev/logs"
+cat > "$plist.tmp" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.jjholmes927.kandev-observer</string>
+  <key>ProgramArguments</key><array><string>$here/fleet-observer.sh</string></array>
+  <key>EnvironmentVariables</key><dict><key>PATH</key><string>$PATH</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>$HOME/.kandev/logs/observer.out</string>
+  <key>StandardErrorPath</key><string>$HOME/.kandev/logs/observer.err</string>
+</dict></plist>
+PLIST
+if [ ! -f "$plist" ] || ! cmp -s "$plist.tmp" "$plist"; then
+  mv "$plist.tmp" "$plist"
+  launchctl bootout "gui/$(id -u)/com.jjholmes927.kandev-observer" >/dev/null 2>&1 || true
+  pkill -f "kandev/fleet-observer.sh" >/dev/null 2>&1 || true
+  launchctl bootstrap "gui/$(id -u)" "$plist"
+  say "observer installed as launchd agent com.jjholmes927.kandev-observer"
+else
+  rm -f "$plist.tmp"
+  launchctl print "gui/$(id -u)/com.jjholmes927.kandev-observer" >/dev/null 2>&1 || launchctl bootstrap "gui/$(id -u)" "$plist"
+  say "observer already installed"
+fi
