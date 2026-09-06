@@ -60,7 +60,7 @@ def parse_reset(text, now=None):
         lt = time.localtime(now)
         target = time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, hour, minute, 0, 0, 0, -1))
         if now - PAST_RESET_WINDOW <= target <= now:
-            return now + PAST_RESET_RETRY
+            return now
         if target <= now:
             target += 86400
         return target + RESET_BUFFER
@@ -112,6 +112,8 @@ def quota_check(state, task, session, msgs):
     parsed = reset_at is not None
     if reset_at is None:
         reset_at = time.time() + FALLBACK_WAIT
+    elif entry and reset_at <= time.time() + RESET_BUFFER:
+        reset_at = time.time() + PAST_RESET_RETRY
     stalled[sid] = {"task_id": task["id"], "error_msg_id": latest.get("id"), "reset_at": reset_at,
                     "parsed": parsed, "seen_at": time.time(), "sent_at": None, "attempts": entry.get("attempts", 0) + 1 if entry else 1}
     out("QUOTA-STALLED", task["id"][:8], sid[:8], "resume at", time.strftime("%H:%M", time.localtime(reset_at)),
