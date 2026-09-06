@@ -33,7 +33,7 @@
       {
         "label": "agent:investigate",
         "repository": "mn3",
-        "prompt": "Investigate Linear ticket {{issue.identifier}} ({{issue.url}}): {{issue.title}}. Read the ticket and its comments first. Root-cause with evidence (logs, Honeycomb, BigQuery, code); use the matching investigation skill when one applies. NO code changes and no PR. Post the findings as a Linear comment on the ticket, then move the ticket to In Review. Run fleet-status complete with a one-line summary if the command is on PATH.",
+        "prompt": "/investigate {{issue.identifier}}",
         "label_id": "083e7f8b-8a56-403a-b96d-7b73376f81b5"
       }
     ]
