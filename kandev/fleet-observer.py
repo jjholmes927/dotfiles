@@ -12,8 +12,9 @@ WS_SEND = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ws-send.mjs"
 STATE_FILE = os.environ.get("KANDEV_QUOTA_STATE", os.path.expanduser("~/.kandev/logs/quota-resume.json"))
 FALLBACK_WAIT = int(os.environ.get("KANDEV_QUOTA_FALLBACK_SECONDS", "1800"))
 RESET_BUFFER = 90
+PAST_RESET_RETRY = 900
 LINEAR_TO_KANDEV = {1: "high", 2: "high", 3: "medium", 4: "low"}
-QUOTA_RE = re.compile(r"(?i)usage limit|limit reached|rate.?limit|too many requests|quota exceeded|\b429\b")
+QUOTA_RE = re.compile(r"(?i)usage limit|session limit|hit your .{0,20}limit|limit reached|rate.?limit|too many requests|quota exceeded|\b429\b")
 CONTINUE_PROMPT = ("You can continue now. Continue the task you were working on when the usage limit was reached; "
                    "do not repeat work that is already complete.")
 STALL_STATES = {"WAITING_FOR_INPUT", "IDLE", "FAILED", "COMPLETED"}
@@ -58,7 +59,7 @@ def parse_reset(text, now=None):
         lt = time.localtime(now)
         target = time.mktime((lt.tm_year, lt.tm_mon, lt.tm_mday, hour, minute, 0, 0, 0, -1))
         if target <= now:
-            target += 86400
+            return now + PAST_RESET_RETRY
         return target + RESET_BUFFER
     return None
 
@@ -97,7 +98,7 @@ def quota_check(state, task, session, msgs):
             out("QUOTA-RESUMED", task["id"][:8], sid[:8])
             del stalled[sid]
         return
-    if not latest or latest.get("type") != "error" or not QUOTA_RE.search(str(latest.get("content") or "")):
+    if not latest or not QUOTA_RE.search(str(latest.get("content") or "")):
         return
     if session.get("state") not in STALL_STATES or task.get("state") in DONE_TASK_STATES:
         return
