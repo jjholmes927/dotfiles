@@ -170,9 +170,6 @@ def executor_profile(api, executor_type):
 
 
 def ensure_executor_path(api, prof):
-    # The launchd service runs with a minimal PATH (no rbenv shims, no ~/.local/bin), so the
-    # repository setup script, codex, gh and fleet-status are only found if the executor
-    # profile carries the operator's full PATH into every task environment.
     wanted = os.environ.get("PATH", "")
     current = {e["key"]: e.get("value", "") for e in (prof.get("env_vars") or [])}
     if current.get("PATH") == wanted:
