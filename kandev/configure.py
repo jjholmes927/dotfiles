@@ -169,6 +169,25 @@ def executor_profile(api, executor_type):
     return prof
 
 
+def ensure_executor_path(api, prof):
+    # The launchd service runs with a minimal PATH (no rbenv shims, no ~/.local/bin), so the
+    # repository setup script, codex, gh and fleet-status are only found if the executor
+    # profile carries the operator's full PATH into every task environment.
+    wanted = os.environ.get("PATH", "")
+    current = {e["key"]: e.get("value", "") for e in (prof.get("env_vars") or [])}
+    if current.get("PATH") == wanted:
+        return
+    merged = {**current, "PATH": wanted}
+    body = {"env_vars": [{"key": k, "value": v} for k, v in merged.items()]}
+    try:
+        api.call("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body)
+    except RuntimeError as err:
+        if "interlock" not in str(err):
+            raise
+        api.call("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body, interlock=True)
+    changed(f"executor profile {prof.get('name')}: PATH set from the current shell")
+
+
 def ensure_watches(api, ws, conf, repos, profile):
     linear = conf["linear"]
     team = linear["team"]
@@ -179,6 +198,7 @@ def ensure_watches(api, ws, conf, repos, profile):
         raise RuntimeError(f"Linear state {linear.get('state', 'Todo')!r} not found for team {team}")
     wf, step = workflow_start_step(api, ws, conf.get("workflow", "Development"))
     exec_prof = executor_profile(api, conf.get("executor", "worktree"))
+    ensure_executor_path(api, exec_prof)
     existing = api.call("GET", f"/api/v1/linear/watches/issue?workspace_id={ws['id']}").get("watches", [])
     for watch in linear.get("watches", []):
         label_id = watch.get("label_id") or labels.get(watch["label"])

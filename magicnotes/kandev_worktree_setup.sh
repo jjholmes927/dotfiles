@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export LANG="${LANG:-en_GB.UTF-8}"
+export LC_ALL="${LC_ALL:-en_GB.UTF-8}"
+
+if command -v rbenv >/dev/null 2>&1; then
+  eval "$(rbenv init - --no-rehash bash)"
+elif [ -d "$HOME/.rbenv/shims" ]; then
+  export PATH="$HOME/.rbenv/shims:$PATH"
+fi
+
 wt=$(git rev-parse --show-toplevel)
 main=$(cd "$(dirname "$(git rev-parse --git-common-dir)")" && pwd)
 offset="kandev-$(basename "$(dirname "$wt")" | tr -c 'a-zA-Z0-9\n' '-' | cut -c1-30)"
