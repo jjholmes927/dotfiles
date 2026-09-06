@@ -17,7 +17,13 @@ offset="kandev-$(basename "$(dirname "$wt")" | tr -c 'a-zA-Z0-9\n' '-' | cut -c1
 echo "kandev-worktree-setup: worktree=$wt main=$main offset=$offset"
 
 cd "$wt"
-bin/create_worktree
+if grep -q 'WORKTREE_NAME' bin/create_worktree; then
+  WORKTREE_NAME="$offset" bin/create_worktree
+  second_pass=0
+else
+  bin/create_worktree
+  second_pass=1
+fi
 
 sed -i '' "s/^WORKTREE_OFFSET=.*/WORKTREE_OFFSET=$offset/" .env
 grep -q '^WORKTREE_OFFSET=' .env || echo "WORKTREE_OFFSET=$offset" >> .env
@@ -39,5 +45,7 @@ while IFS='=' read -r key value; do
 done < .env
 set +a
 
-SKIP_SERVER_RESTART=1 bin/setup
-echo "kandev-worktree-setup: done (WORKTREE_OFFSET=$WORKTREE_OFFSET PORT=$PORT)"
+if [ "$second_pass" = 1 ]; then
+  SKIP_SERVER_RESTART=1 bin/setup
+fi
+echo "kandev-worktree-setup: done (WORKTREE_OFFSET=$WORKTREE_OFFSET PORT=$PORT single_pass=$((1 - second_pass)))"
