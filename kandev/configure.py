@@ -170,11 +170,11 @@ def executor_profile(api, executor_type):
 
 
 def ensure_executor_path(api, prof):
-    wanted = os.environ.get("PATH", "")
+    wanted = {"PATH": os.environ.get("PATH", ""), "CLAUDE_JOB_DIR": os.path.expanduser("~/.kandev/tasks")}
     current = {e["key"]: e.get("value", "") for e in (prof.get("env_vars") or [])}
-    if current.get("PATH") == wanted:
+    if all(current.get(k) == v for k, v in wanted.items()):
         return
-    merged = {**current, "PATH": wanted}
+    merged = {**current, **wanted}
     body = {"env_vars": [{"key": k, "value": v} for k, v in merged.items()]}
     try:
         api.call("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body)
@@ -182,7 +182,7 @@ def ensure_executor_path(api, prof):
         if "interlock" not in str(err):
             raise
         api.call("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body, interlock=True)
-    changed(f"executor profile {prof.get('name')}: PATH set from the current shell")
+    changed(f"executor profile {prof.get('name')}: PATH set from the current shell, CLAUDE_JOB_DIR set so /e2e treats the Kandev worktree as already isolated")
 
 
 def ensure_watches(api, ws, conf, repos, profile):
