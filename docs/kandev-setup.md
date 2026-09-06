@@ -24,6 +24,10 @@ What `configure.py` ensures, all by lookup-then-create/patch: lane repositories 
 - **Human gate** = the `/e2e` plan question, posted through Kandev's own question tool; answer it in the task or on `/threads` at http://localhost:38429.
 - **Completion**: `/ship` opens the PR, moves the ticket to In Review and records `fleet-status complete`; Linear's GitHub integration moves it to Done on merge.
 
+## Observer (optional)
+
+`kandev/fleet-observer.sh` polls every minute, appends one line per task to `~/.kandev/logs/fleet-observer.log` (states, pending question, last message, watch errors) and **syncs Linear priority onto Kandev tasks** (Linear urgent/high → high, medium → medium, low → low, none → untouched) because watch-created tasks are always `medium`. Start it with `nohup ~/engineering/dotfiles/kandev/fleet-observer.sh &`; it is not a service yet.
+
 ## Quirks (verified 2026-09-04, Kandev v0.93.0)
 
 | Quirk | Consequence |
