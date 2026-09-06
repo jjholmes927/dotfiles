@@ -42,6 +42,7 @@ What `configure.py` ensures, all by lookup-then-create/patch: lane repositories 
 | Pending questions live in memory; a backend restart loses them (the session itself resumes via ACP `session/load`) | after a restart, resume with a chat message rather than the question API |
 | While Codex works in the background the session shows `WAITING_FOR_INPUT` and resumes by itself | never read that state alone as "needs human"; look for a pending question |
 | Task list is `GET /api/v1/workspaces/<ws>/tasks`; `/api/v1/tasks?workspace_id=` is a 404 | |
+| `POST /api/v1/tasks` silently ignores top-level `repository_id` / `base_branch`; an unbound worktree task then runs the agent in whatever checkout it finds (the lane itself) | bind with `"repositories": [{"repository_id": …, "base_branch": …}]` plus `workflow_id`, `workflow_step_id`, `agent_profile_id`, `executor_profile_id`, `start_agent`; `DELETE /api/v1/tasks/<id>` is the only stop |
 | The `/ws` API has no client auth and defaults to `0.0.0.0` | keep `server.host: 127.0.0.1`; no Tailscale/mobile exposure |
 | `linear.team` in the fleet config is the team **key** (`INT`, `NEV`), not the team name; the name makes every state/label lookup return empty ("state Todo not found") | |
 | Kandev dedupes tickets only against its own watches | stop any hand-started stream on the same ticket (`claude stop <id>`) before labelling it |
