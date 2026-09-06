@@ -230,7 +230,7 @@ def ensure_watches(api, ws, conf, repos, profile):
         if (current.get("filter") or {}) != desired["filter"]:
             patch["filter"] = desired["filter"]
         if patch:
-            api.call("PATCH", f"/api/v1/linear/watches/issue/{current['id']}", patch)
+            api.call("PATCH", f"/api/v1/linear/watches/issue/{current['id']}?workspace_id={ws['id']}", patch)
             changed(f"updated watch for {watch['label']}: {sorted(patch)}")
 
 
