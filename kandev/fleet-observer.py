@@ -133,13 +133,18 @@ def quota_resume(state, live_sessions):
         if sid not in live_sessions:
             del stalled[sid]
             continue
-        if entry.get("sent_at") or now < entry["reset_at"]:
+        if entry.get("sent_at") or entry.get("gave_up") or now < entry["reset_at"]:
             continue
         try:
             send_continue(entry["task_id"], sid)
             entry["sent_at"] = now
             out("QUOTA-CONTINUE", entry["task_id"][:8], sid[:8], "attempt", entry.get("attempts"))
         except Exception as err:
+            entry["send_failures"] = entry.get("send_failures", 0) + 1
+            if entry["send_failures"] >= 3:
+                entry["gave_up"] = True
+                out("QUOTA-NEEDS-MANUAL", entry["task_id"][:8], sid[:8], "3 sends rejected (FAILED sessions reject messages); use Retry current agent in the UI |", str(err)[:120])
+                continue
             entry["reset_at"] = now + 300
             out("QUOTA-CONTINUE-FAILED", entry["task_id"][:8], sid[:8], str(err)[:160])
 
