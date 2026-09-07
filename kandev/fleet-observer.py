@@ -13,6 +13,8 @@ STATE_FILE = os.environ.get("KANDEV_QUOTA_STATE", os.path.expanduser("~/.kandev/
 FALLBACK_WAIT = int(os.environ.get("KANDEV_QUOTA_FALLBACK_SECONDS", "1800"))
 RESET_BUFFER = 90
 PAST_RESET_RETRY = 900
+LIMIT_NOTICE_MAX_CHARS = 240
+MAX_ATTEMPTS = 3
 PAST_RESET_WINDOW = 2 * 3600
 LINEAR_TO_KANDEV = {1: "high", 2: "high", 3: "medium", 4: "low"}
 QUOTA_RE = re.compile(r"(?i)usage limit|session limit|hit your .{0,20}limit|limit reached|rate.?limit|too many requests|quota exceeded|\b429\b")
@@ -93,7 +95,7 @@ def quota_check(state, task, session, msgs):
     sid = session.get("id")
     if not sid:
         return
-    turn = [m for m in msgs if m.get("type") in ("error", "message")]
+    turn = [m for m in msgs if m.get("type") in ("error", "message") and m.get("author_type") != "user"]
     latest = turn[-1] if turn else None
     entry = stalled.get(sid)
     if session.get("state") in ("RUNNING", "STARTING"):
@@ -101,7 +103,10 @@ def quota_check(state, task, session, msgs):
             out("QUOTA-RESUMED", task["id"][:8], sid[:8])
             del stalled[sid]
         return
-    if not latest or not QUOTA_RE.search(str(latest.get("content") or "")):
+    content = str(latest.get("content") or "") if latest else ""
+    if not latest or not QUOTA_RE.search(content) or (latest.get("type") != "error" and len(content) > LIMIT_NOTICE_MAX_CHARS):
+        return
+    if entry and entry.get("attempts", 0) >= MAX_ATTEMPTS:
         return
     if session.get("state") not in STALL_STATES or task.get("state") in DONE_TASK_STATES:
         return
