@@ -1,0 +1,17 @@
+id: "jjholmes927-adhd-theme"
+api_version: 1
+version: "0.1.0"
+display_name: "ADHD reading theme"
+description: "Scannable agent transcripts: bold lead-ins in an accent colour, TL;DR and warning callouts, wider line spacing, a readable measure, taller plan panel."
+author: "jjholmes927"
+categories: ["tools"]
+runtime:
+  type: binary
+  executables:
+    darwin-arm64: "server/plugin-darwin-arm64"
+    darwin-amd64: "server/plugin-darwin-amd64"
+    linux-amd64: "server/plugin-linux-amd64"
+    linux-arm64: "server/plugin-linux-arm64"
+ui:
+  bundle: "/ui/bundle.js"
+  styles: ["/ui/theme.css"]

@@ -60,6 +60,12 @@ say "kandev ready on $base"
 
 python3 "$here/configure.py" --conf "$conf" --base "$base"
 
+if command -v go >/dev/null; then
+  "$here/plugins/install-plugin.sh" adhd-theme
+else
+  say "warning: go not installed; skipping the ADHD reading theme plugin (brew install go, then kandev/plugins/install-plugin.sh adhd-theme)"
+fi
+
 plist="$HOME/Library/LaunchAgents/com.jjholmes927.kandev-observer.plist"
 mkdir -p "$HOME/Library/LaunchAgents" "$HOME/.kandev/logs"
 cat > "$plist.tmp" <<PLIST

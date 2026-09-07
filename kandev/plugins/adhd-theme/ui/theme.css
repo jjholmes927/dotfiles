@@ -1,0 +1,113 @@
+:root {
+  --adhd-accent: oklch(0.62 0.19 45);
+  --adhd-tldr: oklch(0.58 0.14 150);
+  --adhd-warn: oklch(0.7 0.15 78);
+  --adhd-measure: 72ch;
+}
+:root[class~="dark"], .dark {
+  --adhd-accent: oklch(0.8 0.16 60);
+  --adhd-tldr: oklch(0.78 0.13 150);
+  --adhd-warn: oklch(0.82 0.14 85);
+}
+
+.markdown-body {
+  font-size: 14px;
+  line-height: 1.6;
+  max-width: var(--adhd-measure);
+}
+.markdown-body p {
+  line-height: 1.6;
+  margin-top: 0.75em;
+  margin-bottom: 0.75em;
+}
+.markdown-body p + p {
+  margin-top: 0.9em;
+}
+.markdown-body li {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+  line-height: 1.55;
+}
+
+.markdown-body strong {
+  color: var(--adhd-accent);
+  font-weight: 700;
+}
+.markdown-body li > strong:first-child,
+.markdown-body p > strong:first-child {
+  color: var(--adhd-accent);
+}
+.markdown-body em {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  padding-left: 0.6rem;
+  border-left: 3px solid var(--adhd-accent);
+  margin-top: 1.6rem;
+  margin-bottom: 0.6rem;
+  line-height: 1.3;
+}
+.markdown-body h1 { font-size: 1.2rem; }
+.markdown-body h2 { font-size: 1.05rem; }
+.markdown-body h3 { font-size: 0.95rem; color: var(--muted-foreground); border-left-color: var(--border); }
+
+.markdown-body blockquote {
+  margin: 1em 0;
+  padding: 0.7em 0.9em;
+  border-left: 4px solid var(--adhd-tldr);
+  border-radius: 0.4rem;
+  background: color-mix(in oklch, var(--adhd-tldr) 10%, transparent);
+  color: var(--foreground);
+  font-size: 1.02em;
+}
+.markdown-body blockquote > p { margin: 0; }
+.markdown-body blockquote > p + p { margin-top: 0.5em; }
+.markdown-body blockquote strong:first-child { color: var(--adhd-tldr); }
+
+.markdown-body blockquote:has(> p:first-child > em:first-child) {
+  border-left-color: var(--adhd-warn);
+  background: color-mix(in oklch, var(--adhd-warn) 12%, transparent);
+}
+.markdown-body blockquote:has(> p:first-child > em:first-child) strong:first-child,
+.markdown-body blockquote:has(> p:first-child > em:first-child) em:first-child {
+  color: var(--adhd-warn);
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  margin: 0.9em 0;
+  font-size: 0.95em;
+}
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid var(--border);
+  padding: 0.35em 0.6em;
+  vertical-align: top;
+}
+.markdown-body th {
+  background: color-mix(in oklch, var(--foreground) 6%, transparent);
+  text-align: left;
+}
+.markdown-body tr:nth-child(even) td {
+  background: color-mix(in oklch, var(--foreground) 3%, transparent);
+}
+
+.markdown-body hr {
+  border: 0;
+  border-top: 1px dashed var(--border);
+  margin: 1.4em 0;
+}
+
+.markdown-body pre {
+  font-size: 0.85em;
+  line-height: 1.45;
+}
+
+.max-h-\[300px\].overflow-y-auto {
+  max-height: 600px;
+}
