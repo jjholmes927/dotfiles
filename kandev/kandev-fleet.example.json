@@ -22,19 +22,21 @@
     "state": "Todo",
     "assigned": "me",
     "poll_seconds": 60,
-    "max_inflight": 2,
+    "max_inflight": 5,
     "watches": [
       {
         "label": "agent:implement",
         "repository": "mn3",
         "prompt": "/e2e {{issue.identifier}}",
-        "label_id": "b2d348cd-1204-4e22-b320-30b3bf1f6162"
+        "label_id": "b2d348cd-1204-4e22-b320-30b3bf1f6162",
+        "max_inflight": 5
       },
       {
         "label": "agent:investigate",
         "repository": "mn3",
         "prompt": "/investigate {{issue.identifier}}",
-        "label_id": "083e7f8b-8a56-403a-b96d-7b73376f81b5"
+        "label_id": "083e7f8b-8a56-403a-b96d-7b73376f81b5",
+        "max_inflight": 5
       }
     ]
   }
