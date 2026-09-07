@@ -19,8 +19,9 @@ fi
 
 goos=$(uname -s | tr '[:upper:]' '[:lower:]'); goarch=$(uname -m); [ "$goarch" = "x86_64" ] && goarch=amd64; [ "$goarch" = "aarch64" ] && goarch=arm64
 bin="$plugin_dir/.build/server/plugin-$goos-$goarch"
-(cd "$plugin_dir" && go mod edit -replace "github.com/kandev/kandev=$kandev_src/apps/backend" && go mod tidy >/dev/null 2>&1 \
-  && GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags="-s -w" -o "$bin" ./server)
+rel=$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' "$kandev_src/apps/backend" "$plugin_dir")
+(cd "$plugin_dir" && grep -q "=> $rel\$" go.mod || go mod edit -replace "github.com/kandev/kandev=$rel"
+  go mod tidy >/dev/null 2>&1 && GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags="-s -w" -o "$bin" ./server)
 
 target="$HOME/.kandev/plugins/$id/$version"
 mkdir -p "$target/server" "$target/ui"

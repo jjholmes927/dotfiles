@@ -21,4 +21,4 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 )
 
-replace github.com/kandev/kandev => /Users/joelholmes/engineering/kandev-src/apps/backend
+replace github.com/kandev/kandev => ../../../../kandev-src/apps/backend

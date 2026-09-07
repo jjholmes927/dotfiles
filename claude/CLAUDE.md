@@ -9,6 +9,7 @@ I have ADHD. How a reply *reads* (answer first, bold carries the point, one ques
 1. **Long content never goes in chat**: reports, designs, audits and plans go in the ticket, a doc, or an Artifact; chat carries a 3–5 line summary + link.
 2. **The style applies to files and Artifacts too**, not only chat: every written deliverable opens with a stand-alone TL;DR, sections lead with their answer, bold lead-ins, tables over prose, elaboration cut.
 3. **Visual over prose**: small tables and ✅/⚠️/❌ or 🔴/🟡/🟢 signposts where they help; no decorative diff blocks. (Coloured prose is impossible in the terminal; use an Artifact when colour matters.)
+4. **Rendered-markdown surfaces (Kandev chat and plans, Linear comments, PR bodies)**: open with one TL;DR blockquote (`> **TL;DR** …`); a warning is a blockquote opening with `*Warning:*`; use blockquotes for nothing else (the Kandev theme colours them as callouts). At most two emoji signposts per message, always next to a text label. Gate/clarification questions render only paragraphs, lists and inline bold: open with `**Decision needed:**` and never use headings, tables or blockquotes there.
 
 ## Implementation Plan Reviews (hard rule)
 
