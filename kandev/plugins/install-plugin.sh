@@ -23,6 +23,12 @@ rel=$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2])
 (cd "$plugin_dir" && grep -q "=> $rel\$" go.mod || go mod edit -replace "github.com/kandev/kandev=$rel"
   go mod tidy >/dev/null 2>&1 && GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags="-s -w" -o "$bin" ./server)
 
+registered=$(curl -sf "$base/api/plugins" | python3 -c 'import json,sys; d=json.load(sys.stdin); ps=d if isinstance(d,list) else d.get("plugins",d); print(next((p.get("version","") for p in ps if p.get("id")==sys.argv[1]),""))' "$id" 2>/dev/null || true)
+if [ -n "$registered" ] && [ "$registered" != "$version" ]; then
+  echo "install-plugin: $id $registered registered; replacing with $version"
+  curl -sf -X DELETE "$base/api/plugins/$id" >/dev/null || echo "install-plugin: warning: uninstall of $id $registered failed"
+  rm -rf "$HOME/.kandev/plugins/$id/$registered"
+fi
 target="$HOME/.kandev/plugins/$id/$version"
 mkdir -p "$target/server" "$target/ui"
 cp "$plugin_dir/manifest.yaml" "$target/manifest.yaml"

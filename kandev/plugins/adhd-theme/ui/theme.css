@@ -111,3 +111,37 @@
 .max-h-\[300px\].overflow-y-auto {
   max-height: 600px;
 }
+
+:root {
+  --adhd-ok: oklch(0.55 0.15 150);
+  --adhd-bad: oklch(0.55 0.2 27);
+  --adhd-ask: oklch(0.5 0.2 300);
+  --adhd-info: oklch(0.52 0.14 240);
+}
+:root[class~="dark"], .dark {
+  --adhd-ok: oklch(0.78 0.14 150);
+  --adhd-bad: oklch(0.75 0.17 27);
+  --adhd-ask: oklch(0.78 0.15 300);
+  --adhd-info: oklch(0.78 0.12 240);
+}
+
+.markdown-body .adhd-ok { color: var(--adhd-ok); }
+.markdown-body .adhd-warn { color: var(--adhd-warn); }
+.markdown-body .adhd-bad { color: var(--adhd-bad); }
+.markdown-body .adhd-ask { color: var(--adhd-ask); }
+.markdown-body .adhd-info { color: var(--adhd-info); }
+.markdown-body td.adhd-ok, .markdown-body td.adhd-warn, .markdown-body td.adhd-bad, .markdown-body td.adhd-ask { font-weight: 600; }
+.markdown-body tr.adhd-row-bad td:first-child { box-shadow: inset 3px 0 0 var(--adhd-bad); }
+.markdown-body tr.adhd-row-warn td:first-child { box-shadow: inset 3px 0 0 var(--adhd-warn); }
+.markdown-body tr.adhd-row-ok td:first-child { box-shadow: inset 3px 0 0 var(--adhd-ok); }
+
+.markdown-body a { color: var(--adhd-info); text-decoration-color: color-mix(in oklch, var(--adhd-info) 50%, transparent); }
+.markdown-body :not(pre) > code { color: var(--adhd-info); background: color-mix(in oklch, var(--adhd-info) 9%, transparent); border-color: color-mix(in oklch, var(--adhd-info) 25%, transparent); }
+
+.markdown-body.text-foreground\/80,
+.markdown-body .text-foreground\/80 { color: var(--foreground); }
+.markdown-body th { color: var(--foreground); background: color-mix(in oklch, var(--adhd-accent) 12%, transparent); border-bottom: 2px solid color-mix(in oklch, var(--adhd-accent) 45%, transparent); }
+.markdown-body td:first-child { font-weight: 600; }
+.markdown-body tr:nth-child(even) td { background: color-mix(in oklch, var(--adhd-accent) 4%, transparent); }
+.markdown-body blockquote.adhd-ask { border-left-color: var(--adhd-ask); background: color-mix(in oklch, var(--adhd-ask) 10%, transparent); }
+.markdown-body blockquote.adhd-ask strong:first-child { color: var(--adhd-ask); }
