@@ -6,24 +6,24 @@ Audited 2026-09-08. Repos: [dotfiles](https://github.com/jjholmes927/dotfiles), 
 
 ## The map
 
-| What I read | What shapes it | Cap |
-|---|---|---|
-| Chat reply | `attention-kind` output style + CLAUDE.md comms rules | Answer in line one, short by default |
-| Kandev chat, plans, Linear comments, PR bodies | CLAUDE.md rule 5 + Kandev ADHD theme | One TL;DR blockquote, max 2 emoji |
-| Findings and data | CLAUDE.md rule 4 + `investigate` skill | Headline 8 lines, 300 words above `Detail` |
-| Reports, designs, audits | CLAUDE.md rules 1 to 3 | Never in chat. Doc or Artifact, chat is 3 to 5 lines + link |
-| Implementation plan | CLAUDE.md plan-review rule + `e2e` Stage 1 | Artifact with visual and raw tabs, chat 3 to 5 lines |
-| PR description | `writing-pr-descriptions` skill + `docs/pull-requests.md` | What/Why, 3 bullets each, 10 lines total |
-| AI Code Review comment | `beam-claude-skills` `/review-pr` | Collapsed per severity, max 10 findings |
-| Leadership or non-tech message | `/newspaper` | Headline 10 words, impact 2 sentences, 5 detail bullets |
-| Verification report | `/verify` | Three statuses only, evidence pasted, silence banned |
-| Morning brief | `/brief` | 200 words, 3 items per section |
+| What I read | What shapes it | Cap | Rule lives at |
+|---|---|---|---|
+| Chat reply | `attention-kind` output style + CLAUDE.md comms rules | Answer in line one, short by default | [attention-kind.md#L11](../claude/output-styles/attention-kind.md#L11) · [CLAUDE.md#L5](../claude/CLAUDE.md#L5) |
+| Kandev chat, plans, Linear comments, PR bodies | CLAUDE.md rule 5 + Kandev ADHD theme | One TL;DR blockquote, max 2 emoji | [CLAUDE.md#L13](../claude/CLAUDE.md#L13) · [theme.css#L5](../kandev/plugins/adhd-theme/ui/theme.css#L5) |
+| Findings and data | CLAUDE.md rule 4 + `investigate` skill | Headline 8 lines, 300 words above `Detail` | [CLAUDE.md#L12](../claude/CLAUDE.md#L12) · [investigate/SKILL.md#L17](https://github.com/jjholmes927/jjholmes927-claude-skills/blob/master/skills/investigate/SKILL.md#L17) |
+| Reports, designs, audits | CLAUDE.md rules 1 to 3 | Never in chat. Doc or Artifact, chat is 3 to 5 lines + link | [CLAUDE.md#L9-L11](../claude/CLAUDE.md#L9-L11) |
+| Implementation plan | CLAUDE.md plan-review rule + `e2e` Stage 1 | Artifact with visual and raw tabs, chat 3 to 5 lines | [CLAUDE.md#L15](../claude/CLAUDE.md#L15) · [e2e/SKILL.md#L65-L66](https://github.com/jjholmes927/jjholmes927-claude-skills/blob/master/skills/e2e/SKILL.md#L65-L66) |
+| PR description | `writing-pr-descriptions` skill + `docs/pull-requests.md` | What/Why, 3 bullets each, 10 lines total | [SKILL.md#L21](https://github.com/jjholmes927/jjholmes927-claude-skills/blob/master/skills/writing-pr-descriptions/SKILL.md#L21) · [pull-requests.md#L17](https://github.com/wearebeam/magicnotes/blob/main/docs/pull-requests.md#L17) |
+| AI Code Review comment | `beam-claude-skills` `/review-pr` | Collapsed per severity, max 10 findings | [review-pr.md#L312](https://github.com/wearebeam/beam-claude-skills/blob/main/commands/review-pr.md#L312) |
+| Leadership or non-tech message | `/newspaper` | Headline 10 words, impact 2 sentences, 5 detail bullets | [newspaper.md#L10](../claude/commands/newspaper.md#L10) |
+| Verification report | `/verify` | Three statuses only, evidence pasted, silence banned | [verify.md#L55](https://github.com/jjholmes927/jjholmes927-claude-skills/blob/master/commands/verify.md#L55) |
+| Morning brief | `/brief` | 200 words, 3 items per section | [brief.md#L31](https://github.com/jjholmes927/jjholmes927-claude-skills/blob/master/commands/brief.md#L31) |
+
+Not all of it is in dotfiles. Skills ship from `jjholmes927-claude-skills` so they install as a plugin. `/review-pr` sits in `beam-claude-skills` because magicnotes CI reads it. The team PR format is in magicnotes. Dotfiles holds the always-on bits: CLAUDE.md, the output style, the theme.
 
 ## Chat
 
 **Where:** `claude/output-styles/attention-kind.md` in dotfiles, from [attention-span](https://github.com/alexgreensh/attention-span). Set via `outputStyle` in `settings.json`. `/style` swaps to `spartan` or `rundown`.
-
-**Why a style, not CLAUDE.md:** it replaces the default tone instead of fighting it, and swaps per project without touching anything else.
 
 **The rules that do the work:**
 
