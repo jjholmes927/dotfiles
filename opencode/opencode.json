@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "bash": {
+      "gh pr comment*": "ask",
+      "gh issue comment*": "ask",
+      "gh pr review*": "ask",
+      "gh api *": "ask"
+    },
+    "*slack*send*": "ask",
+    "*slack*schedule*": "ask"
+  }
+}

@@ -11,6 +11,7 @@ Personal configuration files, symlinked into `~/`. Each top-level directory hold
 | `bin/` | The operator-workflow tools (`deck`, `pair`, `new-agent`, `fleet`, `clone-status`, …), symlinked into `~/.local/bin` by `claude/install.sh`; see [docs/operator-workflow.md](docs/operator-workflow.md) |
 | `claude/` | Claude Code global config — `CLAUDE.md`, settings, commands, hooks, scripts |
 | `codex/` | Codex global config — `AGENTS.md`, skills, installer, MCP bootstrap |
+| `opencode/` | OpenCode migration — workflow adapters, skills, MCPs, notifications, installer |
 | `git/` | Git config |
 | `tmux/` | tmux config |
 | `vim/` | Vim config |
@@ -56,3 +57,16 @@ npm install -g @openai/codex
 ```
 
 The `npm install` gives you the `codex` CLI (required for the MCP sync step). The install script symlinks `AGENTS.md` and the global skills into `~/.codex/`, then adds the shared MCP server definitions at the user level so you can authenticate the MCPs you want on that machine.
+
+## OpenCode
+
+After installing OpenCode and connecting a model provider:
+
+```bash
+bash opencode/install.sh
+python3 opencode/doctor.py
+```
+
+Restart OpenCode to load the migrated commands and skills. See
+[`opencode/README.md`](opencode/README.md) for MCP login, source precedence,
+backups, and compatibility boundaries.

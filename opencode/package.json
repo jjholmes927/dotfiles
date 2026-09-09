@@ -1,0 +1,14 @@
+{
+  "name": "dotfiles-opencode",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "format:fix": "prettier --write plugins/*.js eslint.config.js package.json",
+    "lint:fix": "eslint --fix plugins/*.js eslint.config.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
+    "prettier": "^3.9.6"
+  }
+}
