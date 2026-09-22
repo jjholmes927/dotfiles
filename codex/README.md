@@ -57,6 +57,8 @@ mapping, and records source paths, version and hashes in
 `~/.codex/workflow-migration.json`. Existing skill links/files are backed up;
 provider configuration, credentials, rules and unrelated skills are preserved.
 Restart the Codex session to refresh its skill catalog.
+Normal refreshes register `workflow-doctor` and report local drift across installed
+harnesses. See [drift checks and adding harnesses](../docs/agent-setup.md#checking-for-drift).
 
 For a committed local release before publishing to GitHub:
 

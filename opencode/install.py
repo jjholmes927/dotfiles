@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import runpy
 import shutil
 import subprocess
 
@@ -120,8 +121,11 @@ class Installer:
         stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         self.backup = target / "backups" / stamp
         self.changed = []
+        self.generated = {}
 
     def write(self, relative, content):
+        if relative.startswith(("commands/", "skills/")) or relative == "workflow-compat.md":
+            self.generated[relative] = hashlib.sha256(content.encode()).hexdigest()
         path = self.target / relative
         if path.is_file() and not path.is_symlink() and path.read_text() == content:
             return
@@ -216,6 +220,9 @@ def install(home, target):
                           for source, _ in [*sources.values(), *skill_sources.values()]},
         "native_plugins": native_plugins,
         "notes": notes,
+        "packages": {name: str(directory) for name, directory in installed},
+        "generated_hashes": importer.generated,
+        "generator_hashes": generator_hashes(),
     }
     importer.write("migration.json", json.dumps(report, indent=2) + "\n")
     print(f"Installed {len(sources)} commands and {len(skill_sources)} skill adapters into {target}")
@@ -238,6 +245,14 @@ def main():
         refresh_workflow(Path.home(), target)
     else:
         install(Path.home(), target)
+    if target == default.expanduser().resolve():
+        doctor = runpy.run_path(str(ROOT.parent / "workflow/doctor.py"))
+        doctor["after_refresh"]()
+
+
+def generator_hashes():
+    return {f"opencode/{name}": hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+            for name in ["install.py", "AGENTS.md"]}
 
 
 def refresh_workflow(home, target):
@@ -248,12 +263,14 @@ def refresh_workflow(home, target):
     root = matches[0]
     report = json.loads((target / "migration.json").read_text())
     importer = Installer(target)
+    report.setdefault("packages", {})["joel-workflow"] = str(root)
     importer.write("workflow-compat.md", (ROOT / "AGENTS.md").read_text())
     skills = {p.parent.name: p for p in (root / "skills").glob("*/SKILL.md")}
     commands = {**skills, **{p.stem: p for p in (root / "commands").glob("*.md") if p.stem.lower() != "readme"}}
     for name in report["skills"]:
         if name in commands:
             skills[name] = commands[name]
+    refreshed_sources = set(commands.values()) | set(skills.values())
     for kind, entries in [("commands", commands), ("skills", skills)]:
         for name, source in sorted(entries.items()):
             destination = f"commands/{name}.md" if kind == "commands" else f"skills/{name}/SKILL.md"
@@ -266,9 +283,13 @@ def refresh_workflow(home, target):
         if source.is_file():
             importer.write("commands/beam-review-pr.md", wrapper("beam-review-pr", source, directory, compatibility=target / "workflow-compat.md"))
             report["commands"]["beam-review-pr"] = str(source)
-    report["source_hashes"] = {source: hashlib.sha256(Path(source).read_bytes()).hexdigest()
-                               for source in sorted({*report["commands"].values(), *report["skills"].values()})}
+            refreshed_sources.add(source)
+    hashes = report.get("source_hashes", {})
+    hashes.update({str(source): hashlib.sha256(source.read_bytes()).hexdigest() for source in refreshed_sources})
+    references = {*report["commands"].values(), *report["skills"].values()}
+    report["source_hashes"] = {source: hashes[source] for source in sorted(references) if source in hashes}
     report["workflow_release"] = {"source": str(root), "version": json.loads((root / "plugin.json").read_text())["version"]}
+    report.setdefault("generated_hashes", {}).update(importer.generated)
     importer.write("migration.json", json.dumps(report, indent=2) + "\n")
     print(f"Refreshed joel-workflow adapters: {len(importer.changed)} changed files")
     if importer.backup.exists():
