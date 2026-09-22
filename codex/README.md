@@ -75,3 +75,19 @@ security add-generic-password -a "$USER" -s honeycomb-agent-traces -w '<INGEST_K
 - `~/.codex/config.toml` remains machine-local and is not overwritten here.
 - `~/.codex/rules/` remains machine-local.
 - `~/.codex/sessions/`, `history.jsonl`, and auth state remain machine-local.
+
+## Local workflow release snapshots
+
+Prepare an immutable snapshot of a committed personal workflow checkout:
+
+```bash
+python3 codex/install-workflow-release.py --source /path/to/joel-workflow
+```
+
+Add `--install` to register that snapshot with Claude's official plugin CLI.
+The installer backs up plugin configuration and records source commit/file hashes.
+Default snapshots live under `~/.local/share/joel-workflow/releases/`. A local
+marketplace pin pauses upstream updates until the published marketplace is restored.
+This utility does not refresh other harness adapters or change model/MCP settings.
+
+Validate with `python3 -m unittest discover -s codex -p 'test_workflow_release.py'`.
