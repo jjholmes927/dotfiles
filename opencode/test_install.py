@@ -2,7 +2,10 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -40,6 +43,19 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual(str(source / "commands/ship.md"), report["skills"]["ship"])
             self.assertIn(str(source / "commands/ship.md"), report["source_hashes"])
             self.assertEqual(after, {p.relative_to(target): p.read_bytes() for p in target.rglob("*") if p.is_file()})
+            runner = "\n".join([
+                "import importlib.util, sys",
+                "from pathlib import Path",
+                "spec = importlib.util.spec_from_file_location('installer', sys.argv[1])",
+                "installer = importlib.util.module_from_spec(spec)",
+                "spec.loader.exec_module(installer)",
+                "installer.plugins = lambda home: [('joel-workflow', Path(sys.argv[3]))]",
+                "installer.refresh_workflow(Path(sys.argv[2]), Path(sys.argv[4]))",
+            ])
+            for seed in range(4):
+                command = [sys.executable, "-B", "-c", runner, str(Path(installer.__file__).resolve()), str(root), str(source), str(target)]
+                result = subprocess.run(command, env={**os.environ, "PYTHONHASHSEED": str(seed)}, check=True, capture_output=True, text=True)
+                self.assertIn("0 changed files", result.stdout)
 
     def test_install_preserves_local_config_and_is_idempotent(self):
         with tempfile.TemporaryDirectory() as temporary:

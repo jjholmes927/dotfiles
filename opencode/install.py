@@ -257,7 +257,7 @@ def refresh_workflow(home, target):
             importer.write(destination, wrapper(name, source, root, kind == "skills"))
             report[kind][name] = str(source)
     report["source_hashes"] = {source: hashlib.sha256(Path(source).read_bytes()).hexdigest()
-                               for source in {*report["commands"].values(), *report["skills"].values()}}
+                               for source in sorted({*report["commands"].values(), *report["skills"].values()})}
     report["workflow_release"] = {"source": str(root), "version": json.loads((root / "plugin.json").read_text())["version"]}
     importer.write("migration.json", json.dumps(report, indent=2) + "\n")
     print(f"Refreshed joel-workflow adapters: {len(importer.changed)} changed files")
