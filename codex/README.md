@@ -36,7 +36,7 @@ The script:
 
 1. Symlinks `AGENTS.md` into `~/.codex/AGENTS.md`
 2. Symlinks the remaining dotfiles skill directories into `~/.codex/skills/`
-3. Generates ship, verify, verify-ui and PR-writing adapters from the installed personal release
+3. Generates the seven delivery, E2E, investigation and consultation adapters from the installed personal release
 4. Generates Socratic interview and full review-pr when the Beam user plugin is installed and enabled
 5. Adds any missing MCP server definitions to Codex
 
@@ -52,7 +52,7 @@ codex mcp login honeycomb
 
 Install or update the personal `joel-workflow` parity release first, then run
 `python3 codex/sync-workflow.py`. It reads the installed user plugin directory,
-builds the four delivery skills with full source instructions and Codex tool
+builds the seven workflow skills with full source instructions and Codex tool
 mapping, and records source paths, version and hashes in
 `~/.codex/workflow-migration.json`. Existing skill links/files are backed up;
 provider configuration, credentials, rules and unrelated skills are preserved.
@@ -151,7 +151,8 @@ security add-generic-password -a "$USER" -s honeycomb-agent-traces -w '<INGEST_K
 
 ## Portable E2E routes
 
-The personal import includes ship, verify, verify-ui, writing-pr-descriptions,
+The personal import requires `joel-workflow` 2.20.0 or newer and rejects older
+sources before writing adapters. It includes ship, verify, verify-ui, writing-pr-descriptions,
 e2e, investigate and codex-collab. Start a fresh session after refreshing.
 Use `/e2e <task> --execution direct --review codex` to implement in the active
 agent with a separate Codex reviewer. The standalone default keeps a dedicated
