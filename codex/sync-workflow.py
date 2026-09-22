@@ -119,8 +119,10 @@ def install(source, target, package="personal"):
     plugin = json.loads((source / config["metadata"]).read_text())
     if package == "beam" and plugin.get("name") != "beam-claude-skills":
         raise ValueError("Expected Beam plugin metadata for the interview adapter")
-    if package == "personal" and not (source / "scripts/resolve-dev-url.py").is_file():
-        raise ValueError("Update joel-workflow to the parity release before installing its Codex adapters")
+    if package == "personal":
+        version = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", plugin.get("version", ""))
+        if not version or tuple(map(int, version.groups())) < (2, 20, 0) or not (source / "scripts/resolve-dev-url.py").is_file():
+            raise ValueError("Update joel-workflow to 2.20.0 or later before installing its portable Codex adapters")
     documents = {name: (source / relative).read_text() for name, relative in commands.items()}
     descriptions = {}
     for name, content in documents.items():

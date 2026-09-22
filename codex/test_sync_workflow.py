@@ -17,7 +17,7 @@ class WorkflowInstallTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.source = self.root / "release"
         self.source.mkdir()
-        (self.source / "plugin.json").write_text(json.dumps({"version": "2.17.0"}))
+        (self.source / "plugin.json").write_text(json.dumps({"version": "2.20.0"}))
         (self.source / "scripts").mkdir()
         (self.source / "scripts/resolve-dev-url.py").write_text("resolver")
         for name, relative in sync.COMMANDS.items():
@@ -45,7 +45,7 @@ class WorkflowInstallTests(unittest.TestCase):
             expected = (self.source / relative).read_text().replace("${CLAUDE_PLUGIN_ROOT}", str(self.source.resolve()))
             self.assertEqual(expected, reference.read_text())
         manifest = json.loads((self.target / "workflow-migration.json").read_text())
-        self.assertEqual("2.17.0", manifest["plugin_version"])
+        self.assertEqual("2.20.0", manifest["plugin_version"])
         self.assertEqual(set(sync.COMMANDS), set(manifest["skills"]))
 
     def test_older_source_is_rejected_before_writing(self):
@@ -65,6 +65,12 @@ class WorkflowInstallTests(unittest.TestCase):
         review.parent.mkdir()
         review.write_text('---\ndescription: Review with four lenses\n---\nReport evidence.\n')
         return source
+
+    def test_legacy_e2e_source_is_rejected_before_writing(self):
+        (self.source / "plugin.json").write_text('{"version":"2.18.1"}')
+        with self.assertRaisesRegex(ValueError, "2.20.0"):
+            sync.install(self.source, self.target)
+        self.assertFalse(self.target.exists())
 
     def test_beam_import_preserves_personal_skills_and_source(self):
         sync.install(self.source, self.target)
