@@ -3,9 +3,8 @@
 See the [agent setup map](agent-setup.md) for packages, adapters and provenance,
 and the [shared lifecycle contract](operator-workflow.md#shared-lifecycle-contract)
 for stage inputs, permissions, handoffs and completion evidence. This guide
-describes the installed scripts; their watch configuration still selects a
-Claude profile. The shared contract's neutral profile selection and explicit
-completion signals are later implementation work.
+describes the installed scripts; watch configuration can select an existing agent profile globally or per watch.
+The opt-in pilot below uses explicit completion signals; existing routing stays unchanged.
 
 **TL;DR.** Kandev is the control plane that picks READY Linear tickets up and runs `/e2e` on them in a lane worktree. Install is two commands on any machine: put the Linear key in the Keychain, run `kandev/install.sh`. Everything else is idempotent and driven by `~/.config/kandev-fleet.json`. Background and evidence: `docs/agent-control-plane-audit.md` §26a–26b.
 
@@ -22,15 +21,15 @@ Re-run `install.sh` (or just `python3 kandev/configure.py`) after editing the co
 
 What `install.sh` does, in order: Homebrew install → `~/.kandev/config.yaml` bound to `127.0.0.1` (refuses to continue otherwise) → warms the npm cache for the pinned Claude ACP adapter → `kandev service install|restart` (launchd, headless, keepalive) → waits for the API → `configure.py`.
 
-What `configure.py` ensures, all by lookup-then-create/patch: lane repositories with the setup and cleanup adapters; the Claude profile with auto-approve and `CLAUDE_CODE_EXECUTABLE` = the installed CLI; the Linear connection from the Keychain (tested); one issue watch per configured label.
+What `configure.py` ensures, all by lookup-then-create/patch: lane repositories with the setup and cleanup adapters; the selected existing `agent_profile` (or the legacy Claude profile when only `claude_profile` is configured); the Linear connection from the Keychain (tested); one issue watch per configured label.
 
 ## Operating model
 
 - **READY = Linear state Todo + assigned to me + one work-type label.** `agent:implement` → `/e2e <ticket>`; `agent:investigate` → `/investigate <ticket>` (joel-workflow ≥ 2.16.0: claims In Progress, evidence-tagged findings comment, In Review). The label opts an unclaimed issue into dispatch. Removing it does not prove an already-started task stopped; inspect/cancel that task explicitly when authorized. Per-watch deduplication does not replace checking for ownership by another watch or manual task.
 - **Lanes** are registered as repositories. Beam lanes (`mn1`…`mn5`) use the magicnotes adapters below; the personal GigMe lane uses `gigme/kandev_worktree_setup.sh` / `kandev_worktree_cleanup.sh`, thin wrappers over the repo's own `bin/create_worktree` (`WORKTREE_NAME=kandev-<task dir>` provisions in place: `DB_SUFFIX`, `PORT`, `master.key`, gems, node modules; GigMe PR #353) and `bin/remove_worktree --databases-only`; cleanup refuses any `DB_SUFFIX` not starting with `kandev_`. Beam lanes (`mn1`…`mn5`) each task gets its own worktree under `~/.kandev/tasks/…` with its own database and ports via `magicnotes/kandev_worktree_setup.sh` (unique `WORKTREE_OFFSET=kandev-<task dir>`). `kandev_worktree_cleanup.sh` drops those databases when Kandev reaps the worktree.
 - **Human gate** = the `/e2e` plan question, posted through Kandev's own question tool; answer it in the task or on `/threads` at http://localhost:38429.
-- **Completion**: E2E invokes `/ship`, then owns the authorized ticket move to In Review after the required PR/CI outcome. Its remaining `fleet-status` call is a legacy sidecar, not Kandev completion evidence. Linear's Done-on-merge automation does not establish deployment or production success.
-- **Current routing gap (22 September 2026)**: Development's Backlog/In Progress steps move to Review on turn completion, with `auto_advance_requires_signal=false` and `cancel_triggers_turn_complete=true`. Until an explicit-signal pilot is implemented, read the task's evidence and pending decisions rather than interpreting that column as successful delivery. This documentation change does not alter those settings.
+- **Completion**: E2E invokes `/ship`, then owns the authorized ticket move to In Review after the required PR/CI outcome. The portable workflow uses an explicit Kandev completion signal only after the current step's criteria are met. Linear's Done-on-merge automation does not establish deployment or production success.
+- **Current routing gap (22 September 2026)**: Development's Backlog/In Progress steps move to Review on turn completion, with `auto_advance_requires_signal=false` and `cancel_triggers_turn_complete=true`. The separate pilot below addresses this for opt-in tasks; for the existing Development workflow, read the task's evidence and pending decisions rather than interpreting that column as successful delivery. This documentation change does not alter those settings.
 
 ## ADHD reading theme (plugin)
 
@@ -63,3 +62,29 @@ Conventions the agent text has to follow for the colour to land (also in `~/.cla
 | `POST /api/v1/clarification/<pending_id>/respond` wants `{"answers":[{"question_id":…,"selected_options":["<option_id>"]}]}`; `option_ids` is accepted but recorded as an empty answer, and the agent then stops and waits | resume with a chat message: WS `message.queue.add {session_id, task_id, content}` then `message.queue.send_now {session_id, scope:"all"}` |
 | Kandev dedupes tickets only against its own watches | stop any hand-started stream on the same ticket (`claude stop <id>`) before labelling it |
 | Kandev's own provider-error routing (dynamic profiles: reset-date waiting, candidate fallback) only recognises Claude stderr matching `rate.?limit`, `anthropic_quota_exceeded`, `credit balance`, `subscription`; Claude's "You've hit your usage limit" message is unclassified and stops for manual recovery | the observer's quota-resume covers it; a Codex fallback candidate needs the rule gap fixed upstream (`routingerr/rules.go`) first |
+
+## Opt-in portable E2E pilot
+
+`workflow-pilot.py` prepares a version-1 workflow against an existing profile.
+The example uses the installed Codex profile; choose another installed agent/model
+explicitly when testing that pairing. Profile selection does not change permissions.
+
+```bash
+python3 kandev/workflow-pilot.py --agent codex-acp --model gpt-6-astra --output /tmp/portable-e2e.json
+python3 kandev/workflow-pilot.py --agent codex-acp --model gpt-6-astra --output /tmp/portable-e2e.json --apply
+```
+
+The installed **Portable E2E pilot** has E2E → PR review → Done. Plan approval
+remains inside E2E through Kandev's question tool. Only E2E has an automatic
+transition, gated by an explicit completion signal; cancellation cannot trigger it.
+PR review and Done have no automatic start/advance actions. Import starts no tasks
+and attaches no watches. An existing pilot is never overwritten by this script.
+Select it when creating a deliberate test task; do not change the default before
+observing approval, cancellation, repair and resume behaviour on representative work.
+
+For watch selection, replace the legacy `claude_profile` block with an
+`agent_profile` selector such as `{"agent":"codex-acp","name":"Default","model":"gpt-6-astra"}`,
+or an exact `{"id":"<profile-id>"}`. Individual watches may override
+`agent_profile` and set `enabled:false`. Ambiguous/missing selectors stop rather
+than choosing the first profile. Applying watch configuration can dispatch real
+eligible tickets, so the pilot import is deliberately separate from configure.py.

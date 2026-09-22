@@ -14,7 +14,7 @@ for the requirements these adapters preserve.
 | `install.sh` | Idempotent bootstrap for Codex dotfiles |
 | `sync-mcps.sh` | Adds user-level Codex MCP server configs from the shared MCP source of truth |
 | `skills/` | Global Codex skills ported from the Claude command set |
-| `sync-workflow.py` | Builds selected shared delivery skills and the optional Beam Socratic interview adapter |
+| `sync-workflow.py` | Builds shared delivery/E2E/investigation skills and optional Beam interview/review adapters |
 
 ## MCP source of truth
 
@@ -37,7 +37,7 @@ The script:
 1. Symlinks `AGENTS.md` into `~/.codex/AGENTS.md`
 2. Symlinks the remaining dotfiles skill directories into `~/.codex/skills/`
 3. Generates ship, verify, verify-ui and PR-writing adapters from the installed personal release
-4. Generates Socratic interview when the Beam user plugin is installed and enabled
+4. Generates Socratic interview and full review-pr when the Beam user plugin is installed and enabled
 5. Adds any missing MCP server definitions to Codex
 
 After that, log in to the MCPs you want to use:
@@ -97,11 +97,11 @@ With `beam-claude-skills@beam-claude-skills` installed and enabled, run:
 python3 codex/sync-workflow.py --package beam
 ```
 
-This imports only `socratic-codebase-interview` from Beam. Its complete source
+This imports `socratic-codebase-interview` and `review-pr` from Beam. The interview source
 is retained locally under `~/.codex/skills/socratic-codebase-interview/references/`,
 with source path, version and SHA-256 recorded in `~/.codex/beam-migration.json`.
 Beam remains the canonical maintenance home; this is not a personal fork.
-The four personal delivery adapters and their manifest are unaffected.
+The seven personal workflow adapters and their manifest are unaffected. Review uses all source lenses sequentially unless delegation is authorized; author status alone does not authorize posting.
 
 After starting a fresh session, say `Use socratic-codebase-interview to quiz me
 on <system> before my engineering sync`. It reads the code, asks one question,
@@ -148,3 +148,15 @@ security add-generic-password -a "$USER" -s honeycomb-agent-traces -w '<INGEST_K
 - `~/.codex/config.toml` remains machine-local and is not overwritten here.
 - `~/.codex/rules/` remains machine-local.
 - `~/.codex/sessions/`, `history.jsonl`, and auth state remain machine-local.
+
+## Portable E2E routes
+
+The personal import includes ship, verify, verify-ui, writing-pr-descriptions,
+e2e, investigate and codex-collab. Start a fresh session after refreshing.
+Use `/e2e <task> --execution direct --review codex` to implement in the active
+agent with a separate Codex reviewer. The standalone default keeps a dedicated
+Codex implementer; `--execution native` needs an available, authorized subagent.
+Select explicit model IDs from the task/profile or your configured Codex model:
+`E2E_IMPLEMENTER_MODEL`, `E2E_REVIEWER_MODEL`, and `CODEX_COLLAB_MODEL` for the
+optional consultation. The wrappers reject missing identities and unsafe review
+arguments. Fresh context does not imply model diversity. E2E dry-run is read-only.

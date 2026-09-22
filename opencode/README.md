@@ -108,10 +108,11 @@ the existing `opencode.jsonc`.
 - Old `/review-*-openai` and `/review-*-gemini` commands still require their
   `code-reviewer` MCP and requested models. Use `/review-pr` for the configured
   agent's review, or configure that MCP before using those older commands.
-- `/e2e` and `/codex-collab` retain their authenticated Codex CLI dependency.
-  Fleet/orchestration commands retain their original external CLI dependencies.
-  `/e2e --dry-run` still executes intake/planning/workspace stages. Use disposable
-  inputs and explicitly constrain external actions when piloting it.
+- `/e2e` selects direct/native/Codex execution explicitly; the Codex routes and
+  `/codex-collab` require authenticated Codex and an explicit model selection.
+  Native delegation requires authorization. `/e2e --dry-run` is read-only.
+  Refresh writes `workflow-compat.md` and points refreshed wrappers at it,
+  preserving model/MCP settings. Fleet commands remain historical tooling.
 - Claude session history, automatic memory, statusline, OTel telemetry, plugin
   updater hooks, and fleet launchers are not migrated. OpenCode runs its own LSP
   support; the Claude ruby-lsp plugin is not loaded.
