@@ -73,8 +73,16 @@ This pins the existing Claude marketplace name to a committed snapshot under
 CLI. It backs up the prior registration/settings, preserves the old cache, and
 records file hashes and source commit. Subsequent upstream updates are deliberately
 paused while this local source is selected. To return to published releases,
-run `claude plugin marketplace add jjholmes927/jjholmes927-claude-skills`, update
-the plugin, then refresh the Codex and OpenCode adapters. The OpenCode
+first inspect `extraKnownMarketplaces.jjholmes927-claude-skills.source` in
+`~/.claude/settings.json`. If it declares the local directory, back up the settings
+and replace only that source with `{"source":"github","repo":"jjholmes927/jjholmes927-claude-skills"}`.
+Claude rejects a different network source while the local declaration remains.
+Then run `claude plugin marketplace add jjholmes927/jjholmes927-claude-skills`,
+`claude plugin marketplace update jjholmes927-claude-skills`, and
+`claude plugin update joel-workflow@jjholmes927-claude-skills`, then refresh the
+Codex and OpenCode adapters. An already-current version can remain in its existing
+cache; compare its workflow contents with the published commit and run
+`workflow-doctor` to confirm adapter parity and that the local pin is gone. The OpenCode
 `--workflow-only` refresh preserves other adapters, MCP settings and model choices.
 
 The generated skills retain verification evidence, tree fingerprints, the
