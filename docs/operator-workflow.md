@@ -2,7 +2,7 @@
 
 The current direction is Kandev-managed work, using separately maintained skills and a selected harness/model for each role. The [agent setup map](agent-setup.md) owns package locations, provenance, installation and overlap decisions. [Kandev setup](kandev-setup.md) owns deployment/configuration instructions. This document owns the shared delivery contract.
 
-Updated 22 September 2026. The contract is documented; the [implementation gaps](#current-implementation-gaps) show where current scripts/settings do not yet enforce it. The original August Fleet guide remains [below](#legacy-fleet-reference) as historical reference. It is not the default Kandev operating model.
+Updated 22 September 2026. The contract is documented; the [implementation and validation status](#current-implementation-and-remaining-validation) shows what is enforced and what still needs a full task run. The original August Fleet guide remains [below](#legacy-fleet-reference) as historical reference. It is not the default Kandev operating model.
 
 ## Roles and authority
 
@@ -10,8 +10,8 @@ Updated 22 September 2026. The contract is documented; the [implementation gaps]
 |---|---|
 | Human | Request scope, approve the plan when required, decide material scope changes and any separately reserved publication/release actions |
 | Kandev | Intake, task/session/worktree ownership, visible pending questions, selected profiles and stage routing |
-| Coordinator | Context, planning, handoffs, evidence and findings disposition; in the existing E2E profile it routes production edits to the implementer |
-| Implementer | Approved code changes, tests and repairs; the current E2E implementation uses the external Codex wrapper |
+| Coordinator | Context, planning, handoffs, evidence and findings disposition; routes production edits according to the explicit direct/native/Codex execution profile |
+| Implementer | Approved code changes, tests and repairs; may be the primary agent, an authorized native subagent or the explicit Codex route |
 | Reviewer / verifier | Review exact code and observe behaviour; report evidence, defects and limitations without silently assuming repair ownership |
 | Shared skills | Reusable stage requirements, evidence formats and failure policy, maintained by the owner selected in the setup map |
 | Harness adapter / model profile | Native tools, discovery, permissions, invocation/resume and explicit model/effort selection; no promise of model diversity from a different CLI name |
@@ -30,12 +30,12 @@ Each stage produces a handoff tied to its inputs. A changed input invalidates do
 | 1. Intake / human + Kandev | Explicit task, or issue matching the configured state/assignee/work-type watch and capacity | Select investigate or implement; inspect existing task/PR ownership before dispatch | One task bound to the request and selected route; conflicting labels or existing active ownership resolved |
 | 2. Workspace / Kandev + repository adapter | Repository/base, task, executor and selected profile | Validate the assigned checkout and project provisioning. Reuse an existing isolated worktree. Standalone E2E provisions its new workspace after the plan gate | Recorded repository/worktree/base and usable project environment, or visible setup failure. A checkout's existence alone does not prove database/port isolation |
 | 3. Context / coordinator | Request, ticket history, existing work and repository guides | Read and perform already-authorized claim/status moves; clarify missing essentials | Scope, acceptance criteria, relevant guides and dependencies recorded; investigation can branch here |
-| 4. Plan and challenge / coordinator + plan reviewer | Scope, constraints, repository context and acceptance criteria | Draft bounded tasks/PR slices and tests; audit the plan in review context | Plan revision with task effort, expected evidence, exposure/rollback implications and audit findings; unresolved audit notes remain visible at approval |
+| 4. Plan and challenge / coordinator + plan reviewer | Scope, constraints, repository context and acceptance criteria | Draft tasks, tests and provisional delivery increments without line estimates; audit the plan in review context | Plan revision with task effort, expected evidence, exposure/rollback implications and audit findings; unresolved audit notes remain visible at approval |
 | 5. Approval / human via Kandev | Concrete plan revision and requested downstream actions | Approve or revise through the host's supported question facility; wait while pending | Explicit approval tied to scope/revision, or a revision/cancellation decision. No dependent implementation while unanswered |
 | 6. Implement and test / implementer | Approved plan, isolated environment and repository guidance | Edit/test intended files; checkpoint according to the active workflow; return repairs to the designated implementer | Intended diff and relevant test results with commit/tree identity; unrelated work preserved |
 | 7. Review / reviewers + coordinator | Exact base/head/tree, requirements, tests and plan | Self-review, coordinator review with refutation, final branch coherence review; request bounded repairs | Findings supported/refuted with evidence; repaired findings rechecked; remaining findings explicitly dispositioned. Missing required review is incomplete |
 | 8. Verify / verifier | Acceptance promises, current code tree and resolved environment | Run appropriate unit/runtime/browser/read-back checks; record limits; repair environment within scope | Verified or partial verdict with concrete observations, target and tree fingerprint; unverified promises and follow-up owners visible. Never infer behaviour merely from a green unit suite |
-| 9. Ship and feedback / ship coordinator + implementer | Publication scope, verified current tree, PR base and size budget | Invoke the selected ship workflow; format/commit as needed, gate push, create/update PR, watch CI and triage automated feedback | PR for the measured head; required CI passed or explicitly evidenced exception; feedback disposition and outstanding work recorded. Repairs return through tests, verification and push gates |
+| 9. Ship and feedback / ship coordinator + implementer | Publication scope, verified current tree, actual PR base and release-readiness criteria | Invoke the selected ship workflow; format/commit as needed, gate push, create/update PR, watch CI and triage automated feedback | PR for the measured head; required CI passed or explicitly evidenced exception; feedback disposition and outstanding work recorded. Repairs return through tests, verification and push gates |
 | 10. Release readiness / release owner + human reviewer | PR/CI evidence, affected environments, automatic deployment triggers and rollout plan | Run applicable readiness checks; draft communication and rollback plan | Readiness verdict with tests, telemetry, alerts, error state, flag/cohort plan and rollback evidence. Evaluate before merge if merge exposes the change |
 | 11. Merge and deployment / authorized operator + existing CI | Approved current PR head and release readiness | Execute already-authorized merge/deployment actions; observe existing automation rather than duplicating it | Actual merge commit correlated with relevant deployment run/revision; deployment failure remains visible |
 | 12. Rollout and production confirmation / release owner | Deployed revision, cohort/flag plan and required telemetry | Perform authorized rollout actions and production observation; follow the agreed rollback/fix path if checks fail | Intended behaviour observed for the target environment/cohort, with time window and evidence; unavailable telemetry remains unverified |
@@ -94,24 +94,23 @@ The following preserves the existing personal workflow budgets. A required capab
 
 Finding-fix rounds and execution failures are recorded separately. A review returning a real defect is not itself a failed tool execution. Retries preserve scope and permissions. On pause/cancel, stop dependent work and retain the handoff; resuming never manufactures approval or resets attempts. Any continuation mechanism must inspect pending approval, cancellation and scope before acting.
 
-Before every push, use the correct PR base and the exact diff being published. A clean working tree can contain unpublished committed work. Preserve the shared 500-line total-diff cap and its source-defined generated/vendor exceptions; each stacked slice has its own base and verification. Simplification, CI fixes and review fixes can invalidate the tree fingerprint and require re-verification. A partial verdict carries the missing promises and their owner; a not-verifiable verdict follows ship's explicit stop/exception policy, never an inferred pass.
+Before every push, use the correct PR base and the exact diff being published. A clean working tree can contain unpublished committed work. Each PR must be an understandable, incrementally releasable unit of at most 500 total added/deleted lines, including tests, docs and generated text. Each stacked slice has its own base and verification; it must work after its predecessors without successors. Do not compress code or omit tests to fit. Simplification, CI fixes and review fixes can invalidate the tree fingerprint and require re-verification. A partial verdict carries the missing promises and their owner; a not-verifiable verdict follows ship's explicit stop/exception policy, never an inferred pass.
 
 Unresolved review findings can be carried to a PR only under the active workflow's documented policy, with visible comments/dispositions; this does not make the branch ready to merge. End-to-end completion must distinguish PR readiness, successful deployment and confirmed rollout. Linear Done-on-merge is issue automation, not production evidence.
 
-### Current implementation gaps
+### Current implementation and remaining validation
 
-| Observed gap on 22 September 2026 | Consequence / next implementation |
+| Area | Current status |
 |---|---|
-| Development workflow moves Backlog/In Progress to Review on turn completion; both have `auto_advance_requires_signal=false` and `cancel_triggers_turn_complete=true` | A UI column is not stage-success evidence. Pilot explicit successful-completion signals and cancellation handling before relying on automatic transitions |
-| `kandev/configure.py` still chooses the Claude profile for watches | Other harnesses selectable in Kandev do not make this configuration script neutral; profile selection is later work |
-| E2E still uses Fable/Sol wording, requires the external Codex CLI and includes conditional Claude Artifact instructions | Translate roles/capabilities through deliberate adapters; a required plan presentation needs a supported equivalent, not an invented tool |
-| E2E/investigate still mention fleet-status; E2E is absent from the installed Codex skill catalog | Do not treat legacy status sidecars as Kandev completion. Kandev handoff wiring and the missing ports remain pending |
-| E2E's early law says two failures at a stage, while later CI wording says consecutive failures | The contract conservatively uses the stricter two-stage-failures stop; clarify the source during the later E2E port |
-| Reviewer CLI defaults do not establish a different model | Record actual identity and fresh context; explicitly select supported model/profile settings in the review pilot |
-| E2E `--dry-run` executes intake/planning/workspace stages normally | It is not a no-side-effects smoke test. Use disposable inputs and constrain external mutations for a pilot |
-| Local 2.17.0 parity release and selected generated adapters are checked; whole-task cross-harness outcomes are not | Publish/refresh the release, then run the [full E2E evaluation follow-up](https://app.todoist.com/app/task/6hXxx47R6x5JXFgG) after handoffs stabilize |
+| Shared workflow | Personal 2.20.0 defines direct/native/Codex execution, fresh review context, explicit model identity, bounded retries and handoffs; planning boundaries remain provisional |
+| Codex/OpenCode adapters | Complete E2E/investigate/codex-collab sources are available; Codex imports the full private Beam review separately, with publication and delegation boundaries |
+| Model selection | Codex wrappers require explicit selected model IDs. Different harnesses do not establish different models; resolved identity remains unknown unless observed |
+| Preview | E2E `--dry-run` is read-only, with no intake mutations, workspace creation, child launch or publication |
+| Opt-in Kandev pilot | Portable E2E pilot uses explicit completion signals, does not advance on cancellation, and stops at human PR review. The current Development workflow and watches are unchanged |
+| Watch configuration | `agent_profile` selects an existing harness/model profile globally or per watch, without changing that profile's permissions. Legacy `claude_profile` remains supported |
+| Remaining evidence | Installer and wrapper checks plus live configuration read-back do not prove full cross-harness task outcomes. Run the controlled INT-822 scenario and the [later E2E evaluation work](https://app.todoist.com/app/task/6hXxx47R6x5JXFgG) before changing the default |
 
-The Socratic interview Codex adapter is installed; selected delivery/investigation gaps remain next. Kandev routing/profile changes are a separate implementation step. Fleet replacement does not require porting its old instruments.
+Fresh sessions load refreshed skills. The pilot is opt-in; it creates no tickets or sessions by itself. Fleet replacement does not require porting its old instruments.
 
 ## Legacy Fleet reference
 

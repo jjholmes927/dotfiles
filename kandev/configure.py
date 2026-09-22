@@ -129,6 +129,17 @@ def ensure_claude_profile(api, conf):
     return profile
 
 
+def select_agent_profile(api, selection):
+    agents = api.call("GET", "/api/v1/agents").get("agents", [])
+    matches = [p for a in agents for p in a.get("profiles", [])
+               if a.get("capability_status") in (None, "ok") and p.get("enabled", True)
+               and (not selection.get("agent") or a["name"] == selection["agent"])
+               and all(p.get(key) == value for key, value in selection.items() if key != "agent")]
+    if not selection or len(matches) != 1:
+        raise RuntimeError("agent_profile must identify exactly one existing profile by id or agent/name/model")
+    return matches[0]
+
+
 def ensure_linear(api, ws, linear):
     cfg = api.call("GET", f"/api/v1/linear/config?workspace_id={ws['id']}")
     if not cfg.get("hasSecret"):
@@ -199,6 +210,7 @@ def ensure_watches(api, ws, conf, repos, profile):
     ensure_executor_path(api, exec_prof)
     existing = api.call("GET", f"/api/v1/linear/watches/issue?workspace_id={ws['id']}").get("watches", [])
     for watch in linear.get("watches", []):
+        watch_profile = select_agent_profile(api, watch["agent_profile"]) if "agent_profile" in watch else profile
         label_id = watch.get("label_id") or labels.get(watch["label"])
         if not label_id:
             raise RuntimeError(
@@ -211,10 +223,10 @@ def ensure_watches(api, ws, conf, repos, profile):
             "workflowId": wf["id"], "workflowStepId": step["id"],
             "repositoryId": repo["id"], "baseBranch": repo.get("default_branch", "main"),
             "filter": {"teamKey": team, "stateIds": [state_id], "assigned": linear.get("assigned", "me"), "labelIds": [label_id]},
-            "agentProfileId": profile["id"], "executorProfileId": exec_prof["id"],
+            "agentProfileId": watch_profile["id"], "executorProfileId": exec_prof["id"],
             "prompt": watch["prompt"], "pollIntervalSeconds": linear.get("poll_seconds", 60),
             "maxInflightTasks": watch.get("max_inflight", linear.get("max_inflight", 2)),
-            "sortBy": "priority", "enabled": True,
+            "sortBy": "priority", "enabled": watch.get("enabled", True),
         }
         current = next((w for w in existing if (w.get("filter") or {}).get("labelIds") == [label_id]), None)
         if current is None:
@@ -249,7 +261,7 @@ def main():
     ws = ensure_workspace(api, conf)
     log(f"workspace {ws['name']} ({ws['id'][:8]})")
     repos = ensure_repositories(api, ws, conf.get("lanes", []))
-    profile = ensure_claude_profile(api, conf)
+    profile = select_agent_profile(api, conf["agent_profile"]) if "agent_profile" in conf else ensure_claude_profile(api, conf)
     if conf.get("linear"):
         ensure_linear(api, ws, conf["linear"])
         ensure_watches(api, ws, conf, repos, profile)
