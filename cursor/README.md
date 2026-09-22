@@ -28,6 +28,10 @@ recording the selected source, source hashes, generated hashes and generator has
 Existing managed files/links are backed up under `~/.cursor/backups/`; original
 symlink targets, unrelated skills, MCP configuration, login and model/permission
 settings are preserved. Repeating an unchanged import writes no files.
+Normal imports register/run `workflow-doctor`, which now checks Cursor's personal
+and Beam manifests too. Run it after package updates; its refresh commands identify
+which package needs regeneration. A Cursor installation without managed adapters
+is skipped. Missing manifests with surviving managed skills warn.
 
 For a preview without changing your live Cursor installation:
 
@@ -52,3 +56,25 @@ Codex review route. Kandev supplies its task-specific MCP tools; standalone Curs
 uses its own MCP configuration. This installer does not change either configuration.
 Keep model selection and authentication local. Native subagents require explicit
 authorization; no workflow stage is complete merely because a turn ended.
+
+## Validation and pilot
+
+Checked on 23 September 2026 with Cursor CLI `2026.05.09-0afadcc`; its updater
+reported that build current. The live CLI selected `~/.cursor/skills/e2e/` and
+read its compatibility and full source during an E2E dry run. Personal source
+2.20.3 and Beam 1.26.0 were installed with zero changes on repeat refresh.
+
+Cursor ACP with `gpt-5.6-sol` passed controlled Kandev-shaped MCP question cases:
+one unanswered/pending question ended the turn without grading or dependent work;
+an answered question was graded, and an explicit end stopped the interview.
+The local opt-in Kandev profile **Cursor → Sol workflow pilot** selects this model.
+Use it for the next real task with `/e2e --execution direct --review codex` and an
+explicit reviewer model. The existing Gemini profile and default workflows remain.
+
+With `gemini-3.8-flash`, skill discovery passed but nested MCP question arguments
+were malformed, including null option entries; the same fixture passed with Sol.
+Treat that combination's question gate as unverified, not an approval to continue.
+This is an observed model/runtime limitation, not a reason to weaken the gate.
+These probes cover discovery and question handling through the ACP interface used
+by Kandev. They do not establish the real Kandev UI round-trip, native subagents,
+or a complete implementation/review/CI lifecycle; those need a real pilot task.

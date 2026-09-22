@@ -32,6 +32,8 @@ def main():
         return
     target = args.target.expanduser().resolve()
     print(json.dumps(install(source.expanduser(), target, args.package), indent=2))
+    if target == Path.home() / ".cursor":
+        runpy.run_path(str(ROOT / "workflow/doctor.py"))["after_refresh"]()
 
 
 if __name__ == "__main__":

@@ -53,7 +53,7 @@ def inspect_manifest(path, target, selected):
     return problems
 
 
-def audit(home, codex, opencode):
+def audit(home, codex, opencode, cursor=None):
     results = []
     selected = {}
     config = home / ".claude"
@@ -89,11 +89,23 @@ def audit(home, codex, opencode):
         ("codex/beam", codex / "beam-migration.json", codex, "codex/sync-workflow.py --package beam"),
         ("opencode", opencode / "migration.json", opencode, "opencode/install.py"),
     ]
+    cursor = cursor or home / ".cursor"
+    for package, manifest in [("personal", "workflow-migration.json"), ("beam", "beam-migration.json")]:
+        script = "cursor/install.py" + (" --package beam" if package == "beam" else "")
+        targets.append((f"cursor/{package}", cursor / manifest, cursor, script))
     for label, path, target, script in targets:
         repair = f"cd {command_root} && python3 {script}"
         if not target.exists():
             results.append(("SKIP", label, ["harness directory is absent"], ""))
             continue
+        if label.startswith("cursor/") and not path.exists():
+            skills = ["socratic-codebase-interview", "review-pr"] if label.endswith("/beam") else [
+                "e2e", "ship", "verify", "verify-ui", "investigate", "codex-collab", "writing-pr-descriptions",
+            ]
+            paths = [target / "skills" / name for name in skills]
+            if not any(p.exists() or p.is_symlink() for p in paths):
+                results.append(("SKIP", label, ["package adapters are not installed"], ""))
+                continue
         if label == "codex/beam" and not path.exists() and "beam-claude-skills" not in selected:
             results.append(("SKIP", label, ["optional Beam package is not installed"], ""))
             continue
@@ -110,11 +122,12 @@ def main(argv=None):
     parser.add_argument("--home", type=Path, default=Path.home())
     parser.add_argument("--codex", type=Path)
     parser.add_argument("--opencode", type=Path)
+    parser.add_argument("--cursor", type=Path)
     args = parser.parse_args(argv)
     home = args.home.expanduser().resolve()
     config = Path(os.environ.get("XDG_CONFIG_HOME", str(home / ".config"))) if home == Path.home() else home / ".config"
     try:
-        results = audit(home, args.codex or home / ".codex", args.opencode or config / "opencode")
+        results = audit(home, args.codex or home / ".codex", args.opencode or config / "opencode", args.cursor)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         print(f"WARN plugin registry: {exc}; inspect Claude's local plugin settings")
         return 1

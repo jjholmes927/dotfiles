@@ -23,6 +23,7 @@ skills can be traced when the setup changes. Installed caches are not edit targe
 | `bin/` | Legacy Fleet/operator helpers, symlinked into `~/.local/bin` by `claude/install.sh`; [historical reference](docs/operator-workflow.md#legacy-fleet-reference) |
 | `claude/` | Claude Code global config — `CLAUDE.md`, settings, commands, hooks, scripts |
 | `codex/` | Codex global config — `AGENTS.md`, skills, installer, MCP bootstrap |
+| `cursor/` | Cursor CLI — shared personal/Beam skill adapters, compatibility and drift checks |
 | `opencode/` | OpenCode migration — workflow adapters, skills, MCPs, notifications, installer |
 | `kandev/` | Task intake, worktree/profile setup and local Kandev configuration |
 | `docs/` | Agent package map, shared workflow contract and setup guides |
@@ -84,3 +85,16 @@ python3 opencode/doctor.py
 Restart OpenCode to load the migrated commands and skills. See
 [`opencode/README.md`](opencode/README.md) for MCP login, source precedence,
 backups, and compatibility boundaries.
+
+## Cursor CLI
+
+After installing/authenticating Cursor CLI and its desired source packages:
+
+```bash
+python3 cursor/install.py
+python3 cursor/install.py --package beam --if-installed
+workflow-doctor
+```
+
+Start a fresh standalone or Kandev Cursor session. See [Cursor setup](cursor/README.md)
+for imported skills, discovery, backups and configuration boundaries.
