@@ -70,7 +70,7 @@ npm install -g @openai/codex
 ./codex/install.sh
 ```
 
-The `npm install` gives you the `codex` CLI (required for the MCP sync step). The bootstrap links global instructions and the remaining local skills, generates four shared delivery skills from the installed personal release, and adds the shared MCP definitions so you can authenticate them on this machine.
+The `npm install` gives you the `codex` CLI (required for the MCP sync step). The bootstrap links global instructions and the remaining local skills, generates four shared delivery skills plus Socratic interview when Beam is enabled, and adds the shared MCP definitions so you can authenticate them on this machine.
 
 ## OpenCode
 

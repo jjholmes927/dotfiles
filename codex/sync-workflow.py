@@ -31,22 +31,78 @@ over generic examples. Preserve the verification, fingerprint, size and retry
 requirements; do not replace them with a shortened workflow.
 """
 
+INTERVIEW_COMPAT = """# Socratic interview in Codex
 
-def installed_source(home):
-    registry = json.loads((home / ".claude/plugins/installed_plugins.json").read_text())
-    entries = registry.get("plugins", {}).get("joel-workflow@jjholmes927-claude-skills", [])
+Use native read/search tools to establish the source-grounded interview.
+Testing understanding does not authorize code changes or extra deliverables.
+Preserve the source's question ladder, grading, corrections, detours and ending.
+Do not turn a request to explain a system into an interview.
+
+In Kandev, use ask_user_question_kandev for one question at a time. Put the
+verdict, evidence-backed corrections and optional soundbite in context_paragraphs,
+and the numbered next question in prompt. Invite an answer in the custom text
+field. When the schema requires options, provide interview controls such as
+"Skip this question" and "End interview", never candidate answers or hints.
+A skip is not assessed, not an incorrect answer. An end/rejection closes with
+the source's scorecard based only on answers actually received.
+Follow the question tool's waiting contract: do not continue work or grade
+without a completed answer. A pending/timeout result ends the turn; it is not
+an answer. Outside Kandev, ask the one question in the reply and end the turn
+to wait. Never invent the user's answer or continue the interview autonomously.
+"""
+PACKAGES = {
+    "personal": {
+        "id": "joel-workflow@jjholmes927-claude-skills",
+        "metadata": "plugin.json", "commands": COMMANDS,
+        "compat": COMPAT, "manifest": "workflow-migration.json",
+    },
+    "beam": {
+        "id": "beam-claude-skills@beam-claude-skills",
+        "metadata": ".claude-plugin/plugin.json",
+        "commands": {"socratic-codebase-interview": "skills/socratic-codebase-interview/SKILL.md"},
+        "compat": INTERVIEW_COMPAT, "manifest": "beam-migration.json",
+    },
+}
+
+
+def installed_source(home, package="personal", optional=False):
+    identity = PACKAGES[package]["id"]
+    registry_path = home / ".claude/plugins/installed_plugins.json"
+    if optional and not registry_path.exists():
+        return None
+    registry = json.loads(registry_path.read_text())
+    entries = registry.get("plugins", {}).get(identity, [])
     user_entries = [entry for entry in entries if entry.get("scope") == "user"]
+    if not user_entries and optional:
+        return None
     if len(user_entries) != 1:
-        raise ValueError("Expected one user installation of joel-workflow; use --source for an explicit preview")
+        raise ValueError(f"Expected one user installation of {identity}; use --source for an explicit preview")
+    if package == "beam" or optional:
+        settings_path = home / ".claude/settings.json"
+        settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+        if settings.get("enabledPlugins", {}).get(identity) is not True:
+            if optional:
+                return None
+            raise ValueError(f"Enable {identity} before importing it, or use --source for an explicit preview")
     return Path(user_entries[0]["installPath"])
 
 
-def install(source, target):
+def install(source, target, package="personal"):
     source = source.resolve()
-    plugin = json.loads((source / "plugin.json").read_text())
-    if not (source / "scripts/resolve-dev-url.py").is_file():
+    config = PACKAGES[package]
+    commands = config["commands"]
+    plugin = json.loads((source / config["metadata"]).read_text())
+    if package == "beam" and plugin.get("name") != "beam-claude-skills":
+        raise ValueError("Expected Beam plugin metadata for the interview adapter")
+    if package == "personal" and not (source / "scripts/resolve-dev-url.py").is_file():
         raise ValueError("Update joel-workflow to the parity release before installing its Codex adapters")
-    documents = {name: (source / relative).read_text() for name, relative in COMMANDS.items()}
+    documents = {name: (source / relative).read_text() for name, relative in commands.items()}
+    descriptions = {}
+    for name, content in documents.items():
+        description = re.search(r"^description:\s*(.+)$", content, re.MULTILINE)
+        if not description:
+            raise ValueError(f"Missing description for {name}")
+        descriptions[name] = description[1].strip().strip(chr(34))
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     backup = target / "backups" / f"workflow-{stamp}"
     changed = []
@@ -78,33 +134,35 @@ def install(source, target):
         if directory.is_symlink():
             save_existing(directory, relative)
             directory.unlink()
-        description = re.search(r"^description:\s*(.+)$", content, re.MULTILINE)
-        if not description:
-            raise ValueError(f"Missing description for {name}")
         entry = (
-            f"---\nname: {name}\ndescription: {json.dumps(description[1].strip().strip(chr(34)))}\n---\n\n"
+            f"---\nname: {name}\ndescription: {json.dumps(descriptions[name])}\n---\n\n"
             "Read `compat.md` and `references/workflow.md` in this skill directory, "
             "then perform the workflow for the user's request.\n"
-            f"Resolve source-relative references against `{(source / COMMANDS[name]).parent}`.\n"
+            f"Resolve source-relative references against `{(source / commands[name]).parent}`.\n"
             f"The original plugin root is `{source}`; resource paths in the reference are already resolved.\n"
         )
         write(relative / "SKILL.md", entry)
-        write(relative / "compat.md", COMPAT)
+        write(relative / "compat.md", config["compat"])
         write(relative / "references/workflow.md", content.replace("${CLAUDE_PLUGIN_ROOT}", str(source)))
-        manifest["skills"][name] = {"source": str(source / COMMANDS[name]),
+        manifest["skills"][name] = {"source": str(source / commands[name]),
                                     "sha256": hashlib.sha256(content.encode()).hexdigest()}
-    write(Path("workflow-migration.json"), json.dumps(manifest, indent=2) + "\n")
+    write(Path(config["manifest"]), json.dumps(manifest, indent=2) + "\n")
     return {"version": plugin["version"], "source": str(source), "changed": len(changed),
             "backup": str(backup) if backup.exists() else None}
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Install shared ship/verify requirements into Codex")
+    parser = argparse.ArgumentParser(description="Install selected shared workflow sources into Codex")
+    parser.add_argument("--package", choices=PACKAGES, default="personal")
+    parser.add_argument("--if-installed", action="store_true", help="Skip an absent or disabled optional source package")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--target", type=Path, default=Path.home() / ".codex")
     args = parser.parse_args()
-    source = args.source or installed_source(Path.home())
-    print(json.dumps(install(source, args.target.expanduser().resolve()), indent=2))
+    source = args.source or installed_source(Path.home(), args.package, args.if_installed)
+    if source is None:
+        print(f"Skipped {args.package}: no enabled source installation; existing adapters were not removed")
+        return
+    print(json.dumps(install(source, args.target.expanduser().resolve(), args.package), indent=2))
 
 
 if __name__ == "__main__":
