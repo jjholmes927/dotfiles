@@ -2,13 +2,13 @@
 
 Dotfiles is the index and installation wiring for separately maintained workflow packages. The [operator workflow](operator-workflow.md#shared-lifecycle-contract) defines how they work together; [Kandev setup](kandev-setup.md) describes the current launcher. Edit a skill in its canonical repository, then release it and refresh its adapters.
 
-Snapshot: 22 September 2026. Versions below are observed installations, not claims about upstream latest releases. The Beam/personal inventory contains 29 entries: 12 skills and 17 commands. This document records ownership decisions and known gaps; it does not install the missing ports or change Kandev routing.
+Snapshot: 22 September 2026, updated after the Socratic Codex port. Versions below are observed installations, not claims about upstream latest releases. The Beam/personal inventory contains 29 entries: 12 skills and 17 commands. This document records ownership decisions, installed adapters and remaining gaps; Kandev routing is unchanged.
 
 ## Package map
 
 | Package / owner | Canonical source and purpose | Observed revision | Installation and harness support |
 |---|---|---|---|
-| Beam / team | [wearebeam/beam-claude-skills][beam]: team and product workflows | 1.26.0, `467c8048983b48b908b2f57e10a1d22b741af75f` | Claude plugin; OpenCode imports skills and prefixes commands with `beam-`; no complete Beam-specific Codex port |
+| Beam / team | [wearebeam/beam-claude-skills][beam]: team and product workflows | 1.26.0, `467c8048983b48b908b2f57e10a1d22b741af75f` | Claude plugin; OpenCode imports skills and prefixes commands with `beam-`; Codex has the complete Socratic interview source adapter |
 | Personal / Joel | [jjholmes927/jjholmes927-claude-skills][personal]: personal delivery and working methods | 2.17.0, local source `4b17559fb072c1891e8c56d0086b6fa3441252c7` | Claude plugin; OpenCode adapters; four complete Codex adapters, plus separate older ports |
 | Superpowers / upstream | [obra/superpowers][superpowers], distributed by [obra/superpowers-marketplace][superpowers-marketplace]: planning, debugging, testing and review methods | 6.1.1, `d884ae04edebef577e82ff7c4e143debd0bbec99` | Claude plugin; OpenCode loads upstream `.opencode/plugins/superpowers.js`; no dedicated Codex installation observed |
 | Claude official / upstream | [anthropics/claude-plugins-official][claude-official]: `claude-md-management`, `ruby-lsp`, `linear`, `frontend-design` | First two 1.0.0; latter two `c447c3207a42` | Claude plugins; OpenCode imports `revise-claude-md`, `claude-md-improver`, `frontend-design`; Claude hooks/LSP registration are not imported |
@@ -22,6 +22,7 @@ Snapshot: 22 September 2026. Versions below are observed installations, not clai
 |---|---|---|
 | Claude plugins | `~/.claude/plugins/installed_plugins.json`, `known_marketplaces.json`, enabled plugins in settings; sources under the recorded `installPath` | `claude plugin list`; update through the plugin CLI, never patch cache files |
 | Codex shared workflows | `~/.codex/skills/{ship,verify,verify-ui,writing-pr-descriptions}`; `~/.codex/workflow-migration.json` records source paths and hashes | `python3 codex/sync-workflow.py`; uses the installed personal user plugin |
+| Codex Beam interview | `~/.codex/skills/socratic-codebase-interview`; `~/.codex/beam-migration.json` records source/version/hash | `python3 codex/sync-workflow.py --package beam`; imports only this skill from the enabled Beam user plugin |
 | Codex remaining personal skills | Symlinks from `~/.codex/skills/` into [codex/skills](../codex/skills) | [Codex bootstrap](../codex/README.md); these separate ports need reconciliation before replacement |
 | OpenCode | `~/.config/opencode/{commands,skills}`, `migration.json`, configured upstream Superpowers plugin path | [Full install and doctor](../opencode/README.md), or `python3 opencode/install.py --workflow-only` for just the personal package |
 | Kandev | `~/.config/kandev-fleet.json`, local Kandev settings/API and task records | [Kandev setup](kandev-setup.md); preview current settings before applying its mutating installer/configurer |
@@ -44,7 +45,7 @@ Start from a deliberate dotfiles revision and the package identities above. Comm
 
    Use `claude plugin marketplace add <source>` then `claude plugin install <plugin-id> --scope user`. During the unpublished parity release, use the [local snapshot installer](../codex/README.md#shared-delivery-workflow) for the personal package instead. A fresh machine cannot recover that local release from GitHub until its commit is published or supplied locally.
 2. Run the chosen [Codex](../codex/README.md#setup-on-a-new-machine) and [OpenCode](../opencode/README.md#install-or-refresh) installers after their source packages exist. Codex's shared importer requires the parity resolver; an older personal release is rejected. Keep provider login and project access separate from skill installation.
-3. For a published package update, run `claude plugin marketplace update <marketplace-name>` and `claude plugin update <plugin-id>`, then regenerate dependent adapters. `--workflow-only` refreshes the personal package only; use the full OpenCode installer after Beam, Superpowers or official plugin changes. Updating Claude alone does not refresh other harnesses. Restart sessions to reload catalogs.
+3. For a published package update, run `claude plugin marketplace update <marketplace-name>` and `claude plugin update <plugin-id>`, then regenerate dependent adapters. Refresh the Codex interview with `python3 codex/sync-workflow.py --package beam` after Beam changes. `--workflow-only` refreshes the personal package only; use the full OpenCode installer after Beam, Superpowers or official plugin changes. Updating Claude alone does not refresh other harnesses. Restart sessions to reload catalogs.
 4. Check plugin IDs/versions, each generated source path and hash, and OpenCode's `doctor.py`. Exercise affected workflow scenarios separately: discovery and source equality are not E2E proof. For an isolated adapter preview, use the target-directory examples in the harness READMEs.
 5. To remove a package, first identify its callers in this map and the generated manifests. Uninstall it with `claude plugin uninstall <plugin-id> --scope user`. Remove only its identified generated adapters and native plugin reference, preserving unrelated configuration/authentication; OpenCode's installer does not prune old adapters. Retire a marketplace only after its remaining packages and callers are accounted for. Follow the harness backup instructions for rollback rather than deleting a whole skill directory tree.
 
@@ -68,7 +69,7 @@ No copies are deleted by this documentation change. A same-name entry is not suf
 
 ## Complete Beam and personal inventory
 
-All entries below are installed in Claude. OpenCode command spellings are shown explicitly; `+ skill` means a corresponding skill adapter is present. Codex **shared** means a complete personal source adapter with compatibility instructions; **separate** means an existing independent port with unproven parity; **missing** means no installed entry. These are availability observations, not complete workflow execution results.
+All entries below are installed in Claude. OpenCode command spellings are shown explicitly; `+ skill` means a corresponding skill adapter is present. Codex **shared** means a complete source adapter with compatibility instructions (personal unless marked Beam); **separate** means an existing independent port with unproven parity; **missing** means no installed entry. These are availability observations, not complete workflow execution results.
 
 Relative paths are resolved inside the linked package at its observed revision: a skill is `skills/<name>/SKILL.md`; a command is `commands/<name>.md`. The provenance column records the first addition visible in the relevant repository, not a claim of original invention. `J:<commit>` is an addition committed by Joel Holmes in the non-shallow personal history. `B?` means Beam's shallow local history cannot establish origin. `JS` is the GitHub-confirmed Socratic addition described below; `R` is the restored investigate source.
 
@@ -80,7 +81,7 @@ Relative paths are resolved inside the linked package at its observed revision: 
 | Skill `debug-interpret-conversation` | Investigate one Interpret conversation; Beam records, product guides and diagnostic access | Missing | `/debug-interpret-conversation` + skill | B? |
 | Skill `investigate-alert` | Triage incidents; Beam runbooks, Honeycomb/incident context and product ownership | Missing | `/investigate-alert` + skill | B? |
 | Skill `sentry-triage` | Review production exceptions; Sentry access, project identifiers and triage policy | Missing | `/sentry-triage` + skill | B? |
-| Skill `socratic-codebase-interview` | Test understanding against source, one question at a time; repository reading and host question tool | Missing | `/socratic-codebase-interview` + skill | JS |
+| Skill `socratic-codebase-interview` | Test understanding against source, one question at a time; repository reading and host question tool | Shared (Beam) | `/socratic-codebase-interview` + skill | JS |
 | Command `brag-doc` | Summarize contributions; GitHub identity, repositories and output destination | Separate personal port | `/beam-brag-doc` | B? |
 | Command `commit-archaeology` | Trace change rationale; Git history, PRs and linked tickets | Missing | `/beam-commit-archaeology` | B? |
 | Command `get-it-looking-nice` | Run format/lint/type checks; repository tooling | Missing | `/beam-get-it-looking-nice` | B? |
@@ -111,7 +112,7 @@ Relative paths are resolved inside the linked package at its observed revision: 
 | Command `verify-ui` | Browser proof; agent-browser, URL resolver, login and attachment policy | Shared | `/verify-ui` + skill | J:`947eb74` |
 | Command `verify` | Behavioural evidence tied to code tree; relevant runtime/read-back tools and verify-ui when needed | Shared | `/verify` | J:`a2fa4a9` |
 
-Codex additionally has the five dotfiles utilities listed in the ownership table, for 13 top-level personal skills in this snapshot. Other dotfiles entries include [release-check](../claude/commands/release-check.md), [style](../claude/commands/style.md) and eight `review-*-openai` / `review-*-gemini` commands under [claude/commands](../claude/commands). Those older review commands require a `code-reviewer` MCP absent from the shared MCP list; their presence is not a working alternate reviewer. OpenCode exposes release-check; Codex has no corresponding installed skill. Host-managed plugin/system skills are additional.
+Codex additionally has the five dotfiles utilities listed in the ownership table, for 14 top-level custom skills including the Beam interview adapter. Other dotfiles entries include [release-check](../claude/commands/release-check.md), [style](../claude/commands/style.md) and eight `review-*-openai` / `review-*-gemini` commands under [claude/commands](../claude/commands). Those older review commands require a `code-reviewer` MCP absent from the shared MCP list; their presence is not a working alternate reviewer. OpenCode exposes release-check; Codex has no corresponding installed skill. Host-managed plugin/system skills are additional.
 
 ## Provenance and a future personal setup
 
@@ -121,7 +122,7 @@ Codex additionally has the five dotfiles utilities listed in the ownership table
 
 | Candidate to carry into a personal setup | Current counterpart | Adaptation before relying on it independently |
 |---|---|---|
-| Socratic interview | None in the personal package or Codex | Keep the general interview contract; add a Codex adapter first. A future personal copy records Beam revision/path and its own maintenance home |
+| Socratic interview | Codex adapter from Beam; no personal-package fork | Refresh follows Beam source. A future independent personal copy records Beam revision/path and its own maintenance home |
 | Commit archaeology and formatting checks | No dedicated personal entry | Keep the general method; parameterize repository/ticket access and supported project commands |
 | Tunnel swap | No personal entry | Preserve the bundled script and configure personal account, tunnel and local targets |
 | Team PR review | Personal pointer plus separate Codex reviewer | Choose a standalone review contract, replace Beam-only assumptions and verify behaviour before removing Beam access |

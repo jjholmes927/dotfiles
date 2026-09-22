@@ -111,7 +111,7 @@ Unresolved review findings can be carried to a PR only under the active workflow
 | E2E `--dry-run` executes intake/planning/workspace stages normally | It is not a no-side-effects smoke test. Use disposable inputs and constrain external mutations for a pilot |
 | Local 2.17.0 parity release and selected generated adapters are checked; whole-task cross-harness outcomes are not | Publish/refresh the release, then run the [full E2E evaluation follow-up](https://app.todoist.com/app/task/6hXxx47R6x5JXFgG) after handoffs stabilize |
 
-The next port starts with Socratic interview, followed by selected delivery/investigation gaps. Kandev routing/profile changes are a separate implementation step. Fleet replacement does not require porting its old instruments.
+The Socratic interview Codex adapter is installed; selected delivery/investigation gaps remain next. Kandev routing/profile changes are a separate implementation step. Fleet replacement does not require porting its old instruments.
 
 ## Legacy Fleet reference
 

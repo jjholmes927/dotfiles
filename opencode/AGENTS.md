@@ -13,7 +13,9 @@ These compatibility rules apply to every imported skill and command:
   configured MCP tool by function, inspect its schema, and use its actual name.
   Never invent a missing tool or silently skip a required integration.
 - `Task` or `Agent` delegation means OpenCode's task tool with an available agent
-  type (usually `general` or `explore`). Include the complete review brief.
+  type (usually `general` or `explore`), only when the session authorizes delegation.
+  Otherwise apply optional review lenses sequentially; a required independent
+  review needs an authorized separate-context route. Include the complete brief.
   Do not pass Claude model aliases such as `opus` or `sonnet` as OpenCode models.
 - `EnterPlanMode` and `ExitPlanMode` mean present the plan and obtain any approval
   required by that workflow. Do not call nonexistent tools.
@@ -25,10 +27,14 @@ These compatibility rules apply to every imported skill and command:
 - Claude transcripts/settings and Codex transcripts/rules are not OpenCode state.
   Never write to them to configure OpenCode. Use the native `style` and
   `save-permissions` workflows installed here instead.
-- In cross-model workflows, Fable/Claude denotes the coordinating agent's role,
-  not a promise about the selected model. Codex/Sol remains the external Codex CLI.
-  Report the actual models when known; do not claim cross-model independence if
-  both participants use the same model.
+- E2E's profile selects direct, native or Codex implementation and the review
+  route. Use native delegation only when supported and authorized. Children get
+  bounded briefs, never recursive E2E orchestration. Record requested and observed
+  models separately; two harnesses using the same model are not model diversity.
+- In Kandev, use its plan and question tools. Pending/timeout questions are hard
+  waiting barriers: end the turn without dependent work until answers arrive.
+- Only signal Kandev step completion when the step's actual evidence criteria
+  are met, never because a turn ended or the task appears in a Review column.
 
 The installed `migration.json` lists command/skill sources and unavailable
 integrations. Resolve relative references in imported workflows against their

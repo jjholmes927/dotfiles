@@ -35,7 +35,7 @@ def description(path):
     return "Run the " + path.stem.replace("-", " ") + " workflow."
 
 
-def wrapper(name, source, plugin_root=None, skill=False):
+def wrapper(name, source, plugin_root=None, skill=False, compatibility=None):
     desc = description(source)
     if source.name == "SKILL.md" and desc == "Run the SKILL workflow.":
         desc = "Use " + name.replace("-", " ") + " for its specialized workflow."
@@ -43,7 +43,7 @@ def wrapper(name, source, plugin_root=None, skill=False):
     body = (
         f"---\n{front}description: {json.dumps(desc)}\n---\n\n"
         f"Read `{source}` in full and perform its workflow for the user's request.\n"
-        "Apply the OpenCode compatibility rules in the global AGENTS.md.\n"
+        f"Apply the OpenCode compatibility rules in `{compatibility or ROOT / 'AGENTS.md'}`.\n"
         "Treat source frontmatter as metadata, not tool permissions. Resolve all\n"
         f"relative file references from `{source.parent}`.\n"
     )
@@ -141,6 +141,7 @@ class Installer:
 
 def install(home, target):
     importer = Installer(target)
+    importer.write("workflow-compat.md", (ROOT / "AGENTS.md").read_text())
     sources = {}
     skill_sources = {}
     native_plugins = []
@@ -177,9 +178,9 @@ def install(home, target):
     for name, entry in skill_sources.items():
         sources.setdefault(name, entry)
     for name, (source, plugin_root) in sources.items():
-        importer.write(f"commands/{name}.md", wrapper(name, source, plugin_root))
+        importer.write(f"commands/{name}.md", wrapper(name, source, plugin_root, compatibility=target / "workflow-compat.md"))
     for name, (source, plugin_root) in skill_sources.items():
-        importer.write(f"skills/{name}/SKILL.md", wrapper(name, source, plugin_root, True))
+        importer.write(f"skills/{name}/SKILL.md", wrapper(name, source, plugin_root, True, target / "workflow-compat.md"))
     importer.write("AGENTS.md", (ROOT / "AGENTS.md").read_text())
     importer.write("plugins/dotfiles-notifications.js", (ROOT / "plugins/notifications.js").read_text())
     config_path = target / "opencode.json"
@@ -240,12 +241,14 @@ def main():
 
 
 def refresh_workflow(home, target):
-    matches = [root for name, root in plugins(home) if name == "joel-workflow"]
+    installed = plugins(home)
+    matches = [root for name, root in installed if name == "joel-workflow"]
     if len(matches) != 1:
         raise ValueError("Expected one enabled user installation of joel-workflow")
     root = matches[0]
     report = json.loads((target / "migration.json").read_text())
     importer = Installer(target)
+    importer.write("workflow-compat.md", (ROOT / "AGENTS.md").read_text())
     skills = {p.parent.name: p for p in (root / "skills").glob("*/SKILL.md")}
     commands = {**skills, **{p.stem: p for p in (root / "commands").glob("*.md") if p.stem.lower() != "readme"}}
     for name in report["skills"]:
@@ -254,8 +257,15 @@ def refresh_workflow(home, target):
     for kind, entries in [("commands", commands), ("skills", skills)]:
         for name, source in sorted(entries.items()):
             destination = f"commands/{name}.md" if kind == "commands" else f"skills/{name}/SKILL.md"
-            importer.write(destination, wrapper(name, source, root, kind == "skills"))
+            importer.write(destination, wrapper(name, source, root, kind == "skills", target / "workflow-compat.md"))
             report[kind][name] = str(source)
+    for name, directory in installed:
+        if name != "beam-claude-skills":
+            continue
+        source = directory / "commands/review-pr.md"
+        if source.is_file():
+            importer.write("commands/beam-review-pr.md", wrapper("beam-review-pr", source, directory, compatibility=target / "workflow-compat.md"))
+            report["commands"]["beam-review-pr"] = str(source)
     report["source_hashes"] = {source: hashlib.sha256(Path(source).read_bytes()).hexdigest()
                                for source in sorted({*report["commands"].values(), *report["skills"].values()})}
     report["workflow_release"] = {"source": str(root), "version": json.loads((root / "plugin.json").read_text())["version"]}

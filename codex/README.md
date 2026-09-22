@@ -14,7 +14,7 @@ for the requirements these adapters preserve.
 | `install.sh` | Idempotent bootstrap for Codex dotfiles |
 | `sync-mcps.sh` | Adds user-level Codex MCP server configs from the shared MCP source of truth |
 | `skills/` | Global Codex skills ported from the Claude command set |
-| `sync-workflow.py` | Builds ship, verify, verify-ui and PR-writing skills from the installed personal workflow release |
+| `sync-workflow.py` | Builds selected shared delivery skills and the optional Beam Socratic interview adapter |
 
 ## MCP source of truth
 
@@ -37,7 +37,8 @@ The script:
 1. Symlinks `AGENTS.md` into `~/.codex/AGENTS.md`
 2. Symlinks the remaining dotfiles skill directories into `~/.codex/skills/`
 3. Generates ship, verify, verify-ui and PR-writing adapters from the installed personal release
-4. Adds any missing MCP server definitions to Codex
+4. Generates Socratic interview when the Beam user plugin is installed and enabled
+5. Adds any missing MCP server definitions to Codex
 
 After that, log in to the MCPs you want to use:
 
@@ -87,6 +88,31 @@ python3 -B -m unittest discover -s codex -p 'test_*.py'
 ```
 
 `gws` is a stdio server, so it uses whatever local auth the `gws` CLI already has.
+
+## Socratic codebase interview
+
+With `beam-claude-skills@beam-claude-skills` installed and enabled, run:
+
+```bash
+python3 codex/sync-workflow.py --package beam
+```
+
+This imports only `socratic-codebase-interview` from Beam. Its complete source
+is retained locally under `~/.codex/skills/socratic-codebase-interview/references/`,
+with source path, version and SHA-256 recorded in `~/.codex/beam-migration.json`.
+Beam remains the canonical maintenance home; this is not a personal fork.
+The four personal delivery adapters and their manifest are unaffected.
+
+After starting a fresh session, say `Use socratic-codebase-interview to quiz me
+on <system> before my engineering sync`. It reads the code, asks one question,
+waits, and grades your answer against source evidence. Requests for an explanation
+remain explanations. In Kandev, type your answer in the question's text field;
+the buttons are skip/end controls, not suggested answers.
+
+The bootstrap uses `--package beam --if-installed` so machines without an enabled
+Beam installation skip this import. Existing adapters are not removed by a skip.
+Refresh after Beam updates; follow the [removal procedure](../docs/agent-setup.md#install-update-and-remove)
+when retiring the adapter. For an isolated preview, append `--target /tmp/codex-beam-preview`.
 
 ## Using skills
 

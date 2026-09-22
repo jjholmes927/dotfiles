@@ -60,6 +60,7 @@ done
 
 header "Shared workflow"
 python3 "$SCRIPT_DIR/sync-workflow.py"
+python3 "$SCRIPT_DIR/sync-workflow.py" --package beam --if-installed
 
 header "MCP servers"
 chmod +x "$SCRIPT_DIR/sync-mcps.sh"
