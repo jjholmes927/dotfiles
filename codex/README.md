@@ -2,6 +2,10 @@
 
 Personal configuration for Codex CLI (`~/.codex/`).
 
+See the [setup map](../docs/agent-setup.md) for source ownership and the complete
+cross-harness inventory, and the [operator contract](../docs/operator-workflow.md#shared-lifecycle-contract)
+for the requirements these adapters preserve.
+
 ## What's here
 
 | File | Purpose |
@@ -20,7 +24,9 @@ This keeps one shared server list for both tools while allowing auth to stay mac
 
 ## Setup on a new machine
 
-Run the bootstrap script from the dotfiles repo root or from inside `codex/`:
+Install the personal workflow parity release first, following the
+[package setup order](../docs/agent-setup.md#install-update-and-remove). Then run
+the bootstrap script from the dotfiles repo root or from inside `codex/`:
 
 ```bash
 ./codex/install.sh
@@ -29,8 +35,9 @@ Run the bootstrap script from the dotfiles repo root or from inside `codex/`:
 The script:
 
 1. Symlinks `AGENTS.md` into `~/.codex/AGENTS.md`
-2. Symlinks each skill directory into `~/.codex/skills/`
-3. Adds any missing MCP server definitions to Codex
+2. Symlinks the remaining dotfiles skill directories into `~/.codex/skills/`
+3. Generates ship, verify, verify-ui and PR-writing adapters from the installed personal release
+4. Adds any missing MCP server definitions to Codex
 
 After that, log in to the MCPs you want to use:
 

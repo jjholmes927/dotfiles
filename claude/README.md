@@ -2,6 +2,10 @@
 
 Personal configuration for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`~/.claude/`).
 
+The [setup map](../docs/agent-setup.md) links plugin sources, versions, install
+order, ownership and portability. The [operator contract](../docs/operator-workflow.md#shared-lifecycle-contract)
+describes the current Kandev workflow; Fleet notes are historical.
+
 ## What's here
 
 | File | Purpose |

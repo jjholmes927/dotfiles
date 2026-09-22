@@ -1,4 +1,11 @@
-# Kandev fleet setup
+# Kandev setup
+
+See the [agent setup map](agent-setup.md) for packages, adapters and provenance,
+and the [shared lifecycle contract](operator-workflow.md#shared-lifecycle-contract)
+for stage inputs, permissions, handoffs and completion evidence. This guide
+describes the installed scripts; their watch configuration still selects a
+Claude profile. The shared contract's neutral profile selection and explicit
+completion signals are later implementation work.
 
 **TL;DR.** Kandev is the control plane that picks READY Linear tickets up and runs `/e2e` on them in a lane worktree. Install is two commands on any machine: put the Linear key in the Keychain, run `kandev/install.sh`. Everything else is idempotent and driven by `~/.config/kandev-fleet.json`. Background and evidence: `docs/agent-control-plane-audit.md` §26a–26b.
 
@@ -19,10 +26,11 @@ What `configure.py` ensures, all by lookup-then-create/patch: lane repositories 
 
 ## Operating model
 
-- **READY = Linear state Todo + assigned to me + one work-type label.** `agent:implement` → `/e2e <ticket>`; `agent:investigate` → `/investigate <ticket>` (joel-workflow ≥ 2.16.0: claims In Progress, evidence-tagged findings comment, In Review). The label is the go switch; remove it to withdraw. Kandev never picks the same ticket twice per watch.
+- **READY = Linear state Todo + assigned to me + one work-type label.** `agent:implement` → `/e2e <ticket>`; `agent:investigate` → `/investigate <ticket>` (joel-workflow ≥ 2.16.0: claims In Progress, evidence-tagged findings comment, In Review). The label opts an unclaimed issue into dispatch. Removing it does not prove an already-started task stopped; inspect/cancel that task explicitly when authorized. Per-watch deduplication does not replace checking for ownership by another watch or manual task.
 - **Lanes** are registered as repositories. Beam lanes (`mn1`…`mn5`) use the magicnotes adapters below; the personal GigMe lane uses `gigme/kandev_worktree_setup.sh` / `kandev_worktree_cleanup.sh`, thin wrappers over the repo's own `bin/create_worktree` (`WORKTREE_NAME=kandev-<task dir>` provisions in place: `DB_SUFFIX`, `PORT`, `master.key`, gems, node modules; GigMe PR #353) and `bin/remove_worktree --databases-only`; cleanup refuses any `DB_SUFFIX` not starting with `kandev_`. Beam lanes (`mn1`…`mn5`) each task gets its own worktree under `~/.kandev/tasks/…` with its own database and ports via `magicnotes/kandev_worktree_setup.sh` (unique `WORKTREE_OFFSET=kandev-<task dir>`). `kandev_worktree_cleanup.sh` drops those databases when Kandev reaps the worktree.
 - **Human gate** = the `/e2e` plan question, posted through Kandev's own question tool; answer it in the task or on `/threads` at http://localhost:38429.
-- **Completion**: `/ship` opens the PR, moves the ticket to In Review and records `fleet-status complete`; Linear's GitHub integration moves it to Done on merge.
+- **Completion**: E2E invokes `/ship`, then owns the authorized ticket move to In Review after the required PR/CI outcome. Its remaining `fleet-status` call is a legacy sidecar, not Kandev completion evidence. Linear's Done-on-merge automation does not establish deployment or production success.
+- **Current routing gap (22 September 2026)**: Development's Backlog/In Progress steps move to Review on turn completion, with `auto_advance_requires_signal=false` and `cancel_triggers_turn_complete=true`. Until an explicit-signal pilot is implemented, read the task's evidence and pending decisions rather than interpreting that column as successful delivery. This documentation change does not alter those settings.
 
 ## ADHD reading theme (plugin)
 
