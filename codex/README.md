@@ -10,6 +10,7 @@ Personal configuration for Codex CLI (`~/.codex/`).
 | `install.sh` | Idempotent bootstrap for Codex dotfiles |
 | `sync-mcps.sh` | Adds user-level Codex MCP server configs from the shared MCP source of truth |
 | `skills/` | Global Codex skills ported from the Claude command set |
+| `sync-workflow.py` | Builds ship, verify, verify-ui and PR-writing skills from the installed personal workflow release |
 
 ## MCP source of truth
 
@@ -37,6 +38,45 @@ After that, log in to the MCPs you want to use:
 codex mcp login linear-server
 codex mcp login sentry
 codex mcp login honeycomb
+```
+
+## Shared delivery workflow
+
+Install or update the personal `joel-workflow` parity release first, then run
+`python3 codex/sync-workflow.py`. It reads the installed user plugin directory,
+builds the four delivery skills with full source instructions and Codex tool
+mapping, and records source paths, version and hashes in
+`~/.codex/workflow-migration.json`. Existing skill links/files are backed up;
+provider configuration, credentials, rules and unrelated skills are preserved.
+Restart the Codex session to refresh its skill catalog.
+
+For a committed local release before publishing to GitHub:
+
+```bash
+python3 codex/install-workflow-release.py --source /path/to/personal-workflow --install
+python3 codex/sync-workflow.py
+python3 opencode/install.py --workflow-only
+```
+
+This pins the existing Claude marketplace name to a committed snapshot under
+`~/.local/share/joel-workflow/releases/`, using Claude's supported local-marketplace
+CLI. It backs up the prior registration/settings, preserves the old cache, and
+records file hashes and source commit. Subsequent upstream updates are deliberately
+paused while this local source is selected. To return to published releases,
+run `claude plugin marketplace add jjholmes927/jjholmes927-claude-skills`, update
+the plugin, then refresh the Codex and OpenCode adapters. The OpenCode
+`--workflow-only` refresh preserves other adapters, MCP settings and model choices.
+
+The generated skills retain verification evidence, tree fingerprints, the
+500-line total-diff cap and bounded CI/review repairs. Edit the personal workflow
+source and rebuild the adapters rather than editing generated references.
+The previous short ship/verify-ui definitions are retired.
+
+For an isolated installation, use:
+
+```bash
+python3 codex/sync-workflow.py --source /path/to/joel-workflow --target /tmp/codex-workflow-preview
+python3 -B -m unittest discover -s codex -p 'test_*.py'
 ```
 
 `gws` is a stdio server, so it uses whatever local auth the `gws` CLI already has.
@@ -75,19 +115,3 @@ security add-generic-password -a "$USER" -s honeycomb-agent-traces -w '<INGEST_K
 - `~/.codex/config.toml` remains machine-local and is not overwritten here.
 - `~/.codex/rules/` remains machine-local.
 - `~/.codex/sessions/`, `history.jsonl`, and auth state remain machine-local.
-
-## Local workflow release snapshots
-
-Prepare an immutable snapshot of a committed personal workflow checkout:
-
-```bash
-python3 codex/install-workflow-release.py --source /path/to/joel-workflow
-```
-
-Add `--install` to register that snapshot with Claude's official plugin CLI.
-The installer backs up plugin configuration and records source commit/file hashes.
-Default snapshots live under `~/.local/share/joel-workflow/releases/`. A local
-marketplace pin pauses upstream updates until the published marketplace is restored.
-This utility does not refresh other harness adapters or change model/MCP settings.
-
-Validate with `python3 -m unittest discover -s codex -p 'test_workflow_release.py'`.
