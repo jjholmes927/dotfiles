@@ -14,6 +14,33 @@ spec.loader.exec_module(installer)
 
 
 class MigrationTests(unittest.TestCase):
+    def test_workflow_refresh_preserves_configuration_and_other_adapters(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "release"
+            (source / "commands").mkdir(parents=True)
+            (source / "commands/ship.md").write_text("---\ndescription: Ship safely\n---\nFull workflow")
+            (source / "plugin.json").write_text('{"version":"2.17.0"}')
+            other = root / "other.md"
+            other.write_text("Other workflow")
+            target = root / "opencode"
+            target.mkdir()
+            config = '{"model":"keep/me","mcp":{"unchanged":{}}}'
+            (target / "opencode.json").write_text(config)
+            (target / "migration.json").write_text(json.dumps({
+                "commands": {"ship": str(other), "other": str(other)},
+                "skills": {"ship": str(other)},
+            }))
+            with patch.object(installer, "plugins", return_value=[("joel-workflow", source)]), contextlib.redirect_stdout(io.StringIO()):
+                report = installer.refresh_workflow(root, target)
+                after = {p.relative_to(target): p.read_bytes() for p in target.rglob("*") if p.is_file()}
+                installer.refresh_workflow(root, target)
+            self.assertEqual(config, (target / "opencode.json").read_text())
+            self.assertEqual(str(other), report["commands"]["other"])
+            self.assertEqual(str(source / "commands/ship.md"), report["skills"]["ship"])
+            self.assertIn(str(source / "commands/ship.md"), report["source_hashes"])
+            self.assertEqual(after, {p.relative_to(target): p.read_bytes() for p in target.rglob("*") if p.is_file()})
+
     def test_install_preserves_local_config_and_is_idempotent(self):
         with tempfile.TemporaryDirectory() as temporary:
             target = Path(temporary) / "opencode"

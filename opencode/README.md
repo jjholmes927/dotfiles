@@ -16,8 +16,9 @@ model remain machine-local. Try `/context-check`, `/handoff`, `/review-pr`,
 
 The installer requires Python 3. It uses the existing Claude plugin registry;
 install the desired Claude plugins first on a new machine, then rerun it.
-For joel-workflow, it prefers `~/Engineering/tools/jjholmes927-claude-skills`
-when present and otherwise uses the installed plugin directory.
+For joel-workflow it uses the installed user plugin directory, matching Claude
+and the Codex shared-workflow adapter. It never silently substitutes a development
+checkout. Refresh the plugin first, then refresh the adapters.
 
 ## What is installed
 
@@ -44,7 +45,7 @@ imported versions. Matching commands also supply the corresponding skill so
 `ship` does not accidentally invoke the older Codex implementation.
 
 The generated `~/.config/opencode/migration.json` lists every imported source
-and known limitation. `~/.claude/skills` and `~/.agents/skills` are also discovered
+and known limitation, plus content hashes. `~/.claude/skills` and `~/.agents/skills` are also discovered
 by OpenCode itself. Existing duplicate skill names there may produce warnings.
 
 ## MCP authentication

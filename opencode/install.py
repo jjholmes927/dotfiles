@@ -3,6 +3,7 @@
 import argparse
 import copy
 import datetime
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -77,9 +78,6 @@ def plugins(home):
         if not entries:
             continue
         path = Path(entries[-1]["installPath"])
-        checkout = home / "Engineering/tools/jjholmes927-claude-skills"
-        if name.startswith("joel-workflow@") and (checkout / "skills").is_dir():
-            path = checkout
         if path.is_dir():
             result.append((name.split("@")[0], path))
     return result
@@ -213,6 +211,8 @@ def install(home, target):
         "dotfiles": str(ROOT.parent),
         "commands": {k: str(v[0]) for k, v in sorted(sources.items())},
         "skills": {k: str(v[0]) for k, v in sorted(skill_sources.items())},
+        "source_hashes": {str(source): hashlib.sha256(source.read_bytes()).hexdigest()
+                          for source, _ in [*sources.values(), *skill_sources.values()]},
         "native_plugins": native_plugins,
         "notes": notes,
     }
@@ -230,8 +230,40 @@ def main():
     parser = argparse.ArgumentParser()
     default = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "opencode"
     parser.add_argument("--target", type=Path, default=default)
+    parser.add_argument("--workflow-only", action="store_true")
     args = parser.parse_args()
-    install(Path.home(), args.target.expanduser().resolve())
+    target = args.target.expanduser().resolve()
+    if args.workflow_only:
+        refresh_workflow(Path.home(), target)
+    else:
+        install(Path.home(), target)
+
+
+def refresh_workflow(home, target):
+    matches = [root for name, root in plugins(home) if name == "joel-workflow"]
+    if len(matches) != 1:
+        raise ValueError("Expected one enabled user installation of joel-workflow")
+    root = matches[0]
+    report = json.loads((target / "migration.json").read_text())
+    importer = Installer(target)
+    skills = {p.parent.name: p for p in (root / "skills").glob("*/SKILL.md")}
+    commands = {**skills, **{p.stem: p for p in (root / "commands").glob("*.md") if p.stem.lower() != "readme"}}
+    for name in report["skills"]:
+        if name in commands:
+            skills[name] = commands[name]
+    for kind, entries in [("commands", commands), ("skills", skills)]:
+        for name, source in sorted(entries.items()):
+            destination = f"commands/{name}.md" if kind == "commands" else f"skills/{name}/SKILL.md"
+            importer.write(destination, wrapper(name, source, root, kind == "skills"))
+            report[kind][name] = str(source)
+    report["source_hashes"] = {source: hashlib.sha256(Path(source).read_bytes()).hexdigest()
+                               for source in {*report["commands"].values(), *report["skills"].values()}}
+    report["workflow_release"] = {"source": str(root), "version": json.loads((root / "plugin.json").read_text())["version"]}
+    importer.write("migration.json", json.dumps(report, indent=2) + "\n")
+    print(f"Refreshed joel-workflow adapters: {len(importer.changed)} changed files")
+    if importer.backup.exists():
+        print(f"Backups: {importer.backup}")
+    return report
 
 
 if __name__ == "__main__":

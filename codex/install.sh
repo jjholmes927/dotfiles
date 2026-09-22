@@ -54,8 +54,12 @@ header "Skills"
 for skill_dir in "$SCRIPT_DIR"/skills/*; do
   [[ -d "$skill_dir" ]] || continue
   skill_name="$(basename "$skill_dir")"
+  case "$skill_name" in ship|verify-ui) continue ;; esac
   link "$skill_dir" "$SKILLS_HOME/$skill_name"
 done
+
+header "Shared workflow"
+python3 "$SCRIPT_DIR/sync-workflow.py"
 
 header "MCP servers"
 chmod +x "$SCRIPT_DIR/sync-mcps.sh"
