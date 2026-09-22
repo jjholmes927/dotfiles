@@ -61,6 +61,9 @@ class WorkflowInstallTests(unittest.TestCase):
         workflow = source / "skills/socratic-codebase-interview/SKILL.md"
         workflow.parent.mkdir(parents=True)
         workflow.write_text('---\nname: socratic-codebase-interview\ndescription: Test understanding against source\n---\nAsk one question and wait.\n')
+        review = source / "commands/review-pr.md"
+        review.parent.mkdir()
+        review.write_text('---\ndescription: Review with four lenses\n---\nReport evidence.\n')
         return source
 
     def test_beam_import_preserves_personal_skills_and_source(self):
@@ -77,7 +80,8 @@ class WorkflowInstallTests(unittest.TestCase):
             self.assertEqual(original, (self.target / relative).read_bytes())
         manifest = json.loads((self.target / "beam-migration.json").read_text())
         self.assertEqual(str(source.resolve()), manifest["source_root"])
-        self.assertEqual({"socratic-codebase-interview"}, set(manifest["skills"]))
+        self.assertEqual({"socratic-codebase-interview", "review-pr"}, set(manifest["skills"]))
+        self.assertEqual(sync.REVIEW_COMPAT, (self.target / "skills/review-pr/compat.md").read_text())
         self.assertEqual(0, sync.install(source, self.target, "beam")["changed"])
 
     def test_optional_beam_source_and_registry_ambiguity(self):

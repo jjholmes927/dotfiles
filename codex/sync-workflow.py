@@ -13,6 +13,9 @@ COMMANDS = {
     "verify": "commands/verify.md",
     "verify-ui": "commands/verify-ui.md",
     "writing-pr-descriptions": "skills/writing-pr-descriptions/SKILL.md",
+    "e2e": "skills/e2e/SKILL.md",
+    "investigate": "skills/investigate/SKILL.md",
+    "codex-collab": "skills/codex-collab/SKILL.md",
 }
 COMPAT = """# Shared workflow in Codex
 
@@ -21,6 +24,11 @@ Source frontmatter is metadata, not an execution-permission boundary.
 Use Kandev's question/plan tools when running there; otherwise use the host's
 available question/plan facility. Preserve existing authorization and do not
 invent tools. A slash-command dependency means load its workflow instructions.
+In Kandev, pending or timed-out questions are hard waiting barriers: end the
+turn without dependent work. Only completed answers establish a decision.
+Native delegation is optional and needs explicit session authorization.
+Use the task's selected E2E route; a Codex host does not imply launching Codex
+recursively. A delegated child receives a bounded brief, never the E2E workflow.
 For verify, verify-ui and writing-pr-descriptions, use the installed skill of
 that name. For simplify, use an available skill or perform the source's stated
 review checks with native tools. Delegate only when authorized by the session.
@@ -29,6 +37,20 @@ Find MCP capabilities by function. Missing required capabilities are blockers,
 not successful checks. Project runtime, PR and attachment guides take precedence
 over generic examples. Preserve the verification, fingerprint, size and retry
 requirements; do not replace them with a shortened workflow.
+"""
+
+REVIEW_COMPAT = """# Beam review in Codex
+
+Use native tools and the repository's applicable guides. Preserve the source's
+four review lenses, evidence requirements, severity and incomplete outcomes.
+When delegation is not authorized, apply the lenses sequentially and report
+that execution mode; do not claim independent agents ran. A required independent
+review in a parent workflow still needs its approved separate-context route.
+Review only the exact requested PR/base/head; do not edit or switch the checkout.
+For a branch without a PR, use its explicit base/head and report locally.
+Do not infer permission to post from authorship. Show findings locally unless
+the session explicitly authorized publication; use a body file for an authorized
+GitHub comment. A failed or skipped required lens remains incomplete.
 """
 
 INTERVIEW_COMPAT = """# Socratic interview in Codex
@@ -59,7 +81,10 @@ PACKAGES = {
     "beam": {
         "id": "beam-claude-skills@beam-claude-skills",
         "metadata": ".claude-plugin/plugin.json",
-        "commands": {"socratic-codebase-interview": "skills/socratic-codebase-interview/SKILL.md"},
+        "commands": {
+            "socratic-codebase-interview": "skills/socratic-codebase-interview/SKILL.md",
+            "review-pr": "commands/review-pr.md",
+        },
         "compat": INTERVIEW_COMPAT, "manifest": "beam-migration.json",
     },
 }
@@ -142,7 +167,8 @@ def install(source, target, package="personal"):
             f"The original plugin root is `{source}`; resource paths in the reference are already resolved.\n"
         )
         write(relative / "SKILL.md", entry)
-        write(relative / "compat.md", config["compat"])
+        compatibility = REVIEW_COMPAT if package == "beam" and name == "review-pr" else config["compat"]
+        write(relative / "compat.md", compatibility)
         write(relative / "references/workflow.md", content.replace("${CLAUDE_PLUGIN_ROOT}", str(source)))
         manifest["skills"][name] = {"source": str(source / commands[name]),
                                     "sha256": hashlib.sha256(content.encode()).hexdigest()}
