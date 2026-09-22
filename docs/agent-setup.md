@@ -137,7 +137,7 @@ Update this map with each package/source change, alongside the owning install ma
 
 The current release was checked for source/hash parity and focused decision scenarios. The starter evaluation suite lives in the [personal repository][personal] under `evals/`; the original baseline was 9 passed/1 failed, followed by 4 passing targeted cases after the parity fix. These runs do not establish full cross-harness E2E parity. [The later E2E evaluation ticket][e2e-ticket] covers real code outcomes, handoffs, recovery, interventions and cost/time.
 
-Guides and evidence consulted: dotfiles installer code and harness READMEs; current plugin registries/manifests; generated adapter manifests; personal Git history; Beam's GitHub addition record; current Kandev workflow step settings; personal E2E/ship/verify sources and project runtime guidance. The [operator contract](operator-workflow.md#current-implementation-gaps) identifies the remaining runtime gaps.
+Guides and evidence consulted: dotfiles installer code and harness READMEs; current plugin registries/manifests; generated adapter manifests; personal Git history; Beam's GitHub addition record; current Kandev workflow step settings; personal E2E/ship/verify sources and project runtime guidance. The [operator contract](operator-workflow.md#current-implementation-and-remaining-validation) identifies the remaining runtime gaps.
 
 [beam]: https://github.com/wearebeam/beam-claude-skills/tree/467c8048983b48b908b2f57e10a1d22b741af75f
 [personal]: https://github.com/jjholmes927/jjholmes927-claude-skills

@@ -2,7 +2,7 @@
 
 The current direction is Kandev-managed work, using separately maintained skills and a selected harness/model for each role. The [agent setup map](agent-setup.md) owns package locations, provenance, installation and overlap decisions. [Kandev setup](kandev-setup.md) owns deployment/configuration instructions. This document owns the shared delivery contract.
 
-Updated 22 September 2026. The contract is documented; the [implementation gaps](#current-implementation-gaps) show where current scripts/settings do not yet enforce it. The original August Fleet guide remains [below](#legacy-fleet-reference) as historical reference. It is not the default Kandev operating model.
+Updated 22 September 2026. The contract is documented; the [implementation and validation status](#current-implementation-and-remaining-validation) shows what is enforced and what still needs a full task run. The original August Fleet guide remains [below](#legacy-fleet-reference) as historical reference. It is not the default Kandev operating model.
 
 ## Roles and authority
 
