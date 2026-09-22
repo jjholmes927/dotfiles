@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import runpy
 import shutil
 
 
@@ -133,6 +134,7 @@ def install(source, target, package="personal"):
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     backup = target / "backups" / f"workflow-{stamp}"
     changed = []
+    generated = {}
 
     def save_existing(path, relative):
         saved = backup / relative
@@ -143,6 +145,7 @@ def install(source, target, package="personal"):
             shutil.copy2(path, saved)
 
     def write(relative, text):
+        generated[str(relative)] = hashlib.sha256(text.encode()).hexdigest()
         path = target / relative
         if path.is_file() and not path.is_symlink() and path.read_text() == text:
             return
@@ -174,6 +177,9 @@ def install(source, target, package="personal"):
         write(relative / "references/workflow.md", content.replace("${CLAUDE_PLUGIN_ROOT}", str(source)))
         manifest["skills"][name] = {"source": str(source / commands[name]),
                                     "sha256": hashlib.sha256(content.encode()).hexdigest()}
+    manifest["packages"] = {config["id"].split("@")[0]: str(source)}
+    manifest["generated_hashes"] = dict(generated)
+    manifest["generator_hashes"] = {"codex/sync-workflow.py": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
     write(Path(config["manifest"]), json.dumps(manifest, indent=2) + "\n")
     return {"version": plugin["version"], "source": str(source), "changed": len(changed),
             "backup": str(backup) if backup.exists() else None}
@@ -191,6 +197,9 @@ def main():
         print(f"Skipped {args.package}: no enabled source installation; existing adapters were not removed")
         return
     print(json.dumps(install(source, args.target.expanduser().resolve(), args.package), indent=2))
+    if args.target.expanduser().resolve() == Path.home() / ".codex":
+        doctor = runpy.run_path(str(Path(__file__).resolve().parents[1] / "workflow/doctor.py"))
+        doctor["after_refresh"]()
 
 
 if __name__ == "__main__":

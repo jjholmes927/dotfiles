@@ -18,6 +18,10 @@ Restart OpenCode after installation. Your provider credentials and selected
 model remain machine-local. Try `/context-check`, `/handoff`, `/review-pr`,
 `/verify-ui`, `/pick-up-linear-ticket INT-123`, or `/ship` in a project.
 
+Refreshes also run the shared `workflow-doctor` for version/file drift; the
+OpenCode doctor above checks runtime discovery. See [drift checks and adding
+harnesses](../docs/agent-setup.md#checking-for-drift) for coverage and maintenance.
+
 The installer requires Python 3. It uses the existing Claude plugin registry;
 install the desired Claude plugins first on a new machine, then rerun it.
 For joel-workflow it uses the installed user plugin directory, matching Claude

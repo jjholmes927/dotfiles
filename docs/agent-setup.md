@@ -9,7 +9,7 @@ Snapshot: 22 September 2026, updated after the portability release and opt-in Ka
 | Package / owner | Canonical source and purpose | Observed revision | Installation and harness support |
 |---|---|---|---|
 | Beam / team | [wearebeam/beam-claude-skills][beam]: team and product workflows | 1.26.0, `467c8048983b48b908b2f57e10a1d22b741af75f` | Claude plugin; OpenCode imports skills and prefixes commands with `beam-`; Codex has the complete Socratic interview and review source adapters |
-| Personal / Joel | [jjholmes927/jjholmes927-claude-skills][personal]: personal delivery and working methods | 2.20.1, local source `8dd0174b32d2` | Claude plugin; OpenCode adapters; seven complete Codex adapters, plus separate older ports |
+| Personal / Joel | [jjholmes927/jjholmes927-claude-skills][personal]: personal delivery and working methods | 2.20.2, local source `1e28df8d6e48` | Claude plugin; OpenCode adapters; seven complete Codex adapters, plus separate older ports |
 | Superpowers / upstream | [obra/superpowers][superpowers], distributed by [obra/superpowers-marketplace][superpowers-marketplace]: planning, debugging, testing and review methods | 6.1.1, `d884ae04edebef577e82ff7c4e143debd0bbec99` | Claude plugin; OpenCode loads upstream `.opencode/plugins/superpowers.js`; no dedicated Codex installation observed |
 | Claude official / upstream | [anthropics/claude-plugins-official][claude-official]: `claude-md-management`, `ruby-lsp`, `linear`, `frontend-design` | First two 1.0.0; latter two `c447c3207a42` | Claude plugins; OpenCode imports `revise-claude-md`, `claude-md-improver`, `frontend-design`; Claude hooks/LSP registration are not imported |
 | Dotfiles / Joel | [This repository][dotfiles]: [Claude](../claude/README.md), [Codex](../codex/README.md), [OpenCode](../opencode/README.md), local helpers and compatibility rules | Record the checked-out Git revision when installing | Harness installers, shared [MCP definitions](../claude/mcp-servers.json); authentication and model selections stay machine-local |
@@ -21,14 +21,14 @@ Snapshot: 22 September 2026, updated after the portability release and opt-in Ka
 | Surface | Source / install record | How to inspect or refresh |
 |---|---|---|
 | Claude plugins | `~/.claude/plugins/installed_plugins.json`, `known_marketplaces.json`, enabled plugins in settings; sources under the recorded `installPath` | `claude plugin list`; update through the plugin CLI, never patch cache files |
-| Codex shared workflows | `~/.codex/skills/{ship,verify,verify-ui,writing-pr-descriptions}`; `~/.codex/workflow-migration.json` records source paths and hashes | `python3 codex/sync-workflow.py`; uses the installed personal user plugin |
+| Codex shared workflows | Seven personal adapters in `~/.codex/skills/`; `~/.codex/workflow-migration.json` records sources, generated files and generator hashes | `python3 codex/sync-workflow.py`; uses the installed personal user plugin |
 | Codex Beam workflows | `~/.codex/skills/{socratic-codebase-interview,review-pr}`; `~/.codex/beam-migration.json` records source/version/hash | `python3 codex/sync-workflow.py --package beam`; imports Socratic interview and review-pr from the enabled Beam user plugin |
 | Codex remaining personal skills | Symlinks from `~/.codex/skills/` into [codex/skills](../codex/skills) | [Codex bootstrap](../codex/README.md); these separate ports need reconciliation before replacement |
 | OpenCode | `~/.config/opencode/{commands,skills}`, `migration.json`, configured upstream Superpowers plugin path | [Full install and doctor](../opencode/README.md), or `python3 opencode/install.py --workflow-only` for just the personal package |
 | Kandev | `~/.config/kandev-fleet.json`, local Kandev settings/API and task records | [Kandev setup](kandev-setup.md); preview current settings before applying its mutating installer/configurer |
 | Other host-managed sources | `~/.codex/plugins/cache/`, Codex system skills, `~/.claude/skills/synced/`; shared discovery directories such as `~/.agents/skills/` when present | Inspect the host's resolved catalog; a cached directory alone does not establish an enabled skill |
 
-The personal 2.20.1 marketplace currently points to `~/.local/share/joel-workflow/releases/2.20.1-8dd0174b32d2`. This is a committed local release, not yet merged upstream. Its `workflow-release.json` records the source commit and file hashes. Upstream personal updates are paused while this directory is the selected marketplace source. The [release procedure and rollback](../codex/README.md#shared-delivery-workflow) explain how to move back to published releases.
+The personal 2.20.2 marketplace currently points to `~/.local/share/joel-workflow/releases/2.20.2-1e28df8d6e48`. This is a committed local release, not yet merged upstream. Its `workflow-release.json` records the source commit and file hashes. Upstream personal updates are paused while this directory is the selected marketplace source. The [release procedure and rollback](../codex/README.md#shared-delivery-workflow) explain how to move back to published releases.
 
 ## Install, update and remove
 
@@ -45,7 +45,7 @@ Start from a deliberate dotfiles revision and the package identities above. Comm
 
    Use `claude plugin marketplace add <source>` then `claude plugin install <plugin-id> --scope user`. During the unpublished parity release, use the [local snapshot installer](../codex/README.md#shared-delivery-workflow) for the personal package instead. A fresh machine cannot recover that local release from GitHub until its commit is published or supplied locally.
 2. Run the chosen [Codex](../codex/README.md#setup-on-a-new-machine) and [OpenCode](../opencode/README.md#install-or-refresh) installers after their source packages exist. Codex's shared importer requires the parity resolver; an older personal release is rejected. Keep provider login and project access separate from skill installation.
-3. For a published package update, run `claude plugin marketplace update <marketplace-name>` and `claude plugin update <plugin-id>`, then regenerate dependent adapters. Refresh the Codex interview with `python3 codex/sync-workflow.py --package beam` after Beam changes. `--workflow-only` refreshes the personal package only; use the full OpenCode installer after Beam, Superpowers or official plugin changes. Updating Claude alone does not refresh other harnesses. Restart sessions to reload catalogs.
+3. For a published package update, run `claude plugin marketplace update <marketplace-name>` and `claude plugin update <plugin-id>`, then regenerate dependent adapters. Refresh the Codex Beam adapters with `python3 codex/sync-workflow.py --package beam` after Beam changes. OpenCode's `--workflow-only` refresh covers personal workflows and the Beam review command; use the full installer after any broader package or adapter-generator changes. Updating Claude alone does not refresh other harnesses. Restart sessions to reload catalogs.
 4. Check plugin IDs/versions, each generated source path and hash, and OpenCode's `doctor.py`. Exercise affected workflow scenarios separately: discovery and source equality are not E2E proof. For an isolated adapter preview, use the target-directory examples in the harness READMEs.
 5. To remove a package, first identify its callers in this map and the generated manifests. Uninstall it with `claude plugin uninstall <plugin-id> --scope user`. Remove only its identified generated adapters and native plugin reference, preserving unrelated configuration/authentication; OpenCode's installer does not prune old adapters. Retire a marketplace only after its remaining packages and callers are accounted for. Follow the harness backup instructions for rollback rather than deleting a whole skill directory tree.
 
@@ -134,6 +134,29 @@ When a copy or extraction is actually made, add a record here with: original rep
 ## Maintenance and validation
 
 Update this map with each package/source change, alongside the owning install manifest and affected workflow links. Keep generated caches/manifests machine-local; this readable map links their locations. Introduce a package manifest only when an installer or drift check will consume it.
+
+### Checking for drift
+
+Run `python3 workflow/doctor.py` from this checkout, or `workflow-doctor` after a normal Codex/OpenCode refresh registers that command in `~/.local/bin`. Refreshes automatically run the checker; E2E/ship preflight uses it when available. Direct checks are read-only, local and need no model call or network access.
+
+| Status | Meaning |
+|---|---|
+| `OK` | Selected local source, recorded hashes and managed files agree |
+| `WARN` | Source selection changed, a managed file changed/disappeared, or provenance is incomplete; the output includes a refresh command |
+| `PINNED` | An intentional local marketplace source is selected; upstream updates are paused |
+| `SKIP` | This harness or optional package is not installed |
+
+Warnings return exit 1 for scripts, but refresh/preflight reports them without adding an approval gate or automatically changing an installation. They do not replace verification. Old manifests need one refresh; OpenCode needs a full refresh to establish complete provenance. Partial refreshes retain evidence for untouched adapters rather than certifying them as current.
+
+The checker compares installed files with the currently enabled local package selection, even when an older cache still exists. It does not check GitHub for newer releases, prove an active session reloaded its catalog, inspect credentials/model choices, or validate workflow behavior. Run it after plugin updates and start fresh sessions after refreshing adapters. Existing command links pointing elsewhere are preserved with a warning; use the checkout command above to inspect this revision.
+
+### Adding another harness
+
+1. Add its installer and README under `<harness>/`; reuse the canonical package sources. State which packages/skills are supported and keep native-only capabilities explicit.
+2. Map discovery, source-relative paths, questions/waiting, permissions and delegation to its real tools. Preserve the shared approval, verification and shipping requirements.
+3. Record package names/selected roots, source hashes, generated-file hashes and generator hashes in its local manifest. Add its destination and refresh command to `workflow/doctor.py`, including format handling where needed.
+4. Test installation, repeat refresh, stale selection, modified/missing output and absent packages. Exercise a real question and a small workflow before claiming runtime parity.
+5. Add the support row here, then select the installed harness through a separate Kandev profile. Changing a model within an existing harness is profile configuration; a new harness needs its own adapter checks.
 
 The current release was checked for source/hash parity and focused decision scenarios. The starter evaluation suite lives in the [personal repository][personal] under `evals/`; the original baseline was 9 passed/1 failed, followed by 4 passing targeted cases after the parity fix. These runs do not establish full cross-harness E2E parity. [The later E2E evaluation ticket][e2e-ticket] covers real code outcomes, handoffs, recovery, interventions and cost/time.
 
