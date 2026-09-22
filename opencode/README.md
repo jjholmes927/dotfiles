@@ -3,6 +3,10 @@
 Reuse the existing Claude workflows in OpenCode, with native tool adapters,
 Attention-kind responses, shared MCP definitions, and tmux notifications.
 
+Use the [setup map](../docs/agent-setup.md) to trace each package and overlapping
+name, and the [operator contract](../docs/operator-workflow.md#shared-lifecycle-contract)
+for stage ownership and completion requirements.
+
 ## Install or refresh
 
 ```bash
@@ -106,7 +110,8 @@ the existing `opencode.jsonc`.
   agent's review, or configure that MCP before using those older commands.
 - `/e2e` and `/codex-collab` retain their authenticated Codex CLI dependency.
   Fleet/orchestration commands retain their original external CLI dependencies.
-  Begin with `/e2e --dry-run` when trying that pipeline in a project.
+  `/e2e --dry-run` still executes intake/planning/workspace stages. Use disposable
+  inputs and explicitly constrain external actions when piloting it.
 - Claude session history, automatic memory, statusline, OTel telemetry, plugin
   updater hooks, and fleet launchers are not migrated. OpenCode runs its own LSP
   support; the Claude ruby-lsp plugin is not loaded.
