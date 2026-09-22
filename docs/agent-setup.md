@@ -2,14 +2,14 @@
 
 Dotfiles is the index and installation wiring for separately maintained workflow packages. The [operator workflow](operator-workflow.md#shared-lifecycle-contract) defines how they work together; [Kandev setup](kandev-setup.md) describes the current launcher. Edit a skill in its canonical repository, then release it and refresh its adapters.
 
-Snapshot: 22 September 2026, updated after the portability release and opt-in Kandev pilot. Versions below are observed installations, not claims about upstream latest releases. The Beam/personal inventory contains 29 entries: 12 skills and 17 commands. This document records ownership decisions, installed adapters and remaining gaps; the existing Development workflow and watches are unchanged; the opt-in pilot is separate.
+Snapshot: 22 September 2026, updated after merging the portability release and restoring GitHub updates. Versions below are observed installations, not claims about upstream latest releases. The Beam/personal inventory contains 29 entries: 12 skills and 17 commands. This document records ownership decisions, installed adapters and remaining gaps; the existing Development workflow and watches are unchanged; the opt-in pilot is separate.
 
 ## Package map
 
 | Package / owner | Canonical source and purpose | Observed revision | Installation and harness support |
 |---|---|---|---|
 | Beam / team | [wearebeam/beam-claude-skills][beam]: team and product workflows | 1.26.0, `467c8048983b48b908b2f57e10a1d22b741af75f` | Claude plugin; OpenCode imports skills and prefixes commands with `beam-`; Codex has the complete Socratic interview and review source adapters |
-| Personal / Joel | [jjholmes927/jjholmes927-claude-skills][personal]: personal delivery and working methods | 2.20.2, local source `1e28df8d6e48` | Claude plugin; OpenCode adapters; seven complete Codex adapters, plus separate older ports |
+| Personal / Joel | [jjholmes927/jjholmes927-claude-skills][personal]: personal delivery and working methods | 2.20.2, published `e98165d0323d` | Claude plugin; OpenCode adapters; seven complete Codex adapters, plus separate older ports |
 | Superpowers / upstream | [obra/superpowers][superpowers], distributed by [obra/superpowers-marketplace][superpowers-marketplace]: planning, debugging, testing and review methods | 6.1.1, `d884ae04edebef577e82ff7c4e143debd0bbec99` | Claude plugin; OpenCode loads upstream `.opencode/plugins/superpowers.js`; no dedicated Codex installation observed |
 | Claude official / upstream | [anthropics/claude-plugins-official][claude-official]: `claude-md-management`, `ruby-lsp`, `linear`, `frontend-design` | First two 1.0.0; latter two `c447c3207a42` | Claude plugins; OpenCode imports `revise-claude-md`, `claude-md-improver`, `frontend-design`; Claude hooks/LSP registration are not imported |
 | Dotfiles / Joel | [This repository][dotfiles]: [Claude](../claude/README.md), [Codex](../codex/README.md), [OpenCode](../opencode/README.md), local helpers and compatibility rules | Record the checked-out Git revision when installing | Harness installers, shared [MCP definitions](../claude/mcp-servers.json); authentication and model selections stay machine-local |
@@ -28,7 +28,7 @@ Snapshot: 22 September 2026, updated after the portability release and opt-in Ka
 | Kandev | `~/.config/kandev-fleet.json`, local Kandev settings/API and task records | [Kandev setup](kandev-setup.md); preview current settings before applying its mutating installer/configurer |
 | Other host-managed sources | `~/.codex/plugins/cache/`, Codex system skills, `~/.claude/skills/synced/`; shared discovery directories such as `~/.agents/skills/` when present | Inspect the host's resolved catalog; a cached directory alone does not establish an enabled skill |
 
-The personal 2.20.2 marketplace currently points to `~/.local/share/joel-workflow/releases/2.20.2-1e28df8d6e48`. This is a committed local release, not yet merged upstream. Its `workflow-release.json` records the source commit and file hashes. Upstream personal updates are paused while this directory is the selected marketplace source. The [release procedure and rollback](../codex/README.md#shared-delivery-workflow) explain how to move back to published releases.
+The personal 2.20.2 release is merged into `master`, and its marketplace now tracks GitHub. Installed workflow files match that published revision; refreshing Codex personal/Beam and OpenCode changed no files, and `workflow-doctor` reported no drift or local pin. The earlier snapshot under `~/.local/share/joel-workflow/releases/2.20.2-1e28df8d6e48` remains available for rollback. The [release procedure and rollback](../codex/README.md#shared-delivery-workflow) cover switching between local previews and published releases.
 
 ## Install, update and remove
 
@@ -43,7 +43,7 @@ Start from a deliberate dotfiles revision and the package identities above. Comm
    | `obra/superpowers-marketplace` | `superpowers@superpowers-marketplace` |
    | `anthropics/claude-plugins-official` | `<name>@claude-plugins-official`, using one of the four observed names above |
 
-   Use `claude plugin marketplace add <source>` then `claude plugin install <plugin-id> --scope user`. During the unpublished parity release, use the [local snapshot installer](../codex/README.md#shared-delivery-workflow) for the personal package instead. A fresh machine cannot recover that local release from GitHub until its commit is published or supplied locally.
+   Use `claude plugin marketplace add <source>` then `claude plugin install <plugin-id> --scope user`. For a future unpublished personal release, the [local snapshot installer](../codex/README.md#shared-delivery-workflow) can install a committed checkout; this intentionally pauses upstream updates until the marketplace is switched back.
 2. Run the chosen [Codex](../codex/README.md#setup-on-a-new-machine) and [OpenCode](../opencode/README.md#install-or-refresh) installers after their source packages exist. Codex's shared importer requires the parity resolver; an older personal release is rejected. Keep provider login and project access separate from skill installation.
 3. For a published package update, run `claude plugin marketplace update <marketplace-name>` and `claude plugin update <plugin-id>`, then regenerate dependent adapters. Refresh the Codex Beam adapters with `python3 codex/sync-workflow.py --package beam` after Beam changes. OpenCode's `--workflow-only` refresh covers personal workflows and the Beam review command; use the full installer after any broader package or adapter-generator changes. Updating Claude alone does not refresh other harnesses. Restart sessions to reload catalogs.
 4. Check plugin IDs/versions, each generated source path and hash, and OpenCode's `doctor.py`. Exercise affected workflow scenarios separately: discovery and source equality are not E2E proof. For an isolated adapter preview, use the target-directory examples in the harness READMEs.
