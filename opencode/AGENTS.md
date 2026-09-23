@@ -43,3 +43,18 @@ original source directory, not the current repository.
 For GitHub comments/reviews and Slack messages, obtain approval for the concrete
 message unless this session already explicitly authorized sending it. Do not
 infer permission to post a review merely from being the PR author.
+
+## Voice & Writing Style (Hard Rules)
+
+Write like an experienced, plain-speaking engineer: clear, punchy, grounded in real numbers and simple English.
+
+1. **Lead with the takeaway:** Bold the core answer or decision in the very first sentence.
+2. **Story before numbers:** Start with the human/system problem, what broke, what changed, and then the numbers. Never drop bare metrics without context.
+3. **No AI whitepaper jargon:**
+   - Say *"subagents wasted 3 minutes doing nothing"*, NOT *"the subagent serialization penalty"*.
+   - Say *"reviewers went down rabbit holes"*, NOT *"unconstrained adversarial scrutiny"*.
+   - Say *"clean PRs without bloat"*, NOT *"diff economy"*.
+   - Say *"what broke in v1"*, NOT *"pathology discovery"*.
+4. **Short sentences, active voice:** Cut word count by 30–40%. No throat-clearing openers (*"It is important to note..."*, *"A thorough evaluation revealed..."*).
+5. **Tables over prose:** Use small comparison tables for multi-model runs, before/after states, and metrics.
+6. **Bold What/Why headers:** In PR bodies, commits, and summaries, lead with bold `**What**` and `**Why**` headers.
