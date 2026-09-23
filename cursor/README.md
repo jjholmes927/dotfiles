@@ -61,8 +61,9 @@ authorization; no workflow stage is complete merely because a turn ended.
 
 Checked on 23 September 2026 with Cursor CLI `2026.05.09-0afadcc`; its updater
 reported that build current. The live CLI selected `~/.cursor/skills/e2e/` and
-read its compatibility and full source during an E2E dry run. Personal source
-2.20.3 and Beam 1.26.0 were installed with zero changes on repeat refresh.
+read its compatibility and full source during an E2E dry run using personal 2.20.3.
+Personal 2.20.4 and Beam 1.26.0 then passed refresh/read-back checks with zero changes
+on repeat refresh.
 
 Cursor ACP with `gpt-5.6-sol` passed controlled Kandev-shaped MCP question cases:
 one unanswered/pending question ended the turn without grading or dependent work;
@@ -71,10 +72,16 @@ The local opt-in Kandev profile **Cursor → Sol workflow pilot** selects this m
 Use it for the next real task with `/e2e --execution direct --review codex` and an
 explicit reviewer model. The existing Gemini profile and default workflows remain.
 
+A live Kandev session using that Cursor/Sol profile read the Cursor Socratic adapter
+and displayed one real question. After the MCP wait timed out, it paused until
+Kandev resumed it with the user's **Skip this question** selection, then stopped
+without grading or asking another question. This verifies the live question,
+timeout and skip path; custom-answer grading remains covered by the controlled case.
+
 With `gemini-3.8-flash`, skill discovery passed but nested MCP question arguments
 were malformed, including null option entries; the same fixture passed with Sol.
 Treat that combination's question gate as unverified, not an approval to continue.
 This is an observed model/runtime limitation, not a reason to weaken the gate.
-These probes cover discovery and question handling through the ACP interface used
-by Kandev. They do not establish the real Kandev UI round-trip, native subagents,
-or a complete implementation/review/CI lifecycle; those need a real pilot task.
+These probes cover discovery, controlled answer handling and the live Kandev
+question/skip round-trip. Native subagents and a complete implementation/review/CI
+lifecycle still need a real pilot task.
