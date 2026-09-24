@@ -113,7 +113,7 @@ def installed_source(home, package="personal", optional=False):
     return Path(user_entries[0]["installPath"])
 
 
-def install(source, target, package="personal"):
+def install(source, target, package="personal", *, compatibility=None, generators=None):
     source = source.resolve()
     config = PACKAGES[package]
     commands = config["commands"]
@@ -123,7 +123,7 @@ def install(source, target, package="personal"):
     if package == "personal":
         version = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", plugin.get("version", ""))
         if not version or tuple(map(int, version.groups())) < (2, 20, 0) or not (source / "scripts/resolve-dev-url.py").is_file():
-            raise ValueError("Update joel-workflow to 2.20.0 or later before installing its portable Codex adapters")
+            raise ValueError("Update joel-workflow to 2.20.0 or later before installing its portable workflow adapters")
     documents = {name: (source / relative).read_text() for name, relative in commands.items()}
     descriptions = {}
     for name, content in documents.items():
@@ -172,14 +172,18 @@ def install(source, target, package="personal"):
             f"The original plugin root is `{source}`; resource paths in the reference are already resolved.\n"
         )
         write(relative / "SKILL.md", entry)
-        compatibility = REVIEW_COMPAT if package == "beam" and name == "review-pr" else config["compat"]
-        write(relative / "compat.md", compatibility)
+        rules = compatibility
+        if rules is None:
+            rules = REVIEW_COMPAT if package == "beam" and name == "review-pr" else config["compat"]
+        write(relative / "compat.md", rules)
         write(relative / "references/workflow.md", content.replace("${CLAUDE_PLUGIN_ROOT}", str(source)))
         manifest["skills"][name] = {"source": str(source / commands[name]),
                                     "sha256": hashlib.sha256(content.encode()).hexdigest()}
     manifest["packages"] = {config["id"].split("@")[0]: str(source)}
     manifest["generated_hashes"] = dict(generated)
-    manifest["generator_hashes"] = {"codex/sync-workflow.py": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}
+    root = Path(__file__).resolve().parents[1]
+    manifest["generator_hashes"] = {relative: hashlib.sha256((root / relative).read_bytes()).hexdigest()
+                                    for relative in (generators or ["codex/sync-workflow.py"])}
     write(Path(config["manifest"]), json.dumps(manifest, indent=2) + "\n")
     return {"version": plugin["version"], "source": str(source), "changed": len(changed),
             "backup": str(backup) if backup.exists() else None}

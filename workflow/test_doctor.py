@@ -147,6 +147,61 @@ class DoctorTests(unittest.TestCase):
         (target / "commands/ship.md").unlink()
         self.assertIn("generated file missing: commands/ship.md", self.run_doctor()[1])
 
+    def install_cursor(self):
+        importer = runpy.run_path(str(doctor.ROOT / "cursor/install.py"))
+        self.write(self.source / "plugin.json", {"version": "2.20.3"})
+        self.write(self.source / "scripts/resolve-dev-url.py", "resolver")
+        for relative in importer["SHARED"]["COMMANDS"].values():
+            self.write(self.source / relative, "---\ndescription: Fixture workflow\n---\nFull source")
+        return importer, self.home / ".cursor"
+
+    def test_cursor_config_without_managed_skills_is_optional(self):
+        self.write(self.home / ".cursor/cli-config.json", {})
+        code, output = self.run_doctor()
+        self.assertEqual(0, code, output)
+        self.assertIn("SKIP cursor/personal", output)
+        self.assertIn("SKIP cursor/beam", output)
+
+    def test_real_cursor_import_tracks_source_output_and_generator_changes(self):
+        importer, target = self.install_cursor()
+        importer["install"](self.source, target)
+        self.assertIn("OK cursor/personal", self.run_doctor()[1])
+        for relative in ["skills/e2e/compat.md", "skills/e2e/references/workflow.md"]:
+            path = target / relative
+            original = path.read_text()
+            path.unlink()
+            code, output = self.run_doctor()
+            self.assertEqual(1, code)
+            self.assertIn("generated file missing: " + relative, output)
+            self.assertIn("python3 cursor/install.py", output)
+            path.write_text(original)
+        manifest = target / "workflow-migration.json"
+        data = json.loads(manifest.read_text())
+        data["generator_hashes"]["cursor/compat.md"] = "old"
+        self.write(manifest, data)
+        self.assertIn("adapter generator changed: cursor/compat.md", self.run_doctor()[1])
+        importer["install"](self.source, target)
+        newer = self.home / "newer"
+        newer.mkdir()
+        self.select(newer)
+        self.assertIn("WARN cursor/personal", self.run_doctor()[1])
+
+    def test_missing_cursor_manifest_with_surviving_skills_warns(self):
+        importer, target = self.install_cursor()
+        importer["install"](self.source, target)
+        (target / "workflow-migration.json").unlink()
+        code, output = self.run_doctor()
+        self.assertEqual(1, code)
+        self.assertIn("WARN cursor/personal", output)
+
+    def test_broken_cursor_skill_link_without_manifest_warns(self):
+        link = self.home / ".cursor/skills/ship"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(self.home / "removed-source")
+        code, output = self.run_doctor()
+        self.assertEqual(1, code)
+        self.assertIn("WARN cursor/personal", output)
+
 
 if __name__ == "__main__":
     unittest.main()
