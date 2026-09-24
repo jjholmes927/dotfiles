@@ -17,6 +17,7 @@ fi
 
 python3 - "$SOURCE_FILE" <<'PY'
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -35,6 +36,8 @@ def remove(name):
     return result.returncode == 0, result
 
 def gws_mcp_supported():
+    if shutil.which("gws") is None:
+        return False
     result = run("gws", "mcp", "--help")
     return result.returncode == 0
 
