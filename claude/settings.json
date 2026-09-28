@@ -22,7 +22,7 @@
       "mcp__claude_ai_Slack__slack_schedule_message"
     ]
   },
-  "model": "fable[1m]",
+  "model": "opus[1m]",
   "hooks": {
     "PreToolUse": [
       {
