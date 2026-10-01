@@ -32,6 +32,64 @@ function paint(root) {
   });
 }
 
+const MEASURES = ["72ch", "100ch", "140ch", "none"];
+const MEASURE_KEY = "adhd-measure";
+let measure = MEASURES[0];
+
+function measureLabel(v) {
+  return v === "none" ? "↔ full width" : `↔ ${v}`;
+}
+
+function applyMeasure(v) {
+  measure = v;
+  document.documentElement.style.setProperty("--adhd-measure", v);
+  document.querySelectorAll(".adhd-measure-btn").forEach((b) => {
+    b.textContent = measureLabel(v);
+  });
+}
+
+function loadMeasure() {
+  try {
+    const v = localStorage.getItem(MEASURE_KEY);
+    if (MEASURES.includes(v)) return v;
+  } catch (_) {}
+  return MEASURES[0];
+}
+
+function cycleMeasure() {
+  const next = MEASURES[(MEASURES.indexOf(measure) + 1) % MEASURES.length];
+  try {
+    localStorage.setItem(MEASURE_KEY, next);
+  } catch (_) {}
+  applyMeasure(next);
+}
+
+function ensureMeasureButtons() {
+  document.querySelectorAll(".tiptap-plan-wrapper").forEach((wrapper) => {
+    if (wrapper.querySelector(":scope > .adhd-measure-btn")) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "adhd-measure-btn";
+    btn.title = "Text width: click to cycle";
+    btn.textContent = measureLabel(measure);
+    btn.addEventListener("mousedown", (e) => e.preventDefault());
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      cycleMeasure();
+    });
+    wrapper.appendChild(btn);
+  });
+}
+
+function refreshStyles() {
+  document.querySelectorAll('link[data-plugin-id="jjholmes927-adhd-theme"]').forEach((link) => {
+    const url = new URL(link.href, location.href);
+    if (url.searchParams.has("t")) return;
+    url.searchParams.set("t", String(Date.now()));
+    link.href = url.toString();
+  });
+}
+
 let scheduled = false;
 function schedule() {
   if (scheduled) return;
@@ -39,19 +97,25 @@ function schedule() {
   requestAnimationFrame(() => {
     scheduled = false;
     paint(document);
+    ensureMeasureButtons();
   });
 }
 
 let observer = null;
 window.registerKandevPlugin("jjholmes927-adhd-theme", {
   initialize() {
+    refreshStyles();
+    applyMeasure(loadMeasure());
     paint(document);
+    ensureMeasureButtons();
     observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   },
   destroy() {
     if (observer) observer.disconnect();
     observer = null;
+    document.querySelectorAll(".adhd-measure-btn").forEach((b) => b.remove());
+    document.documentElement.style.removeProperty("--adhd-measure");
     document.querySelectorAll("[data-adhd]").forEach((el) => {
       delete el.dataset.adhd;
       el.classList.remove(...CLASSES, "adhd-row-bad", "adhd-row-warn", "adhd-row-ok");
