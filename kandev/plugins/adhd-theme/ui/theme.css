@@ -17,6 +17,12 @@
 .markdown-body :is(p, ul, ol, dl, blockquote, h1, h2, h3, h4, h5, h6) {
   max-width: var(--adhd-measure);
 }
+.tiptap-plan-wrapper.markdown-body .mermaid-container {
+  width: 100%;
+}
+.tiptap-plan-wrapper.markdown-body .mermaid-container svg {
+  width: 100% !important;
+}
 .markdown-body p {
   line-height: 1.6;
   margin-top: 0.75em;
