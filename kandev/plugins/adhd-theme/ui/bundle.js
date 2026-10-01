@@ -32,12 +32,13 @@ function paint(root) {
   });
 }
 
-const MEASURES = ["72ch", "100ch", "140ch", "none"];
+const MEASURES = ["49rem", "62rem", "86rem", "none"];
+const MEASURE_LABELS = { "49rem": "80ch", "62rem": "100ch", "86rem": "140ch", none: "full width" };
 const MEASURE_KEY = "adhd-measure";
 let measure = MEASURES[0];
 
 function measureLabel(v) {
-  return v === "none" ? "↔ full width" : `↔ ${v}`;
+  return `↔ ${MEASURE_LABELS[v]}`;
 }
 
 function applyMeasure(v) {
