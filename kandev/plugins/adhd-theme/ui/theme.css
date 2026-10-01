@@ -13,6 +13,8 @@
 .markdown-body {
   font-size: 14px;
   line-height: 1.6;
+}
+.markdown-body :is(p, ul, ol, dl, blockquote, h1, h2, h3, h4, h5, h6) {
   max-width: var(--adhd-measure);
 }
 .markdown-body p {

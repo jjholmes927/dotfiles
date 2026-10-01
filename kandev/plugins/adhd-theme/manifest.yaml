@@ -1,8 +1,8 @@
 id: "jjholmes927-adhd-theme"
 api_version: 1
-version: "0.2.0"
+version: "0.2.1"
 display_name: "ADHD reading theme"
-description: "Scannable agent transcripts: bold lead-ins in an accent colour, TL;DR and warning callouts, wider line spacing, a readable measure, taller plan panel."
+description: "Scannable agent transcripts: bold lead-ins in an accent colour, TL;DR and warning callouts, wider line spacing, a readable measure for text while diagrams, tables and code use the full width, taller plan panel."
 author: "jjholmes927"
 categories: ["tools"]
 runtime:
