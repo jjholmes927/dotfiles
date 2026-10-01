@@ -34,6 +34,7 @@ function paint(root) {
 
 const MEASURES = ["49rem", "62rem", "86rem", "none"];
 const MEASURE_LABELS = { "49rem": "80ch", "62rem": "100ch", "86rem": "140ch", none: "full width" };
+const TABLE_MEASURES = { "49rem": "64rem", "62rem": "78rem", "86rem": "none", none: "none" };
 const MEASURE_KEY = "adhd-measure";
 let measure = MEASURES[0];
 
@@ -44,6 +45,7 @@ function measureLabel(v) {
 function applyMeasure(v) {
   measure = v;
   document.documentElement.style.setProperty("--adhd-measure", v);
+  document.documentElement.style.setProperty("--adhd-table-measure", TABLE_MEASURES[v]);
   document.querySelectorAll(".adhd-measure-btn").forEach((b) => {
     b.textContent = measureLabel(v);
   });
@@ -117,6 +119,7 @@ window.registerKandevPlugin("jjholmes927-adhd-theme", {
     observer = null;
     document.querySelectorAll(".adhd-measure-btn").forEach((b) => b.remove());
     document.documentElement.style.removeProperty("--adhd-measure");
+    document.documentElement.style.removeProperty("--adhd-table-measure");
     document.querySelectorAll("[data-adhd]").forEach((el) => {
       delete el.dataset.adhd;
       el.classList.remove(...CLASSES, "adhd-row-bad", "adhd-row-warn", "adhd-row-ok");
