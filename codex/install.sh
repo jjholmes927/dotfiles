@@ -66,6 +66,9 @@ header "MCP servers"
 chmod +x "$SCRIPT_DIR/sync-mcps.sh"
 "$SCRIPT_DIR/sync-mcps.sh"
 
+header "Upstream skills"
+"$(cd "$SCRIPT_DIR/.." && pwd)/upstream-skills/install.sh"
+
 header "Done"
 if [[ -d "$BACKUP_DIR" ]]; then
   echo "  Backups: $BACKUP_DIR"

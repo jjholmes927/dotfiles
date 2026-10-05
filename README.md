@@ -25,6 +25,7 @@ skills can be traced when the setup changes. Installed caches are not edit targe
 | `codex/` | Codex global config — `AGENTS.md`, skills, installer, MCP bootstrap |
 | `cursor/` | Cursor CLI — shared personal/Beam skill adapters, compatibility and drift checks |
 | `opencode/` | OpenCode migration — workflow adapters, skills, MCPs, notifications, installer |
+| `upstream-skills/` | Third-party skills (e.g. `grill-me`) linked from upstream repos into every harness |
 | `kandev/` | Task intake, worktree/profile setup and local Kandev configuration |
 | `docs/` | Agent package map, shared workflow contract and setup guides |
 | `git/` | Git config |

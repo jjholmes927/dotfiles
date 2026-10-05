@@ -92,6 +92,9 @@ for tool in fleet fleet-status deck pair new-agent clone-status lane-sweep gmp-a
   link "$REPO_DIR/bin/$tool" "$HOME/.local/bin/$tool"
 done
 
+header "Upstream skills"
+"$(cd "$SCRIPT_DIR/.." && pwd)/upstream-skills/install.sh"
+
 header "Done"
 if [[ -d "$BACKUP_DIR" ]]; then
   echo "  Backups: $BACKUP_DIR"
