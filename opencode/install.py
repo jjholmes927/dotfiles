@@ -246,6 +246,7 @@ def main():
     else:
         install(Path.home(), target)
     if target == default.expanduser().resolve():
+        subprocess.run([str(ROOT.parent / "upstream-skills/install.sh")], check=True)
         doctor = runpy.run_path(str(ROOT.parent / "workflow/doctor.py"))
         doctor["after_refresh"]()
 

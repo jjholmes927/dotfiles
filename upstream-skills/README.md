@@ -11,7 +11,7 @@
 | **Checkouts** | `~/.local/share/upstream-skills/<owner>__<repo>` |
 | **Linked into** | `skills/` under `~/.claude`, `~/.codex`, `~/.cursor`, `~/.config/opencode` (only harnesses that exist) |
 | **Existing entries** | A same-name skill that isn't this link is left alone, with a warning |
-| **Run by** | `claude/install.sh` and `codex/install.sh`, or directly |
+| **Run by** | Every harness installer (`claude`, `codex`, `cursor`, `opencode`), or directly |
 
 ## Current skills
 

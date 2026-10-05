@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import runpy
+import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +34,7 @@ def main():
     target = args.target.expanduser().resolve()
     print(json.dumps(install(source.expanduser(), target, args.package), indent=2))
     if target == Path.home() / ".cursor":
+        subprocess.run([str(ROOT / "upstream-skills/install.sh")], check=True)
         runpy.run_path(str(ROOT / "workflow/doctor.py"))["after_refresh"]()
 
 
