@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unittest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - { dir: upstream-skills, module: test_install }
+          - { dir: workflow, module: test_doctor }
+          - { dir: codex, module: test_sync_workflow }
+          - { dir: codex, module: test_workflow_release }
+          - { dir: cursor, module: test_install }
+          - { dir: opencode, module: test_install }
+          - { dir: kandev, module: test_workflow_pilot }
+    name: ${{ matrix.suite.dir }}/${{ matrix.suite.module }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest -v ${{ matrix.suite.module }}
+        working-directory: ${{ matrix.suite.dir }}
