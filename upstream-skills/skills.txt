@@ -1,2 +1,4 @@
 mattpocock/skills skills/productivity/grill-me
 mattpocock/skills skills/productivity/grilling
+DietrichGebert/ponytail skills/ponytail v5.2.0
+DietrichGebert/ponytail skills/ponytail-review v5.2.0
