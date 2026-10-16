@@ -58,16 +58,37 @@ class LinkerBehaviour(unittest.TestCase):
         self.root = Path(temp.name)
         self.home = self.root / "home"
         self.data = self.root / "data"
-        checkout = self.data / "upstream-skills/mattpocock__skills"
+        self.pinned = {}
+        entries = {}
         for line in (ROOT / "upstream-skills/skills.txt").read_text().splitlines():
             if line.strip() and not line.startswith("#"):
-                skill = checkout / line.split()[1]
+                repo, path, *ref = line.split()
+                entries.setdefault(repo, []).append(path)
+                if ref:
+                    self.pinned[repo] = ref[0]
+        for repo, paths in entries.items():
+            checkout = self.checkout(repo)
+            for path in paths:
+                skill = checkout / path
                 skill.mkdir(parents=True)
                 (skill / "SKILL.md").write_text(f"---\nname: {skill.name}\n---\n")
-        subprocess.run(["git", "init", "-q", str(checkout)], check=True)
-        subprocess.run(["git", "-C", str(checkout), "add", "."], check=True)
-        subprocess.run(["git", "-C", str(checkout), "-c", "user.name=t", "-c", "user.email=t@t",
-                        "commit", "-qm", "seed"], check=True)
+            self.git(checkout, "init", "-q")
+            self.commit(checkout, "seed")
+            if repo in self.pinned:
+                self.git(checkout, "tag", self.pinned[repo])
+                (checkout / "AFTER_PIN").write_text("newer upstream work\n")
+                self.commit(checkout, "after pin")
+            self.git(checkout, "remote", "add", "origin", str(checkout))
+
+    def checkout(self, repo):
+        return self.data / "upstream-skills" / repo.replace("/", "__")
+
+    def git(self, checkout, *args):
+        return subprocess.run(["git", "-C", str(checkout), *args], check=True, capture_output=True, text=True).stdout.strip()
+
+    def commit(self, checkout, message):
+        self.git(checkout, "add", ".")
+        self.git(checkout, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", message)
 
     def run_linker(self):
         env = {**os.environ, "HOME": str(self.home), "XDG_DATA_HOME": str(self.data)}
@@ -82,7 +103,7 @@ class LinkerBehaviour(unittest.TestCase):
         self.run_linker()
         self.run_linker()
         for home in self.homes():
-            for skill in ("grill-me", "grilling"):
+            for skill in ("grill-me", "grilling", "ponytail", "ponytail-review"):
                 link = home / "skills" / skill
                 self.assertTrue(link.is_symlink(), link)
                 self.assertTrue((link / "SKILL.md").is_file(), link)
@@ -95,6 +116,27 @@ class LinkerBehaviour(unittest.TestCase):
         self.assertIn("left alone", output)
         self.assertTrue((claude / "skills/grilling").is_symlink())
         self.assertFalse((self.home / ".codex").exists())
+
+    def test_pinned_repo_is_checked_out_at_its_ref(self):
+        self.assertTrue(self.pinned, "skills.txt has no pinned entries to test")
+        self.run_linker()
+        for repo, ref in self.pinned.items():
+            with self.subTest(repo=repo):
+                checkout = self.checkout(repo)
+                self.assertEqual(self.git(checkout, "rev-parse", "HEAD"), self.git(checkout, "rev-parse", f"{ref}^{{commit}}"))
+                self.assertFalse((checkout / "AFTER_PIN").exists())
+
+    def test_conflicting_refs_for_one_repo_stop_the_install(self):
+        manifest = (ROOT / "upstream-skills/skills.txt").read_text()
+        linker = self.root / "upstream-skills/install.sh"
+        linker.parent.mkdir()
+        linker.write_text(LINKER.read_text())
+        linker.chmod(0o755)
+        (linker.parent / "skills.txt").write_text(manifest + "DietrichGebert/ponytail skills/ponytail-audit v9.9.9\n")
+        env = {**os.environ, "HOME": str(self.home), "XDG_DATA_HOME": str(self.data)}
+        result = subprocess.run([str(linker)], env=env, capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("same ref", result.stderr)
 
 
 if __name__ == "__main__":
