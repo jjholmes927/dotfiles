@@ -13,6 +13,7 @@ jobs:
         suite:
           - { dir: upstream-skills, module: test_install }
           - { dir: workflow, module: test_doctor }
+          - { dir: workflow, module: test_sync }
           - { dir: codex, module: test_sync_workflow }
           - { dir: codex, module: test_workflow_release }
           - { dir: cursor, module: test_install }
@@ -31,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/checkout@v4
         with:
           repository: jjholmes927/jjholmes927-claude-skills
@@ -38,4 +41,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python -B workflow/check-release.py --source marketplace
+      - env:
+          WORKFLOW_CHANGE_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$WORKFLOW_CHANGE_BASE" ] || [ "$WORKFLOW_CHANGE_BASE" = "0000000000000000000000000000000000000000" ]; then
+            WORKFLOW_CHANGE_BASE="origin/${{ github.event.repository.default_branch }}"
+          fi
+          python -B workflow/check-release.py --source marketplace --base "$WORKFLOW_CHANGE_BASE"

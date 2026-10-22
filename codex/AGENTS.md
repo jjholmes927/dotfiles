@@ -80,6 +80,11 @@ When creating new reusable Codex workflows, prefer global skills in `~/.codex/sk
 - Project-agnostic workflows belong in global Codex skills.
 - Project-specific workflows belong in repo-local skills or repo docs.
 
+Shared personal workflows are maintained in `jjholmes927/jjholmes927-claude-skills`.
+Dotfiles owns harness adapters; installed copies are generated outputs. Test
+unpublished skill changes in temporary targets, release through the marketplace,
+then run `workflow-sync`. A skill-only change needs no dotfiles content copy.
+
 ## Working style
 
 - When scope is unclear, ask one clarifying question instead of guessing.

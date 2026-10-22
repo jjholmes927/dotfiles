@@ -6,13 +6,24 @@ import io
 import json
 from pathlib import Path
 import runpy
+import subprocess
 import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def check(source):
+def check_edits(workflows, base):
+    changed = subprocess.check_output(["git", "diff", "--name-only", "--diff-filter=ACMRT", base, "HEAD",
+                                       "--", "codex/skills", "claude/commands"], cwd=ROOT, text=True)
+    for filename in changed.splitlines():
+        path = Path(filename)
+        name = path.parent.name if path.name == "SKILL.md" else path.stem if path.parent == Path("claude/commands") else None
+        if name in workflows:
+            raise ValueError(f"{filename}: edit shared instructions in jjholmes927-claude-skills, then run workflow-sync")
+
+
+def check(source, base=None):
     source = source.resolve()
     metadata = json.loads((source / "plugin.json").read_text())
     catalog = json.loads((source / ".claude-plugin/marketplace.json").read_text())
@@ -23,6 +34,8 @@ def check(source):
     workflows.update({p.parent.name: p for p in (source / "skills").glob("*/SKILL.md")})
     if not workflows:
         raise ValueError("The release has no workflows")
+    if base:
+        check_edits(workflows, base)
     codex = runpy.run_path(str(ROOT / "codex/sync-workflow.py"))
     cursor = runpy.run_path(str(ROOT / "cursor/install.py"))
     opencode = runpy.run_path(str(ROOT / "opencode/install.py"))
@@ -74,5 +87,6 @@ def check(source):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Verify a marketplace release against all local harness adapters")
     parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--base", help="Reject changes to duplicate shared instructions in this dotfiles diff")
     args = parser.parse_args()
-    check(args.source)
+    check(args.source, args.base)

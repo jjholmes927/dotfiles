@@ -86,6 +86,15 @@ class DoctorTests(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertIn("marketplace skills have no managed adapter: new-review", output)
 
+    def test_shared_instruction_edits_belong_in_marketplace(self):
+        guard = runpy.run_path(str(doctor.ROOT / "workflow/check-release.py"))["check_edits"]
+        for path in ["codex/skills/shared/SKILL.md", "claude/commands/shared.md"]:
+            with patch.object(subprocess, "check_output", return_value=path + "\n"):
+                with self.assertRaisesRegex(ValueError, "edit shared instructions"):
+                    guard({"shared"}, "base")
+        with patch.object(subprocess, "check_output", return_value="codex/skills/shared/compat.md\nclaude/commands/local.md\n"):
+            guard({"shared"}, "base")
+
     def test_generator_revision_and_disabled_source_warn(self):
         self.data["generator_hashes"]["codex/sync-workflow.py"] = "older"
         self.write(self.manifest, self.data)
@@ -138,10 +147,19 @@ class DoctorTests(unittest.TestCase):
         with patch.object(doctor.Path, "home", return_value=self.home), patch.object(doctor, "main", return_value=0), contextlib.redirect_stdout(io.StringIO()):
             doctor.after_refresh()
             self.assertEqual(Path(doctor.__file__).resolve(), link.resolve())
+            self.assertEqual(Path(doctor.__file__).resolve().with_name("sync.py"), (self.home / ".local/bin/workflow-sync").resolve())
             link.unlink()
             link.write_text("custom command")
             doctor.after_refresh()
             self.assertEqual("custom command", link.read_text())
+
+    def test_registration_moves_owned_links_from_an_older_checkout(self):
+        link = self.home / ".local/bin/workflow-doctor"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(self.home / "old-checkout/workflow/doctor.py")
+        with patch.object(doctor.Path, "home", return_value=self.home), patch.object(doctor, "main", return_value=0):
+            doctor.after_refresh()
+        self.assertEqual(Path(doctor.__file__).resolve(), link.resolve())
 
     def test_full_opencode_import_records_complete_healthy_coverage(self):
         installer = runpy.run_path(str(doctor.ROOT / "opencode/install.py"))["install"]

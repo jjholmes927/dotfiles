@@ -14,6 +14,13 @@ Skills stay in their owning repositories; dotfiles links them and installs the
 harness adapters. The map records provenance and personal counterparts so useful
 skills can be traced when the setup changes. Installed caches are not edit targets.
 
+After releasing a personal marketplace change, run `workflow-sync` (or
+`python3 workflow/sync.py` from this checkout). It updates the published plugin,
+refreshes every installed harness and fails if drift remains. Normal refreshes
+register the command in `~/.local/bin`; restart sessions after syncing. Claude's
+daily SessionStart hook uses this same command. See the setup map for preview,
+retry and release-check details.
+
 ## Contents
 
 | Directory | Purpose |
