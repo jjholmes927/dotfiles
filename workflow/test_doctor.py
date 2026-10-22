@@ -86,6 +86,15 @@ class DoctorTests(unittest.TestCase):
         self.assertEqual(1, code)
         self.assertIn("marketplace skills have no managed adapter: new-review", output)
 
+    def test_shared_instruction_edits_belong_in_marketplace(self):
+        guard = runpy.run_path(str(doctor.ROOT / "workflow/check-release.py"))["check_edits"]
+        for path in ["codex/skills/shared/SKILL.md", "claude/commands/shared.md"]:
+            with patch.object(subprocess, "check_output", return_value=path + "\n"):
+                with self.assertRaisesRegex(ValueError, "edit shared instructions"):
+                    guard({"shared"}, "base")
+        with patch.object(subprocess, "check_output", return_value="codex/skills/shared/compat.md\nclaude/commands/local.md\n"):
+            guard({"shared"}, "base")
+
     def test_generator_revision_and_disabled_source_warn(self):
         self.data["generator_hashes"]["codex/sync-workflow.py"] = "older"
         self.write(self.manifest, self.data)
