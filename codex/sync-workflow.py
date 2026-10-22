@@ -116,7 +116,7 @@ def installed_source(home, package="personal", optional=False):
 def install(source, target, package="personal", *, compatibility=None, generators=None):
     source = source.resolve()
     config = PACKAGES[package]
-    commands = config["commands"]
+    commands = dict(config["commands"])
     plugin = json.loads((source / config["metadata"]).read_text())
     if package == "beam" and plugin.get("name") != "beam-claude-skills":
         raise ValueError("Expected Beam plugin metadata for the interview adapter")
@@ -124,6 +124,13 @@ def install(source, target, package="personal", *, compatibility=None, generator
         version = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", plugin.get("version", ""))
         if not version or tuple(map(int, version.groups())) < (2, 20, 0) or not (source / "scripts/resolve-dev-url.py").is_file():
             raise ValueError("Update joel-workflow to 2.20.0 or later before installing its portable workflow adapters")
+        for name, relative in commands.items():
+            skill = Path("skills") / name / "SKILL.md"
+            if not (source / relative).is_file() and (source / skill).is_file():
+                commands[name] = str(skill)
+        ui_review = "skills/ui-component-review/SKILL.md"
+        if (source / ui_review).is_file():
+            commands["ui-component-review"] = ui_review
     documents = {name: (source / relative).read_text() for name, relative in commands.items()}
     descriptions = {}
     for name, content in documents.items():

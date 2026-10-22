@@ -57,6 +57,7 @@ mapping, and records source paths, version and hashes in
 `~/.codex/workflow-migration.json`. Existing skill links/files are backed up;
 provider configuration, credentials, rules and unrelated skills are preserved.
 Restart the Codex session to refresh its skill catalog.
+The importer also includes `ui-component-review` when the personal release supplies it, and accepts both command-based and skill-only releases. Cursor uses the same importer; OpenCode discovers the skill from the plugin.
 Normal refreshes register `workflow-doctor` and report local drift across installed
 harnesses. See [drift checks and adding harnesses](../docs/agent-setup.md#checking-for-drift).
 
