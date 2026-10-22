@@ -164,8 +164,6 @@ def install(home, target):
             if native.is_file():
                 native_plugins.append(native.as_uri())
                 continue
-        for path in sorted((directory / "skills").glob("*/SKILL.md")):
-            skill_sources[path.parent.name] = (path, directory)
         for path in sorted((directory / "commands").glob("*.md")):
             if path.stem.lower() == "readme":
                 continue
@@ -173,6 +171,12 @@ def install(home, target):
             if name == "beam-claude-skills":
                 command_name = "beam-" + command_name
             sources[command_name] = (path, directory)
+            if name == "joel-workflow":
+                skill_sources[command_name] = (path, directory)
+        for path in sorted((directory / "skills").glob("*/SKILL.md")):
+            skill_sources[path.parent.name] = (path, directory)
+            if name == "joel-workflow":
+                sources[path.parent.name] = (path, directory)
     for name, entry in sources.items():
         if name in skill_sources:
             skill_sources[name] = entry
@@ -267,10 +271,8 @@ def refresh_workflow(home, target):
     report.setdefault("packages", {})["joel-workflow"] = str(root)
     importer.write("workflow-compat.md", (ROOT / "AGENTS.md").read_text())
     skills = {p.parent.name: p for p in (root / "skills").glob("*/SKILL.md")}
-    commands = {**skills, **{p.stem: p for p in (root / "commands").glob("*.md") if p.stem.lower() != "readme"}}
-    for name in report["skills"]:
-        if name in commands:
-            skills[name] = commands[name]
+    commands = {**{p.stem: p for p in (root / "commands").glob("*.md") if p.stem.lower() != "readme"}, **skills}
+    skills = dict(commands)
     refreshed_sources = set(commands.values()) | set(skills.values())
     for kind, entries in [("commands", commands), ("skills", skills)]:
         for name, source in sorted(entries.items()):

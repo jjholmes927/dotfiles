@@ -54,7 +54,7 @@ class WorkflowInstallTests(unittest.TestCase):
             sync.install(self.source, self.target)
         self.assertFalse(self.target.exists())
 
-    def test_imports_ui_review_from_skill_only_releases_without_replacing_other_adapters(self):
+    def test_discovers_new_skills_after_command_migration_without_changing_source(self):
         sync.install(self.source, self.target)
         old_ship = self.target / "skills/ship/references/workflow.md"
         old_content = old_ship.read_text()
@@ -64,16 +64,16 @@ class WorkflowInstallTests(unittest.TestCase):
                 destination = self.source / "skills" / name / "SKILL.md"
                 destination.parent.mkdir(parents=True, exist_ok=True)
                 original.rename(destination)
-        review = self.source / "skills/ui-component-review/SKILL.md"
+        review = self.source / "skills/new-review/SKILL.md"
         review.parent.mkdir()
-        review.write_text('---\nname: ui-component-review\ndescription: "Review component design"\n---\nCompare with project primitives.\n')
+        review.write_text('---\nname: new-review\ndescription: "Review component design"\n---\nCompare with project primitives.\n')
 
         sync.install(self.source, self.target)
 
         self.assertEqual(old_content, old_ship.read_text())
-        self.assertEqual(review.read_text(), (self.target / "skills/ui-component-review/references/workflow.md").read_text())
+        self.assertEqual(review.read_text(), (self.target / "skills/new-review/references/workflow.md").read_text())
         manifest = json.loads((self.target / "workflow-migration.json").read_text())
-        self.assertEqual(str(review.resolve()), manifest["skills"]["ui-component-review"]["source"])
+        self.assertEqual(str(review.resolve()), manifest["skills"]["new-review"]["source"])
         self.assertEqual(0, sync.install(self.source, self.target)["changed"])
 
     def beam_source(self):

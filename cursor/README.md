@@ -15,10 +15,10 @@ python3 cursor/install.py
 python3 cursor/install.py --package beam --if-installed
 ```
 
-The personal import requires joel-workflow 2.20.0 or newer and includes e2e,
-ship, verify, verify-ui, investigate, codex-collab and writing-pr-descriptions.
+The personal import requires joel-workflow 2.20.0 or newer and discovers every
+published command and skill, including newly added workflows.
 The optional Beam import includes socratic-codebase-interview and review-pr.
-Other package workflows remain outside this managed set. Source dependencies
+Other packages remain outside this managed set. Source dependencies
 are resolved from their recorded package roots with Cursor's tool mappings.
 
 Imports reuse the Codex importer's file-writing/provenance engine with an explicit

@@ -17,6 +17,19 @@ spec.loader.exec_module(installer)
 
 
 class MigrationTests(unittest.TestCase):
+    def test_marketplace_skill_wins_over_legacy_dotfiles_command(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            source = home / "release"
+            skill = source / "skills/newspaper/SKILL.md"
+            skill.parent.mkdir(parents=True)
+            skill.write_text("---\ndescription: Published workflow\n---\nCanonical instructions")
+            with patch.object(installer, "plugins", return_value=[("joel-workflow", source)]), \
+                    patch.object(installer, "mcp_config", return_value=({}, [])), contextlib.redirect_stdout(io.StringIO()):
+                report = installer.install(home, home / "opencode")
+            self.assertEqual(str(skill), report["skills"]["newspaper"])
+            self.assertEqual(str(skill), report["commands"]["newspaper"])
+
     def test_workflow_refresh_preserves_configuration_and_other_adapters(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

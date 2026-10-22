@@ -128,9 +128,10 @@ def install(source, target, package="personal", *, compatibility=None, generator
             skill = Path("skills") / name / "SKILL.md"
             if not (source / relative).is_file() and (source / skill).is_file():
                 commands[name] = str(skill)
-        ui_review = "skills/ui-component-review/SKILL.md"
-        if (source / ui_review).is_file():
-            commands["ui-component-review"] = ui_review
+        commands.update({p.stem: str(p.relative_to(source)) for p in sorted((source / "commands").glob("*.md"))
+                         if p.stem.lower() != "readme"})
+        commands.update({p.parent.name: str(p.relative_to(source))
+                         for p in sorted((source / "skills").glob("*/SKILL.md"))})
     documents = {name: (source / relative).read_text() for name, relative in commands.items()}
     descriptions = {}
     for name, content in documents.items():

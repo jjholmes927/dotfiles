@@ -36,7 +36,7 @@ The script:
 
 1. Symlinks `AGENTS.md` into `~/.codex/AGENTS.md`
 2. Symlinks the remaining dotfiles skill directories into `~/.codex/skills/`
-3. Generates the seven delivery, E2E, investigation and consultation adapters from the installed personal release
+3. Generates adapters for every command and skill from the installed personal release
 4. Generates Socratic interview and full review-pr when the Beam user plugin is installed and enabled
 5. Adds any missing MCP server definitions to Codex
 
@@ -52,12 +52,14 @@ codex mcp login honeycomb
 
 Install or update the personal `joel-workflow` parity release first, then run
 `python3 codex/sync-workflow.py`. It reads the installed user plugin directory,
-builds the seven workflow skills with full source instructions and Codex tool
+builds every personal workflow skill with full source instructions and Codex tool
 mapping, and records source paths, version and hashes in
 `~/.codex/workflow-migration.json`. Existing skill links/files are backed up;
 provider configuration, credentials, rules and unrelated skills are preserved.
 Restart the Codex session to refresh its skill catalog.
-The importer also includes `ui-component-review` when the personal release supplies it, and accepts both command-based and skill-only releases. Cursor uses the same importer; OpenCode discovers the skill from the plugin.
+The importer discovers all personal commands and skills, including newly published skills, and accepts both command-based and skill-only releases. Cursor uses the same importer; OpenCode gives marketplace workflows precedence over legacy dotfiles copies. Beam adapters remain a separately selected package.
+
+Run `python3 workflow/check-release.py --source /path/to/marketplace` to check a candidate release in temporary Codex, Cursor and OpenCode installations. It checks complete coverage, source parity and repeat imports. Dotfiles CI checks the published marketplace; marketplace CI can check its candidate with the same command. The doctor also flags marketplace skills missing from managed adapters.
 Normal refreshes register `workflow-doctor` and report local drift across installed
 harnesses. See [drift checks and adding harnesses](../docs/agent-setup.md#checking-for-drift).
 
@@ -112,7 +114,7 @@ This imports `socratic-codebase-interview` and `review-pr` from Beam. The interv
 is retained locally under `~/.codex/skills/socratic-codebase-interview/references/`,
 with source path, version and SHA-256 recorded in `~/.codex/beam-migration.json`.
 Beam remains the canonical maintenance home; this is not a personal fork.
-The seven personal workflow adapters and their manifest are unaffected. Review uses all source lenses sequentially unless delegation is authorized; author status alone does not authorize posting.
+The personal workflow adapters and their manifest are unaffected. Review uses all source lenses sequentially unless delegation is authorized; author status alone does not authorize posting.
 
 After starting a fresh session, say `Use socratic-codebase-interview to quiz me
 on <system> before my engineering sync`. It reads the code, asks one question,

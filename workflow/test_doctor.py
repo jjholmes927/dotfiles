@@ -79,6 +79,13 @@ class DoctorTests(unittest.TestCase):
                     self.assertIn(message + (" missing" if value is None else " changed"), output)
                     path.write_text(original)
 
+    def test_new_marketplace_skill_cannot_be_hidden_by_an_unmanaged_copy(self):
+        self.write(self.source / "skills/new-review/SKILL.md", "New marketplace source")
+        self.write(self.target / "skills/new-review/SKILL.md", "Unmanaged local copy")
+        code, output = self.run_doctor()
+        self.assertEqual(1, code)
+        self.assertIn("marketplace skills have no managed adapter: new-review", output)
+
     def test_generator_revision_and_disabled_source_warn(self):
         self.data["generator_hashes"]["codex/sync-workflow.py"] = "older"
         self.write(self.manifest, self.data)
