@@ -26,3 +26,16 @@ jobs:
           python-version: "3.12"
       - run: python -m unittest -v ${{ matrix.suite.module }}
         working-directory: ${{ matrix.suite.dir }}
+
+  marketplace-compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: jjholmes927/jjholmes927-claude-skills
+          path: marketplace
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -B workflow/check-release.py --source marketplace

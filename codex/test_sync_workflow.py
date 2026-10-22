@@ -54,6 +54,28 @@ class WorkflowInstallTests(unittest.TestCase):
             sync.install(self.source, self.target)
         self.assertFalse(self.target.exists())
 
+    def test_discovers_new_skills_after_command_migration_without_changing_source(self):
+        sync.install(self.source, self.target)
+        old_ship = self.target / "skills/ship/references/workflow.md"
+        old_content = old_ship.read_text()
+        for name, relative in sync.COMMANDS.items():
+            original = self.source / relative
+            if relative.startswith("commands/"):
+                destination = self.source / "skills" / name / "SKILL.md"
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                original.rename(destination)
+        review = self.source / "skills/new-review/SKILL.md"
+        review.parent.mkdir()
+        review.write_text('---\nname: new-review\ndescription: "Review component design"\n---\nCompare with project primitives.\n')
+
+        sync.install(self.source, self.target)
+
+        self.assertEqual(old_content, old_ship.read_text())
+        self.assertEqual(review.read_text(), (self.target / "skills/new-review/references/workflow.md").read_text())
+        manifest = json.loads((self.target / "workflow-migration.json").read_text())
+        self.assertEqual(str(review.resolve()), manifest["skills"]["new-review"]["source"])
+        self.assertEqual(0, sync.install(self.source, self.target)["changed"])
+
     def beam_source(self):
         source = self.root / "beam"
         (source / ".claude-plugin").mkdir(parents=True)

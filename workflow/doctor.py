@@ -40,6 +40,14 @@ def inspect_manifest(path, target, selected):
         inputs = set(data["commands"].values()) | set(data["skills"].values())
         if outputs - data.get("generated_hashes", {}).keys() or inputs - sources.keys():
             problems.append("manifest has incomplete adapter coverage; run a full refresh")
+    personal = data.get("packages", {}).get("joel-workflow")
+    if personal:
+        root = Path(personal)
+        expected = {p.parent.name for p in (root / "skills").glob("*/SKILL.md")}
+        expected.update(p.stem for p in (root / "commands").glob("*.md") if p.stem.lower() != "readme")
+        missing = expected - data.get("skills", {}).keys()
+        if missing:
+            problems.append("marketplace skills have no managed adapter: " + ", ".join(sorted(missing)))
     for label, hashes, base in [
         ("source", sources, Path("/")),
         ("generated file", data.get("generated_hashes", {}), target),
