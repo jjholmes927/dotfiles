@@ -13,6 +13,7 @@ jobs:
         suite:
           - { dir: upstream-skills, module: test_install }
           - { dir: workflow, module: test_doctor }
+          - { dir: workflow, module: test_sync }
           - { dir: codex, module: test_sync_workflow }
           - { dir: codex, module: test_workflow_release }
           - { dir: cursor, module: test_install }

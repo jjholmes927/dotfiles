@@ -50,6 +50,12 @@ codex mcp login honeycomb
 
 ## Shared delivery workflow
 
+For normal published updates, use `workflow-sync` or `python3 workflow/sync.py`
+from dotfiles. This refreshes all installed harnesses and fails if the final
+doctor check finds drift. The individual importer commands below are useful for
+previews, package-specific repairs and bootstrap. Shared skill changes belong in
+the marketplace repository; dotfiles changes only when adapters need updating.
+
 Install or update the personal `joel-workflow` parity release first, then run
 `python3 codex/sync-workflow.py`. It reads the installed user plugin directory,
 builds every personal workflow skill with full source instructions and Codex tool

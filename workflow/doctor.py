@@ -152,13 +152,16 @@ def main(argv=None):
 
 
 def after_refresh():
-    link = Path.home() / ".local/bin/workflow-doctor"
-    source = Path(__file__).resolve()
-    if not link.exists() and not link.is_symlink():
-        link.parent.mkdir(parents=True, exist_ok=True)
-        link.symlink_to(source)
-    elif link.resolve() != source:
-        print(f"WARN existing {link} preserved; run python3 {source} for this checkout")
+    for name, filename in [("workflow-doctor", "doctor.py"), ("workflow-sync", "sync.py")]:
+        link = Path.home() / ".local/bin" / name
+        source = Path(__file__).resolve().with_name(filename)
+        if link.is_symlink() and link.resolve() != source and link.resolve().name == filename:
+            link.unlink()
+        if not link.exists() and not link.is_symlink():
+            link.parent.mkdir(parents=True, exist_ok=True)
+            link.symlink_to(source)
+        elif link.resolve() != source:
+            print(f"WARN existing {link} preserved; run python3 {source} for this checkout")
     with contextlib.redirect_stdout(sys.stderr):
         return main([])
 

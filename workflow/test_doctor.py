@@ -138,10 +138,19 @@ class DoctorTests(unittest.TestCase):
         with patch.object(doctor.Path, "home", return_value=self.home), patch.object(doctor, "main", return_value=0), contextlib.redirect_stdout(io.StringIO()):
             doctor.after_refresh()
             self.assertEqual(Path(doctor.__file__).resolve(), link.resolve())
+            self.assertEqual(Path(doctor.__file__).resolve().with_name("sync.py"), (self.home / ".local/bin/workflow-sync").resolve())
             link.unlink()
             link.write_text("custom command")
             doctor.after_refresh()
             self.assertEqual("custom command", link.read_text())
+
+    def test_registration_moves_owned_links_from_an_older_checkout(self):
+        link = self.home / ".local/bin/workflow-doctor"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(self.home / "old-checkout/workflow/doctor.py")
+        with patch.object(doctor.Path, "home", return_value=self.home), patch.object(doctor, "main", return_value=0):
+            doctor.after_refresh()
+        self.assertEqual(Path(doctor.__file__).resolve(), link.resolve())
 
     def test_full_opencode_import_records_complete_healthy_coverage(self):
         installer = runpy.run_path(str(doctor.ROOT / "opencode/install.py"))["install"]

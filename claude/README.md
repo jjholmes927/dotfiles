@@ -71,6 +71,10 @@ ln -sfn ~/.claude/shared-memory/gigme \
 
 ## Notes
 
+The daily SessionStart update hook calls dotfiles' `workflow/sync.py`, updating
+the published personal plugin and all installed harness adapters together. Failed
+updates remain eligible for retry; the log is `~/.claude/plugins/jjholmes927-update.log`.
+
 - `settings.json` contains plugin references that may need adjusting per machine (e.g. if plugins aren't installed yet)
 - `settings.local.json` (permissions) is intentionally excluded — it's machine-specific
 - MCP auth remains machine-local — only the MCP server definitions are synced via dotfiles

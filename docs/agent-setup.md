@@ -2,6 +2,14 @@
 
 Dotfiles is the index and installation wiring for separately maintained workflow packages. The [operator workflow](operator-workflow.md#shared-lifecycle-contract) defines how they work together; [Kandev setup](kandev-setup.md) describes the current launcher. Edit a skill in its canonical repository, then release it and refresh its adapters.
 
+Current release policy: shared personal skill content is maintained in `jjholmes927-claude-skills`; dotfiles owns adapters and installation. All personal marketplace skills are discovered automatically. The older inventories below are dated snapshots, not a list of supported personal adapters today.
+
+After merging a marketplace release, run `workflow-sync` or `python3 workflow/sync.py` from dotfiles. It updates the GitHub marketplace plugin and optional installed Beam plugin, refreshes existing Codex/Cursor/OpenCode installations, registers the helper commands and runs the doctor. Failure returns non-zero; daily completion is recorded only after success. The Claude SessionStart hook calls this same command once a day, with a lock preventing overlapping runs. Logs are in `~/.claude/plugins/jjholmes927-update.log`.
+
+Use `workflow-sync --refresh-only` to retry adapters against the selected published plugin without another network update. Normal sync rejects local marketplace pins; use the documented temporary adapter targets for unpublished previews. The command skips absent harnesses and preserves existing configuration values through their installers. Start fresh sessions to load changes. Published updates do not pull the dotfiles Git checkout; update that checkout when adapter code changes.
+
+Marketplace CI requires increasing matching versions, valid skill metadata and `workflow/check-release.py` against the candidate source. Dotfiles CI runs the same adapter contract against the published marketplace. Missing managed skills, changed source/output/generator hashes and stale selected releases are doctor failures. These checks verify packaging, not identical agent behaviour.
+
 Snapshot: 22 September 2026, updated after merging the portability release and restoring GitHub updates. Versions below are observed installations, not claims about upstream latest releases. The Beam/personal inventory contains 29 entries: 12 skills and 17 commands. This document records ownership decisions, installed adapters and remaining gaps; the existing Development workflow and watches are unchanged; the opt-in pilot is separate.
 
 ## Package map
