@@ -30,8 +30,15 @@ grep -q '^WORKTREE_OFFSET=' .env || echo "WORKTREE_OFFSET=$offset" >> .env
 
 tasks_root=$(dirname "$(dirname "$wt")")
 used_ports=$(grep -hs '^PORT=' "$tasks_root"/*/*/.env "$main"/.worktrees/*/.env 2>/dev/null | grep -v -F "$(grep '^PORT=' .env || true)" | cut -d= -f2 | sort -u)
-slot=20
-while echo "$used_ports" | grep -qx "$((3000 + slot))"; do slot=$((slot + 1)); done
+slot_taken() {
+  echo "$used_ports" | grep -qx "$((3000 + $1))" && return 0
+  for port in $((3000 + $1)) $((3130 + $1)) $((28080 + $1)) $((6379 + $1)); do
+    lsof -iTCP:"$port" -sTCP:LISTEN -t >/dev/null 2>&1 && return 0
+  done
+  return 1
+}
+slot=1
+while slot_taken "$slot"; do slot=$((slot + 1)); done
 sed -i '' -e "s/^PORT=.*/PORT=$((3000 + slot))/" -e "s/^DEV_WEB_PORT=.*/DEV_WEB_PORT=$((3000 + slot))/" \
   -e "s/^VITE_PORT=.*/VITE_PORT=$((3130 + slot))/" -e "s/^WSS_PORT=.*/WSS_PORT=$((28080 + slot))/" \
   -e "s/^REDIS_PORT=.*/REDIS_PORT=$((6379 + slot))/" -e "s|^REDIS_URL=.*|REDIS_URL=redis://localhost:$((6379 + slot))/1|" \
@@ -48,4 +55,9 @@ set +a
 if [ "$second_pass" = 1 ]; then
   SKIP_SERVER_RESTART=1 bin/setup
 fi
+
+git update-index --skip-worktree .claude/settings.json 2>/dev/null || true
+for generated in pnpm-lock.yaml db/data_schema.rb db/schema.rb; do
+  git checkout -- "$generated" 2>/dev/null || true
+done
 echo "kandev-worktree-setup: done (WORKTREE_OFFSET=$WORKTREE_OFFSET PORT=$PORT single_pass=$((1 - second_pass)))"
