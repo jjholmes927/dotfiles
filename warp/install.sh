@@ -3,26 +3,48 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WARP_HOME="${HOME}/.warp"
+BACKUP_DIR="${WARP_HOME}/backups/install-$(date +%Y-%m-%d-%H%M%S)"
 
-mkdir -p "$WARP_HOME/themes"
+already() { printf '  ✓ %s\n' "$1"; }
+linking() { printf '  → %s\n' "$1"; }
+backing() { printf '  ⚠ %s\n' "$1"; }
+
+ensure_dir() {
+  [[ -d "$1" ]] || mkdir -p "$1"
+}
+
+link() {
+  local src="$1" dest="$2"
+  ensure_dir "$(dirname "$dest")"
+
+  if [[ -L "$dest" ]]; then
+    local current
+    current="$(readlink "$dest")"
+    if [[ "$current" == "$src" ]]; then
+      already "$dest"
+      return 0
+    fi
+    backing "$dest (existing symlink -> $current, backing up)"
+    ensure_dir "$BACKUP_DIR"
+    mv "$dest" "$BACKUP_DIR/$(basename "$dest").symlink"
+  elif [[ -e "$dest" ]]; then
+    backing "$dest (existing file/dir, backing up)"
+    ensure_dir "$BACKUP_DIR"
+    mv "$dest" "$BACKUP_DIR/$(basename "$dest")"
+  fi
+
+  ln -s "$src" "$dest"
+  linking "$dest -> $src"
+}
 
 for theme in "$SCRIPT_DIR"/themes/*.yaml; do
-  dest="$WARP_HOME/themes/$(basename "$theme")"
-  if [[ -L "$dest" && "$(readlink "$dest")" == "$theme" ]]; then
-    printf '  ✓ %s\n' "$dest"
-    continue
-  fi
-  if [[ -e "$dest" || -L "$dest" ]]; then
-    mv "$dest" "$dest.backup-$(date +%Y-%m-%d-%H%M%S)"
-    printf '  ⚠ %s (backed up)\n' "$dest"
-  fi
-  ln -s "$theme" "$dest"
-  printf '  → %s -> %s\n' "$dest" "$theme"
+  link "$theme" "$WARP_HOME/themes/$(basename "$theme")"
 done
 
 if [[ -e "$WARP_HOME/settings.toml" ]]; then
-  printf '  ✓ %s exists, left alone (diff it against %s/settings.toml)\n' "$WARP_HOME/settings.toml" "$SCRIPT_DIR"
+  already "$WARP_HOME/settings.toml exists, left alone (compare with $SCRIPT_DIR/settings.toml)"
 else
+  ensure_dir "$WARP_HOME"
   cp "$SCRIPT_DIR/settings.toml" "$WARP_HOME/settings.toml"
-  printf '  → %s copied from dotfiles\n' "$WARP_HOME/settings.toml"
+  linking "$WARP_HOME/settings.toml copied from dotfiles"
 fi

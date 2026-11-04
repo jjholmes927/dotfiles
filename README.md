@@ -76,7 +76,7 @@ Note: project-level `CLAUDE.md` files live in each project repo, not here.
 ./warp/install.sh
 ```
 
-Links the custom themes in `warp/themes/` into `~/.warp/themes/` (Warp's settings sync doesn't carry custom themes) and copies `warp/settings.toml` only onto a machine that has no settings file yet.
+Links the custom themes in `warp/themes/` into `~/.warp/themes/` (Warp's settings sync doesn't carry custom themes) and copies the appearance settings in `warp/settings.toml` only onto a machine that has no settings file yet. Warp's settings sync carries everything else.
 
 ## Codex
 
