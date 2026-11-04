@@ -3,6 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="$SCRIPT_DIR/skills.txt"
+TOOLS="$SCRIPT_DIR/tools.txt"
+BIN_DIR="$HOME/.local/bin"
 CACHE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/upstream-skills"
 
 HARNESS_HOMES=(
@@ -16,7 +18,7 @@ HARNESS_HOMES=(
 repos=()
 refs=()
 while read -r repo _ ref _; do
-  [[ -z "$repo" || "$repo" == \#* ]] && continue
+  [[ -z "$repo" || "$repo" == \#* || "$repo" == gem ]] && continue
   seen=""
   for i in "${!repos[@]}"; do
     [[ "${repos[$i]}" == "$repo" ]] || continue
@@ -29,7 +31,7 @@ while read -r repo _ ref _; do
   [[ -n "$seen" ]] && continue
   repos+=("$repo")
   refs+=("${ref:-}")
-done < "$MANIFEST"
+done < <(cat "$MANIFEST" "$TOOLS")
 
 for i in "${!repos[@]}"; do
   repo="${repos[$i]}"
@@ -73,3 +75,39 @@ while read -r repo path _; do
     fi
   done
 done < "$MANIFEST"
+
+link_tool() {
+  local name="$1" body="$2"
+  local dest="$BIN_DIR/$name"
+  mkdir -p "$BIN_DIR"
+  if [[ -f "$dest" && "$(cat "$dest")" == "$body" ]]; then
+    printf '  ✓ %s\n' "$dest"
+  elif [[ -e "$dest" || -L "$dest" ]] && ! grep -qF "$CACHE_DIR" "$dest" 2>/dev/null; then
+    printf '  ⚠ %s exists and is not an upstream tool, left alone\n' "$dest"
+  else
+    printf '%s\n' "$body" > "$dest"
+    chmod +x "$dest"
+    printf '  → %s\n' "$dest"
+  fi
+}
+
+while read -r source name ref _; do
+  [[ -z "$source" || "$source" == \#* ]] && continue
+  if [[ "$source" != gem ]]; then
+    link_tool "$name" "$(printf '#!/bin/sh\nexec "%s/%s" "$@"' "$CACHE_DIR/${source/\//__}" "$name")"
+    continue
+  fi
+  gems="$CACHE_DIR/gems"
+  if ! command -v gem >/dev/null || ! command -v ruby >/dev/null; then
+    printf '  ⚠ %s: Ruby not found, skipped\n' "$name"
+    continue
+  fi
+  if ! GEM_HOME="$gems" gem list -i "$name" -v "$ref" >/dev/null 2>&1; then
+    if ! GEM_HOME="$gems" gem install "$name" -v "$ref" --install-dir "$gems" --bindir "$gems/bin" --no-document --quiet >/dev/null; then
+      printf '  ⚠ %s: gem install failed, skipped\n' "$name"
+      continue
+    fi
+  fi
+  ruby_bin="$(ruby -e 'print RbConfig.ruby')"
+  link_tool "$name" "$(printf '#!/bin/sh\nGEM_HOME="%s" GEM_PATH="%s" exec "%s" "%s/bin/%s" "$@"' "$gems" "$gems" "$ruby_bin" "$gems" "$name")"
+done < "$TOOLS"

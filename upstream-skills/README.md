@@ -22,3 +22,13 @@
 | `grilling` | [mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling), the interview itself ([guide](https://www.aihero.dev/skills-grill-me)) | MIT |
 | `ponytail` | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail/tree/v5.2.0/skills/ponytail), pinned `v5.2.0`. Write-the-least-code mode, loaded by `/e2e` while building. Skills only, none of its hooks | MIT |
 | `ponytail-review` | [DietrichGebert/ponytail](https://github.com/DietrichGebert/ponytail/tree/v5.2.0/skills/ponytail-review), pinned `v5.2.0`. Review lens used in `/e2e` branch review | MIT |
+
+## Tools
+
+[`tools.txt`](tools.txt) lists command-line tools installed the same way, for `/e2e`'s quality signals. Each gets a small wrapper in `~/.local/bin` that runs the pinned checkout, so the tool still finds its own files. A command already there with the same name is left alone.
+
+| Tool | Upstream | What it reports |
+|---|---|---|
+| `crapper` | [unclebob/crapper](https://github.com/unclebob/crapper), pinned | Functions that are both complex and poorly tested (CRAP score) |
+| `dryer` | [unclebob/dryer](https://github.com/unclebob/dryer), pinned | Blocks of code with the same structure |
+| `rubycritic` | RubyGems `rubycritic`, pinned version | Ruby complexity, duplication and smells. Installed into its own gem home and run with the Ruby it was installed with |
