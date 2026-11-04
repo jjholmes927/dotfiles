@@ -6,12 +6,22 @@ REPO_DIR="$(python3 -c 'from pathlib import Path; import sys; print(Path(sys.arg
 LOG="${HOME}/.claude/plugins/jjholmes927-update.log"
 mkdir -p "$(dirname "$LOG")"
 
+status=0
+message=""
 if output="$(python3 "$REPO_DIR/workflow/sync.py" --daily 2>&1)"; then
-  [[ -n "$output" ]] || exit 0
-  printf '%s\n' "$output" >> "$LOG"
-  printf '%s\n' '{"systemMessage":"Workflow skills refreshed. Restart sessions to load updates."}'
+  if [[ -n "$output" ]]; then
+    printf '%s\n' "$output" >> "$LOG"
+    message="Workflow skills refreshed. Restart sessions to load updates."
+  fi
 else
   printf '%s\n' "$output" >> "$LOG"
-  printf '%s\n' '{"systemMessage":"Workflow sync failed. See ~/.claude/plugins/jjholmes927-update.log."}'
-  exit 1
+  message="Workflow sync failed. See ~/.claude/plugins/jjholmes927-update.log."
+  status=1
 fi
+
+updates="$(python3 "$REPO_DIR/workflow/plugin-updates.py" --daily 2>>"$LOG")"
+message="$(printf '%s\n%s\n' "$message" "$updates" | sed '/^$/d')"
+if [[ -n "$message" ]]; then
+  python3 -c 'import json, sys; print(json.dumps({"systemMessage": sys.argv[1]}))' "$message"
+fi
+exit "$status"

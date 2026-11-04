@@ -110,6 +110,26 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(1, result.returncode)
         self.assertFalse((self.home / ".codex/workflow-migration.json").exists())
 
+    def test_plugin_updates_reports_plugins_behind_a_manual_marketplace(self):
+        installed = self.home / "superpowers"
+        self.write(installed / ".claude-plugin/plugin.json", {"version": "5.0.5"})
+        catalog = self.home / "superpowers-marketplace"
+        self.write(catalog / ".claude-plugin/marketplace.json", {"plugins": [{"name": "superpowers", "version": "7.0.2"}]})
+        registry = json.loads((self.plugins / "installed_plugins.json").read_text())
+        registry["plugins"]["superpowers@superpowers-marketplace"] = [{"scope": "user", "version": "3.4.1", "installPath": str(installed)}]
+        self.write(self.plugins / "installed_plugins.json", registry)
+        self.write(self.plugins / "known_marketplaces.json", {
+            "jjholmes927-claude-skills": {"source": {"source": "github", "repo": "jjholmes927/jjholmes927-claude-skills"}, "autoUpdate": True},
+            "superpowers-marketplace": {"installLocation": str(catalog)},
+        })
+        self.write(self.home / ".claude/settings.json", {"enabledPlugins": {IDENTITY: True, "superpowers@superpowers-marketplace": True}})
+        result = subprocess.run([sys.executable, "-B", str(ROOT / "workflow/plugin-updates.py"), "--home", str(self.home)],
+                                env=self.environment, capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(["superpowers 5.0.5 → 7.0.2 available: claude plugin update superpowers@superpowers-marketplace"],
+                         result.stdout.splitlines())
+        self.assertEqual(["plugin marketplace update superpowers-marketplace"], (self.home / ".claude/calls").read_text().splitlines())
+
 
 if __name__ == "__main__":
     unittest.main()
