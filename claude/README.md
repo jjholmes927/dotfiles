@@ -42,6 +42,8 @@ Run the bootstrap script from the dotfiles repo root (or from inside `claude/`):
 
 The script is idempotent — safe to re-run. It symlinks `CLAUDE.md`, `settings.json`, `commands/`, `scripts/statusline.sh`, `hooks/tmux-alert.sh`, and `mcp-servers.json` into `~/.claude/`, then syncs the MCP server list into `~/.claude.json`. Anything it would overwrite is backed up to `~/.claude/backups/install-<timestamp>/`.
 
+Plugins come from `settings.json`: after logging in, the first interactive session clones every marketplace in `extraKnownMarketplaces` and installs every plugin in `enabledPlugins`, in the background. Run `/reload-plugins` if they are not there yet. A session-start hook then warns when an enabled plugin falls behind its marketplace.
+
 ## Claude Code on the web (cloud sandboxes)
 
 Cloud sessions (claude.ai/code, and coding sessions started from Slack) never see the local `~/.claude`. To carry the global instructions there, set this as the environment's setup script in the Claude Code web environment settings:

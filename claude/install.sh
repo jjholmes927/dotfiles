@@ -107,3 +107,4 @@ echo
 echo "Note: settings.local.json (machine-specific permissions) is intentionally NOT symlinked."
 echo "Note: ~/.claude/projects/ (sessions + memory) is intentionally NOT touched."
 echo "Note: MCP auth remains machine-local. Only the server definitions are synced here."
+echo "Next: log in and start one interactive claude session; it installs the plugins enabled in settings.json (run /reload-plugins if they are missing)."
