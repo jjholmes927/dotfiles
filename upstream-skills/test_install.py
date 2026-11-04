@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -80,6 +81,41 @@ class LinkerBehaviour(unittest.TestCase):
                 (checkout / "AFTER_PIN").write_text("newer upstream work\n")
                 self.commit(checkout, "after pin")
             self.git(checkout, "remote", "add", "origin", str(checkout))
+        self.tools = []
+        for line in (ROOT / "upstream-skills/tools.txt").read_text().splitlines():
+            source, name, *_ = line.split()
+            if source == "gem":
+                continue
+            self.tools.append((source, name))
+            checkout = self.checkout(source)
+            checkout.mkdir(parents=True)
+            (checkout / name).write_text(f'#!/bin/sh\necho "{name} ran $*"\n')
+            (checkout / name).chmod(0o755)
+            self.git(checkout, "init", "-q")
+            self.commit(checkout, "seed")
+            self.git(checkout, "remote", "add", "origin", str(checkout))
+        self.bin = self.home / ".local/bin"
+        self.fakes = self.root / "fakes"
+        self.fakes.mkdir()
+        self.fake_log = self.root / "gem.log"
+        (self.fakes / "gem").write_text(f"""#!{sys.executable}
+import os, sys
+from pathlib import Path
+args = sys.argv[1:]
+with open(os.environ["FAKE_LOG"], "a") as log:
+    log.write(" ".join(args) + "\\n")
+home = Path(os.environ["GEM_HOME"])
+if args[0] == "list":
+    sys.exit(0 if (home / "bin" / args[2]).exists() else 1)
+bindir = Path(args[args.index("--bindir") + 1])
+bindir.mkdir(parents=True, exist_ok=True)
+(bindir / args[1]).write_text("fake")
+""")
+        (self.fakes / "ruby").write_text("#!/bin/sh\nprintf /fake/ruby\n")
+        for fake in ("gem", "ruby"):
+            (self.fakes / fake).chmod(0o755)
+        self.env = {**os.environ, "HOME": str(self.home), "XDG_DATA_HOME": str(self.data),
+                    "PATH": str(self.fakes) + os.pathsep + os.environ["PATH"], "FAKE_LOG": str(self.fake_log)}
 
     def checkout(self, repo):
         return self.data / "upstream-skills" / repo.replace("/", "__")
@@ -92,8 +128,7 @@ class LinkerBehaviour(unittest.TestCase):
         self.git(checkout, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", message)
 
     def run_linker(self):
-        env = {**os.environ, "HOME": str(self.home), "XDG_DATA_HOME": str(self.data)}
-        return subprocess.run([str(LINKER)], env=env, capture_output=True, text=True, check=True).stdout
+        return subprocess.run([str(LINKER)], env=self.env, capture_output=True, text=True, check=True).stdout
 
     def homes(self):
         return [Path(home.replace("$HOME", str(self.home))) for home in HARNESS_HOMES.values()]
@@ -134,10 +169,31 @@ class LinkerBehaviour(unittest.TestCase):
         linker.write_text(LINKER.read_text())
         linker.chmod(0o755)
         (linker.parent / "skills.txt").write_text(manifest + "DietrichGebert/ponytail skills/ponytail-audit v9.9.9\n")
-        env = {**os.environ, "HOME": str(self.home), "XDG_DATA_HOME": str(self.data)}
-        result = subprocess.run([str(linker)], env=env, capture_output=True, text=True)
+        (linker.parent / "tools.txt").write_text((ROOT / "upstream-skills/tools.txt").read_text())
+        result = subprocess.run([str(linker)], env=self.env, capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("same ref", result.stderr)
+
+    def test_tools_get_working_wrappers_and_a_rerun_changes_nothing(self):
+        self.run_linker()
+        first = {path.name: path.read_text() for path in self.bin.iterdir()}
+        output = self.run_linker()
+        self.assertEqual(first, {path.name: path.read_text() for path in self.bin.iterdir()})
+        for source, name in self.tools:
+            with self.subTest(tool=name):
+                self.assertIn(f"✓ {self.bin / name}", output)
+                ran = subprocess.run([str(self.bin / name), "--changed"], capture_output=True, text=True, check=True).stdout
+                self.assertEqual(f"{name} ran --changed\n", ran)
+        self.assertIn('exec "/fake/ruby"', first["rubycritic"])
+        installs = [line for line in self.fake_log.read_text().splitlines() if line.startswith("install ")]
+        self.assertEqual(1, len(installs))
+
+    def test_an_existing_command_with_a_tool_name_is_left_alone(self):
+        self.bin.mkdir(parents=True)
+        (self.bin / "crapper").write_text("#!/bin/sh\necho mine\n")
+        output = self.run_linker()
+        self.assertEqual("#!/bin/sh\necho mine\n", (self.bin / "crapper").read_text())
+        self.assertIn("left alone", output)
 
 
 if __name__ == "__main__":
