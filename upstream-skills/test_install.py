@@ -20,6 +20,7 @@ NOT_HARNESSES = {
     "bash": "shell profile, not an agent harness",
     "kandev": "launches an installed harness; has no skills folder of its own",
     "upstream-skills": "the linker itself",
+    "warp": "terminal themes and appearance, not an agent harness",
 }
 
 

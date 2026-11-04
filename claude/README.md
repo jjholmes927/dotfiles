@@ -14,6 +14,7 @@ describes the current Kandev workflow; Fleet notes are historical.
 | `settings.json` | Model preference, enabled plugins, status line config, notification hooks |
 | `commands/` | Custom slash commands available in all projects |
 | `hooks/tmux-alert.sh` | Sends a tmux bell when Claude needs attention (permission prompts, idle, input dialogs) |
+| `hooks/adhd-colours.py` | `MessageDisplay` hook: colours bold text in replies by its first word (Kandev ADHD theme rules). Interactive terminal only, never `claude -p` |
 | `scripts/statusline.sh` | Status line script that shows git branch, context usage, and model info |
 | `mcp-servers.json` | Source-of-truth MCP server definitions shared with Codex |
 | `sync-mcps.sh` | Merges the MCP server list into `~/.claude.json` without overwriting other machine-local Claude state |

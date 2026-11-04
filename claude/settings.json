@@ -6,6 +6,11 @@
     "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
     "OTEL_EXPORTER_OTLP_ENDPOINT": "https://api.eu1.honeycomb.io"
   },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false,
   "permissions": {
     "allow": [
       "Read(**/.claude/**)",
@@ -115,6 +120,17 @@
           }
         ]
       }
+    ],
+    "MessageDisplay": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/adhd-colours.py",
+            "timeout": 2
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -156,21 +172,20 @@
   "viewMode": "focus",
   "spinnerTipsEnabled": false,
   "effortLevel": "high",
-  "tui": "fullscreen",
-  "prefersReducedMotion": true,
-  "autoDreamEnabled": true,
-  "skipDangerousModePermissionPrompt": true,
-  "theme": "dark-daltonized",
-  "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true,
   "modelSettings": {
     "claude-fable-5-1": {
       "effortLevel": "high"
+    },
+    "claude-opus-5-5": {
+      "effortLevel": "xhigh"
     }
   },
-  "includeCoAuthoredBy": false,
-  "attribution": {
-    "commit": "",
-    "pr": ""
-  }
+  "tui": "fullscreen",
+  "maxProseWidth": 80,
+  "prefersReducedMotion": true,
+  "autoDreamEnabled": true,
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark-ansi",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
 }

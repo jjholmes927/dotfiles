@@ -1,0 +1,19 @@
+[appearance]
+
+[appearance.themes]
+system_theme = false
+theme = { custom = { name = "Clear Dark", path = "~/.warp/themes/clear-dark.yaml" } }
+
+[appearance.vertical_tabs]
+display_granularity = "tabs"
+enabled = true
+
+[appearance.full_screen_apps]
+alt_screen_padding = { custom = { uniform_padding = 0.0 } }
+
+[appearance.text]
+line_height_ratio = 1.4
+font_size = 21.0
+
+[appearance.window]
+zoom_level = 60
