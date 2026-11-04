@@ -1,0 +1,25 @@
+name: Clear Dark
+accent: '#57c7ff'
+cursor: '#ffd866'
+background: '#000000'
+foreground: '#ffffff'
+details: darker
+terminal_colors:
+  normal:
+    black: '#000000'
+    red: '#ff6b6b'
+    green: '#5af78e'
+    yellow: '#ffd866'
+    blue: '#57c7ff'
+    magenta: '#ff8cf0'
+    cyan: '#4ff0e8'
+    white: '#e8e8e8'
+  bright:
+    black: '#a6a6a6'
+    red: '#ff9090'
+    green: '#8dffb0'
+    yellow: '#ffe9a0'
+    blue: '#8fd9ff'
+    magenta: '#ffb3f5'
+    cyan: '#8ff7f2'
+    white: '#ffffff'

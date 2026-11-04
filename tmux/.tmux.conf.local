@@ -449,3 +449,5 @@ bind-key P command-prompt -p "pair:" "run-shell 'bash -lc \"pair \\\"%%\\\"\"'"
 # the fleet TUI, for daily comparison. Runs in a login shell for portability,
 # not every machine puts ~/.local/bin on the tmux server env PATH.
 bind-key F run-shell 'bash -lc fleet-toggle'
+
+bind-key Z run-shell '"$(dirname "$(readlink ~/.tmux.conf)")/centre-pane"'

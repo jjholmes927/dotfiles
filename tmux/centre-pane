@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+width="${CENTRE_WIDTH:-100}"
+main="${CENTRE_PANE:-$(tmux display -p '#{pane_id}')}"
+window="$(tmux display -p -t "$main" '#{window_id}')"
+margins="$(tmux list-panes -t "$window" -F '#{pane_id} #{@centre_margin}' | awk '$2 == 1 {print $1}')"
+
+if [ -n "$margins" ]; then
+  for pane in $margins; do
+    tmux kill-pane -t "$pane"
+  done
+  tmux set -wu -t "$window" pane-border-status
+  tmux set -wu -t "$window" pane-border-lines
+  exit 0
+fi
+
+if [ "$(tmux display -p -t "$window" '#{window_panes}')" -ne 1 ]; then
+  tmux display-message "Centring only works in a window with one pane"
+  exit 0
+fi
+
+total="$(tmux display -p -t "$window" '#{window_width}')"
+side=$(( (total - width) / 2 ))
+if [ "$side" -lt 4 ]; then
+  tmux display-message "Window is too narrow to centre"
+  exit 0
+fi
+
+left="$(tmux split-window -hbd -l "$side" -t "$main" -P -F '#{pane_id}' 'exec tail -f /dev/null')"
+right="$(tmux split-window -hd -l "$side" -t "$main" -P -F '#{pane_id}' 'exec tail -f /dev/null')"
+for pane in "$left" "$right"; do
+  tmux set -p -t "$pane" @centre_margin 1
+  tmux select-pane -d -t "$pane"
+done
+tmux set -w -t "$window" pane-border-status off
+tmux set -w -t "$window" pane-border-lines spaces
+tmux select-pane -t "$main"

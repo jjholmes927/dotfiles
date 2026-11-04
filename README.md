@@ -70,6 +70,14 @@ The `npm install` gives you the `claude` CLI. The install script symlinks `CLAUD
 
 Note: project-level `CLAUDE.md` files live in each project repo, not here.
 
+## Warp
+
+```bash
+./warp/install.sh
+```
+
+Links the custom themes in `warp/themes/` into `~/.warp/themes/` (Warp's settings sync doesn't carry custom themes) and copies `warp/settings.toml` only onto a machine that has no settings file yet.
+
 ## Codex
 
 The `codex/` directory is managed by a dedicated bootstrap script — see [`codex/README.md`](codex/README.md) for details. Install the personal workflow parity release first, following the [package setup order](docs/agent-setup.md#install-update-and-remove). Then, on a new machine:

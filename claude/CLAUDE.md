@@ -8,8 +8,9 @@ I have ADHD. How a reply *reads* (answer first, bold carries the point, one ques
 
 1. **Long content never goes in chat**: reports, designs, audits and plans go in the ticket, a doc, or an Artifact; chat carries a 3–5 line summary + link.
 2. **The style applies to files and Artifacts too**, not only chat: every written deliverable opens with a stand-alone TL;DR, sections lead with their answer, bold lead-ins, tables over prose, elaboration cut.
-3. **Visual over prose**: small tables and ✅/⚠️/❌ or 🔴/🟡/🟢 signposts where they help; no decorative diff blocks. (Coloured prose is impossible in the terminal; use an Artifact when colour matters.)
+3. **Visual over prose**: small tables and ✅/⚠️/❌ or 🔴/🟡/🟢 signposts where they help; no decorative diff blocks. In terminal chat keep tables rare: they ignore the `maxProseWidth` cap and run full width.
 4. **Rendered-markdown surfaces (Kandev chat and plans, Linear comments, PR bodies)**: open with one TL;DR blockquote (`> **TL;DR** …`); a warning is a blockquote opening with `*Warning:*`; use blockquotes for nothing else (the Kandev theme colours them as callouts). At most two emoji signposts per message, always next to a text label. Gate/clarification questions render only paragraphs, lists and inline bold: open with `**Decision needed:**` and never use headings, tables or blockquotes there.
+5. **Colour levels in terminal chat**: a display hook (`~/.claude/hooks/adhd-colours.py`) colours **bold** text by its first word, using the Kandev theme's rules. Open bold lead-ins with a level word when one fits: red = Blocked / Failed / Error, yellow = Warning / Risk / Pending, green = Done / Verified / Fixed, purple = Question / Decision / Your call, blue = Note / Next / Also found. Any other bold is orange. The first bold on a line sets that line's colour, so lead with the level word. Never force a level word onto a neutral point.
 
 ## Implementation Plan Reviews (hard rule)
 
