@@ -98,7 +98,7 @@ key=$(security find-generic-password -s honeycomb-agent-traces -w 2>/dev/null)
 
 session=$(echo "$input" | jq -r '.session_id // "unknown"')
 cwd=$(echo "$input" | jq -r '.cwd // "unknown"')
-payload=$(jq -n --arg e "$event" --arg sid "$session" --arg c "$cwd" --arg h "$(hostname -s)" \
+payload=$(jq -n --arg e "$event" --arg sid "$session" --arg c "$cwd" --arg h "$(agent-host-name 2>/dev/null || hostname -s)" \
   '{event: $e, session_id: $sid, cwd: $c, "host.name": $h} + '"$extra")
 curl -s -m 5 -X POST "https://api.eu1.honeycomb.io/1/events/workflow-ledger" \
   -H "X-Honeycomb-Team: ${key}" \
