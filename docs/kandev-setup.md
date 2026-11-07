@@ -21,7 +21,7 @@ Re-run `install.sh` (or just `python3 kandev/configure.py`) after editing the co
 
 What `install.sh` does, in order: Homebrew install → `~/.kandev/config.yaml` bound to `127.0.0.1` (refuses to continue otherwise) → warms the npm cache for the pinned Claude ACP adapter → `kandev service install|restart` (launchd, headless, keepalive) → waits for the API → `configure.py`.
 
-What `configure.py` ensures, all by lookup-then-create/patch: lane repositories with the setup and cleanup adapters; the selected existing `agent_profile` (or the legacy Claude profile when only `claude_profile` is configured); the Linear connection from the Keychain (tested); one issue watch per configured label.
+What `configure.py` ensures, all by lookup-then-create/patch: lane repositories with the setup and cleanup adapters; the selected existing `agent_profile` (or the legacy Claude profile when only `claude_profile` is configured); the Claude env on every Claude profile, whichever profile is selected (`CLAUDE_CODE_EXECUTABLE` = `~/.local/bin/claude`, else `claude` on PATH, unresolved so updates keep working; `CLAUDE_CODE_ARTIFACT=1`; `OTEL_RESOURCE_ATTRIBUTES`); the Linear connection from the Keychain (tested); one issue watch per configured label.
 
 ## Operating model
 
@@ -51,6 +51,7 @@ Conventions the agent text has to follow for the colour to land (also in `~/.cla
 | Claude probe fails with npm `ETARGET` on a stale npm cache | `install.sh` warms the cache with `--prefer-online`; `kandev service restart` re-probes |
 | The launchd service runs with a minimal PATH (nvm + brew + system: no rbenv shims, no `~/.local/bin`), so `bin/create_worktree` hit system Ruby 2.6 and the setup script failed non-fatally, leaving worktrees on the unsuffixed default database | `configure.py` writes the operator's full PATH onto the Worktree executor profile (agents and scripts inherit it); the setup adapter also inits rbenv itself. Re-run `configure.py` after changing PATH |
 | The launchd service doesn't load your shell profile, so Claude sessions had no Honeycomb key or machine name and sent no telemetry (none of 10 Kandev sessions in a week, Nov 2026) | `otelHeadersHelper` in `claude/settings.json` reads the key from the Keychain, and `configure.py` sets `OTEL_RESOURCE_ATTRIBUTES` on the Claude agent profile. Re-run `configure.py` on each machine |
+| nvm-installed Claude pins one Node version; configure refuses it | install the native build (`curl -fsSL https://claude.ai/install.sh \| bash`) and re-run `configure.py` |
 | Profile edits over HTTP need the `X-Kandev-Interim-Settings-Interlock` header | `configure.py` reads the token from the boot payload |
 | No HTTP route to send a chat message; it is the `message.queue.add` WebSocket action | answer gates in the UI, or `answer_question_kandev` over the API while the question is live |
 | Pending questions live in memory; a backend restart loses them (the session itself resumes via ACP `session/load`) | after a restart, resume with a chat message rather than the question API |

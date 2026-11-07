@@ -42,6 +42,14 @@ class Api:
             raise RuntimeError(f"{method} {path} -> {err.code}: {raw[:300]}")
         return json.loads(raw) if raw.strip() else {}
 
+    def mutate(self, method, path, body):
+        try:
+            return self.call(method, path, body)
+        except RuntimeError as err:
+            if "interlock" not in str(err):
+                raise
+            return self.call(method, path, body, interlock=True)
+
     def interlock_token(self):
         if self.token:
             return self.token
@@ -108,6 +116,45 @@ def agent_host_name():
     return socket.gethostname().split(".")[0]
 
 
+def claude_executable():
+    native = os.path.expanduser("~/.local/bin/claude")
+    path = native if os.access(native, os.X_OK) else shutil.which("claude")
+    if not path or "/.nvm/" in path:
+        raise RuntimeError(f"claude resolves to {path}; install the native build: curl -fsSL https://claude.ai/install.sh | bash")
+    return path
+
+
+def env_of(profile):
+    return {e["key"]: e.get("value", "") for e in (profile.get("env_vars") or [])}
+
+
+def claude_profiles(api):
+    agents = api.call("GET", "/api/v1/agents").get("agents", [])
+    return next((a.get("profiles", []) for a in agents if a["name"] == "claude-acp"), None)
+
+
+def stale_env(profile, wanted):
+    current = env_of(profile)
+    return sorted(k for k, v in wanted.items() if current.get(k) != v)
+
+
+def ensure_claude_env(api):
+    profiles = claude_profiles(api)
+    if profiles is None:
+        log("no claude-acp agent; Claude profile env not applied")
+        return
+    wanted = {"CLAUDE_CODE_EXECUTABLE": claude_executable(), "CLAUDE_CODE_ARTIFACT": "1",
+              "OTEL_RESOURCE_ATTRIBUTES": f"host.name={agent_host_name()}"}
+    stale = [p for p in profiles if stale_env(p, wanted)]
+    for profile in stale:
+        merged = {**env_of(profile), **wanted}
+        api.call("PATCH", f"/api/v1/agent-profiles/{profile['id']}",
+                 {"env_vars": [{"key": k, "value": v} for k, v in merged.items()]}, interlock=True)
+        changed(f"claude profile {profile.get('name')}: env {stale_env(profile, wanted)}")
+    if stale and any(stale_env(p, wanted) for p in claude_profiles(api) or []):
+        raise RuntimeError("Claude profile env did not persist; check Settings > Agents")
+
+
 def ensure_claude_profile(api, conf):
     agents = api.call("GET", "/api/v1/agents").get("agents", [])
     claude = next((a for a in agents if a["name"] == "claude-acp"), None)
@@ -120,17 +167,11 @@ def ensure_claude_profile(api, conf):
         raise RuntimeError("claude-acp has no profile; open Settings > Agents once so Kandev seeds one")
     profile = profiles[0]
     want = conf.get("claude_profile", {})
-    exe = os.path.realpath(shutil.which("claude"))
-    env_wanted = {"CLAUDE_CODE_EXECUTABLE": exe, "OTEL_RESOURCE_ATTRIBUTES": f"host.name={agent_host_name()}"}
-    env_current = {e["key"]: e.get("value", "") for e in (profile.get("env_vars") or [])}
     patch = {}
     if want.get("auto_approve", True) != profile.get("auto_approve"):
         patch["auto_approve"] = want.get("auto_approve", True)
     if want.get("model") and want["model"] != profile.get("model"):
         patch["model"] = want["model"]
-    if any(env_current.get(k) != v for k, v in env_wanted.items()):
-        merged = {**env_current, **env_wanted}
-        patch["env_vars"] = [{"key": k, "value": v} for k, v in merged.items()]
     if patch:
         api.call("PATCH", f"/api/v1/agent-profiles/{profile['id']}", patch, interlock=True)
         changed(f"claude profile {profile.get('name')}: {sorted(patch)}")
@@ -195,12 +236,7 @@ def ensure_executor_path(api, prof):
     if wanted == current:
         return
     body = {"env_vars": [{"key": k, "value": v} for k, v in wanted.items()]}
-    try:
-        api.call("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body)
-    except RuntimeError as err:
-        if "interlock" not in str(err):
-            raise
-        api.call("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body, interlock=True)
+    api.mutate("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body)
     note = "; CLAUDE_JOB_DIR removed (worktree isolation is detected from git since joel-workflow 2.15.0)" if "CLAUDE_JOB_DIR" in current else ""
     changed(f"executor profile {prof.get('name')}: PATH set from the current shell{note}")
 
@@ -270,6 +306,7 @@ def main():
     log(f"workspace {ws['name']} ({ws['id'][:8]})")
     repos = ensure_repositories(api, ws, conf.get("lanes", []))
     profile = select_agent_profile(api, conf["agent_profile"]) if "agent_profile" in conf else ensure_claude_profile(api, conf)
+    ensure_claude_env(api)
     if conf.get("linear"):
         ensure_linear(api, ws, conf["linear"])
         ensure_watches(api, ws, conf, repos, profile)

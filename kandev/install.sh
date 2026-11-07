@@ -10,7 +10,7 @@ fail() { printf 'kandev/install: %s\n' "$*" >&2; exit 1; }
 
 command -v brew >/dev/null || fail "Homebrew is required"
 command -v python3 >/dev/null || fail "python3 is required"
-command -v claude >/dev/null || fail "claude CLI must be on PATH (the Kandev Claude profile runs it)"
+command -v claude >/dev/null || [ -x "$HOME/.local/bin/claude" ] || fail "claude CLI must be on PATH or at ~/.local/bin/claude (the Kandev Claude profile runs it)"
 
 if ! brew list kandev >/dev/null 2>&1; then
   say "installing kandev"
