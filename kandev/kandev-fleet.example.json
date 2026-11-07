@@ -13,6 +13,11 @@
   "notifications": {
     "events": ["session.clarification_requested", "session.permission_requested", "session.failed"]
   },
+  "pr_merged": {
+    "workflow": "Development",
+    "from_steps": ["In Progress", "Review"],
+    "to_step": "Done"
+  },
   "lanes": [
     {
       "name": "mn3",

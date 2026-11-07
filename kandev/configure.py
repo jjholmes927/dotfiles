@@ -16,6 +16,7 @@ changes = []
 DEFAULTS = {
     "runtime_flags": {"features.needsYouInbox": True},
     "notifications": {"events": ["session.clarification_requested", "session.permission_requested", "session.failed"]},
+    "pr_merged": {"workflow": "Development", "from_steps": ["In Progress", "Review"], "to_step": "Done"},
 }
 
 
@@ -265,14 +266,44 @@ def lookup(api, ws, kind, team):
     return {item["name"]: item["id"] for item in data.get(kind, [])}
 
 
-def workflow_start_step(api, ws, name):
+def workflow_steps(api, ws, name):
     workflows = api.call("GET", f"/api/v1/workspaces/{ws['id']}/workflows").get("workflows", [])
     wf = next((w for w in workflows if w["name"] == name), None)
     if not wf:
+        return None, []
+    return wf, api.call("GET", f"/api/v1/workflows/{wf['id']}/workflow/steps").get("steps", [])
+
+
+def workflow_start_step(api, ws, name):
+    wf, steps = workflow_steps(api, ws, name)
+    if not wf:
         raise RuntimeError(f"workflow {name!r} not found in workspace")
-    steps = api.call("GET", f"/api/v1/workflows/{wf['id']}/workflow/steps").get("steps", [])
     start = next((s for s in steps if s.get("is_start_step")), None) or steps[0]
     return wf, start
+
+
+def ensure_pr_merged_moves(api, ws, block, explicit):
+    if not block:
+        return
+    by_name = {s["name"]: s for s in workflow_steps(api, ws, block["workflow"])[1]}
+    missing = [n for n in [*block["from_steps"], block["to_step"]] if n not in by_name]
+    if missing:
+        msg = f"pr_merged: {missing} not found in workflow {block['workflow']!r}"
+        if explicit:
+            raise RuntimeError(msg)
+        log(f"{msg}; skipping the default move-to-{block['to_step']}-on-merge")
+        return
+    move = [{"type": "move_to_step", "config": {"step_id": by_name[block["to_step"]]["id"]}}]
+    for name in block["from_steps"]:
+        step = by_name[name]
+        events = step.get("events") or {}
+        if events.get("on_pr_merged") == move:
+            continue
+        wanted = {**events, "on_pr_merged": move}
+        api.mutate("PUT", f"/api/v1/workflow/steps/{step['id']}", {"events": wanted})
+        if api.call("GET", f"/api/v1/workflow/steps/{step['id']}").get("step", {}).get("events") != wanted:
+            raise RuntimeError(f"step {name} events did not persist after the PUT")
+        changed(f"step {name}: move to {block['to_step']} when the PR merges")
 
 
 def executor_profile(api, executor_type):
@@ -364,6 +395,7 @@ def main():
     ensure_claude_env(api)
     pending = ensure_runtime_flags(api, settings(conf, "runtime_flags"))
     ensure_notification_events(api, settings(conf, "notifications").get("events", []))
+    ensure_pr_merged_moves(api, ws, settings(conf, "pr_merged"), "pr_merged" in conf)
     if conf.get("linear"):
         ensure_linear(api, ws, conf["linear"])
         ensure_watches(api, ws, conf, repos, profile)

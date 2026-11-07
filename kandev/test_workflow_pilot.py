@@ -74,6 +74,36 @@ class SettingsApi(configure.Api):
         return copy.deepcopy(provider)
 
 
+MERGED = {"workflow": "Development", "from_steps": ["In Progress", "Review"], "to_step": "Done"}
+
+
+class StepApi(configure.Api):
+    def __init__(self):
+        self.steps = [
+            {"id": "backlog", "name": "Backlog", "events": {"on_turn_start": [{"type": "move_to_next"}]}},
+            {"id": "progress", "name": "In Progress", "events": {"on_enter": [{"type": "auto_start_agent"}]}},
+            {"id": "review", "name": "Review", "events": {"on_turn_start": [{"type": "move_to_previous"}]}},
+            {"id": "done", "name": "Done", "events": {}},
+        ]
+        self.puts = []
+        self.persist = True
+
+    def call(self, method, path, body=None, interlock=False):
+        if method == "PUT":
+            self.puts.append((path, body))
+            if self.persist:
+                self.step(path)["events"] = copy.deepcopy(body["events"])
+            return {}
+        if path.endswith("/workflows"):
+            return {"workflows": [{"id": "dev", "name": "Development"}]}
+        if path.endswith("/workflow/steps"):
+            return {"steps": copy.deepcopy(self.steps)}
+        return {"step": copy.deepcopy(self.step(path))}
+
+    def step(self, path):
+        return next(s for s in self.steps if path.endswith("/" + s["id"]))
+
+
 def kandev_version(text):
     return patch.object(configure.subprocess, "run", return_value=subprocess.CompletedProcess(["kandev"], 0, stdout=text, stderr=""))
 
@@ -97,6 +127,7 @@ def run_main(api, conf, *patches):
         stack.enter_context(patch.object(configure, "ensure_repositories", return_value={}))
         stack.enter_context(patch.object(configure, "ensure_runtime_flags", return_value=[]))
         stack.enter_context(patch.object(configure, "ensure_notification_events"))
+        stack.enter_context(patch.object(configure, "ensure_pr_merged_moves"))
         for item in patches:
             stack.enter_context(item)
         stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
@@ -246,6 +277,41 @@ class PilotTests(unittest.TestCase):
         self.assertEqual([], api.patches)
         with kandev_version("v0.99.1\n"):
             self.assertEqual("0.99.1", configure.require_kandev())
+
+    def test_pr_merged_event_preserves_existing_events(self):
+        api = StepApi()
+        quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
+        self.assertEqual(["/api/v1/workflow/steps/progress", "/api/v1/workflow/steps/review"], [path for path, _ in api.puts])
+        self.assertEqual({"events": {"on_turn_start": [{"type": "move_to_previous"}], "on_pr_merged": [{"type": "move_to_step", "config": {"step_id": "done"}}]}}, api.puts[1][1])
+
+    def test_pr_merged_event_is_idempotent(self):
+        api = StepApi()
+        quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
+        quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
+        self.assertEqual(2, len(api.puts))
+
+    def test_unknown_step_name_stops_when_explicit(self):
+        with self.assertRaisesRegex(RuntimeError, "Shipped"):
+            quietly(configure.ensure_pr_merged_moves, StepApi(), {"id": "w"}, {**MERGED, "to_step": "Shipped"}, True)
+
+    def test_unknown_step_name_skips_for_defaults(self):
+        api = StepApi()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            configure.ensure_pr_merged_moves(api, {"id": "w"}, {**MERGED, "to_step": "Shipped"}, False)
+        self.assertEqual([], api.puts)
+        self.assertEqual(1, len(out.getvalue().splitlines()))
+
+    def test_opted_out_merge_routing_does_nothing(self):
+        api = StepApi()
+        quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, {}, True)
+        self.assertEqual([], api.puts)
+
+    def test_read_back_mismatch_stops(self):
+        api = StepApi()
+        api.persist = False
+        with self.assertRaisesRegex(RuntimeError, "did not persist"):
+            quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
 
     def test_only_evidence_gated_work_can_advance_automatically(self):
         data = pilot.document("codex-acp", "selected")
