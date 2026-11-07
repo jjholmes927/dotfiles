@@ -21,10 +21,7 @@ fi
 key=$(security find-generic-password -s honeycomb-agent-traces -w 2>/dev/null)
 [ -z "$key" ] && exit 0
 
-host_alias=$(hostname -s)
-case "$host_alias" in
-  Joel-Holmes-Product-Engineering) host_alias="joel-work-mbp" ;;
-esac
+host_alias=$("$HOME/.local/bin/agent-host-name" 2>/dev/null || hostname -s)
 
 session=$(echo "$input" | jq -r '.session_id // "unknown"')
 cwd=$(echo "$input" | jq -r '.cwd // "unknown"')

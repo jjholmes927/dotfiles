@@ -98,7 +98,7 @@ key=$(security find-generic-password -s honeycomb-agent-traces -w 2>/dev/null)
 
 session=$(echo "$input" | jq -r '.session_id // "unknown"')
 cwd=$(echo "$input" | jq -r '.cwd // "unknown"')
-payload=$(jq -n --arg e "$event" --arg sid "$session" --arg c "$cwd" --arg h "$(hostname -s)" \
+payload=$(jq -n --arg e "$event" --arg sid "$session" --arg c "$cwd" --arg h "$(agent-host-name 2>/dev/null || hostname -s)" \
   '{event: $e, session_id: $sid, cwd: $c, "host.name": $h} + '"$extra")
 curl -s -m 5 -X POST "https://api.eu1.honeycomb.io/1/events/workflow-ledger" \
   -H "X-Honeycomb-Team: ${key}" \
@@ -152,4 +152,5 @@ SUM(SUM(COALESCE($input_tokens, 0), IF(EXISTS($input_token_count), INT($input_to
 - **Board panel IDs rotate on every board edit** — re-fetch before scripted updates.
 - The board's **time picker defaults to 1 hour** — half your panels will look empty until you widen it.
 - Google SSO **blocks automated browsers** — if an agent needs to see your board, screenshots or the query APIs are the path, not agent-browser login.
+- **One machine name for every sender.** Claude Code strips `OTEL_*` variables from hooks and the commands it runs, so a script can't read the name from `OTEL_RESOURCE_ATTRIBUTES`. Dotfiles keeps the mapping in `bin/agent-host-name`, which the profile, the workflow-ledger hook and /e2e quality signals all call. Codex picks its own name, so split work from personal with an environment-wide derived column: `IF(OR(STARTS_WITH($host.name, "Joel-Holmes"), EQUALS($host.name, "joel-work-mbp")), "work", "personal")`.
 - Second machine = 4 things: settings env block, profile snippet + Keychain add, hook script + hook entry, codex `[otel]` block.
