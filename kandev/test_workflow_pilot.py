@@ -74,6 +74,26 @@ class SettingsApi(configure.Api):
         return copy.deepcopy(provider)
 
 
+class PluginApi(configure.Api):
+    def __init__(self, installed=()):
+        self.installed = [{"id": i, "version": "1.0.0"} for i in installed]
+        self.catalog = [{"id": i, "version": "2.0.0", "package_url": f"https://example.invalid/{i}.tar.gz"}
+                        for i in ("kandev-plugin-tags", "kandev-plugin-notes")]
+        self.posts = []
+        self.persist = True
+
+    def call(self, method, path, body=None, interlock=False):
+        if path == "/api/plugins/marketplace":
+            return {"plugins": copy.deepcopy(self.catalog)}
+        if method == "GET":
+            return copy.deepcopy(self.installed)
+        self.posts.append((path, body))
+        if self.persist:
+            self.installed.append({"id": body["url"].rsplit("/", 1)[1].removesuffix(".tar.gz"), "version": "2.0.0"})
+        return {}
+
+
+BRAINSTORM = {"id": "kandev-plugin-brainstorm", "repo": "owner/kandev-plugin-brainstorm", "commit": "67e65df"}
 MERGED = {"workflow": "Development", "from_steps": ["In Progress", "Review"], "to_step": "Done"}
 
 
@@ -124,6 +144,8 @@ def run_main(api, conf, *patches):
         stack.enter_context(patch.object(configure, "ensure_runtime_flags", return_value=[]))
         stack.enter_context(patch.object(configure, "ensure_notification_events"))
         stack.enter_context(patch.object(configure, "ensure_pr_merged_moves"))
+        stack.enter_context(patch.object(configure, "ensure_catalog_plugins"))
+        stack.enter_context(patch.object(configure, "ensure_source_plugins"))
         for item in patches:
             stack.enter_context(item)
         stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
@@ -278,6 +300,36 @@ class PilotTests(unittest.TestCase):
         with patch.object(configure.subprocess, "run", side_effect=FileNotFoundError("kandev")):
             with self.assertRaisesRegex(RuntimeError, "brew install kdlbs/kandev/kandev"):
                 configure.require_kandev()
+
+    def test_missing_catalog_plugins_install_once(self):
+        api = PluginApi(["kandev-plugin-tags"])
+        quietly(configure.ensure_catalog_plugins, api, ["kandev-plugin-tags", "kandev-plugin-notes"])
+        quietly(configure.ensure_catalog_plugins, api, ["kandev-plugin-tags", "kandev-plugin-notes"])
+        self.assertEqual([("/api/plugins/install", {"url": "https://example.invalid/kandev-plugin-notes.tar.gz"})], api.posts)
+
+    def test_plugin_missing_from_the_catalog_stops(self):
+        with self.assertRaisesRegex(RuntimeError, "kandev-plugin-mindmap"):
+            quietly(configure.ensure_catalog_plugins, PluginApi(), ["kandev-plugin-mindmap"])
+
+    def test_catalog_install_that_does_not_appear_stops(self):
+        api = PluginApi()
+        api.persist = False
+        with self.assertRaisesRegex(RuntimeError, "did not install"):
+            quietly(configure.ensure_catalog_plugins, api, ["kandev-plugin-notes"])
+
+    def test_source_plugin_builds_at_its_pinned_commit_only_when_missing(self):
+        with patch.object(configure.shutil, "which", return_value="/bin/tool"), patch.object(configure.subprocess, "run") as run:
+            quietly(configure.ensure_source_plugins, PluginApi(), [BRAINSTORM])
+            quietly(configure.ensure_source_plugins, PluginApi([BRAINSTORM["id"]]), [BRAINSTORM])
+        script = str(Path(configure.__file__).resolve().parent / "plugins/install-source-plugin.sh")
+        run.assert_called_once_with([script, BRAINSTORM["repo"], BRAINSTORM["commit"]], check=True)
+
+    def test_source_plugin_is_skipped_without_go_or_npm(self):
+        out = io.StringIO()
+        with patch.object(configure.shutil, "which", return_value=None), patch.object(configure.subprocess, "run") as run, contextlib.redirect_stdout(out):
+            configure.ensure_source_plugins(PluginApi(), [BRAINSTORM])
+        run.assert_not_called()
+        self.assertIn("go and npm", out.getvalue())
 
     def test_pr_merged_event_preserves_existing_events(self):
         api = StepApi()
