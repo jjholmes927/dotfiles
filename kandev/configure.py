@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+from pathlib import Path
 import re
 import shutil
 import socket
@@ -17,7 +18,13 @@ DEFAULTS = {
     "runtime_flags": {"features.needsYouInbox": True},
     "notifications": {"events": ["session.clarification_requested", "session.permission_requested", "session.failed"]},
     "pr_merged": {"workflow": "Development", "from_steps": ["In Progress", "Review"], "to_step": "Done"},
+    "plugins": {
+        "catalog": ["kandev-plugin-tags", "kandev-plugin-notes", "kandev-plugin-kandy"],
+        "source": [{"id": "kandev-plugin-brainstorm", "repo": "Prithpal-Sooriya/kandev-plugin-brainstorm",
+                    "commit": "67e65dfaecc83e3040f8357780852e3d5600cc69"}],
+    },
 }
+SOURCE_PLUGIN_SCRIPT = Path(__file__).resolve().parent / "plugins/install-source-plugin.sh"
 
 
 def log(msg):
@@ -316,6 +323,37 @@ def ensure_pr_merged_moves(api, ws, block, explicit):
         changed(f"step {name}: move to {block['to_step']} when the PR merges")
 
 
+def installed_plugins(api):
+    data = api.call("GET", "/api/plugins")
+    return {p["id"] for p in (data if isinstance(data, list) else data.get("plugins", []))}
+
+
+def ensure_catalog_plugins(api, ids):
+    missing = [i for i in ids if i not in installed_plugins(api)]
+    if not missing:
+        return
+    catalog = {p["id"]: p for p in api.call("GET", "/api/plugins/marketplace").get("plugins", [])}
+    unknown = [i for i in missing if i not in catalog]
+    if unknown:
+        raise RuntimeError(f"plugins not in the Kandev catalog: {unknown}")
+    for plugin_id in missing:
+        api.call("POST", "/api/plugins/install", {"url": catalog[plugin_id]["package_url"]})
+        changed(f"plugin {plugin_id} {catalog[plugin_id]['version']} installed from the catalog")
+    absent = [i for i in missing if i not in installed_plugins(api)]
+    if absent:
+        raise RuntimeError(f"plugins did not install: {absent}")
+
+
+def ensure_source_plugins(api, plugins):
+    missing = [p for p in plugins if p["id"] not in installed_plugins(api)]
+    if missing and not (shutil.which("go") and shutil.which("npm")):
+        log(f"go and npm are required to build {[p['id'] for p in missing]}; skipping (brew install go node)")
+        return
+    for plugin in missing:
+        subprocess.run([str(SOURCE_PLUGIN_SCRIPT), plugin["repo"], plugin["commit"]], check=True)
+        changed(f"plugin {plugin['id']} built from {plugin['repo']}@{plugin['commit'][:7]}")
+
+
 def executor_profile(api, executor_type):
     profiles = api.call("GET", "/api/v1/executor-profiles").get("profiles", [])
     prof = next((p for p in profiles if p.get("executor_type") == executor_type), None)
@@ -406,6 +444,8 @@ def main():
     pending = ensure_runtime_flags(api, settings(conf, "runtime_flags"))
     ensure_notification_events(api, settings(conf, "notifications").get("events", []))
     ensure_pr_merged_moves(api, ws, settings(conf, "pr_merged"), "pr_merged" in conf)
+    ensure_catalog_plugins(api, settings(conf, "plugins").get("catalog", []))
+    ensure_source_plugins(api, settings(conf, "plugins").get("source", []))
     if conf.get("linear"):
         ensure_linear(api, ws, conf["linear"])
         ensure_watches(api, ws, conf, repos, profile)
