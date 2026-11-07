@@ -24,7 +24,10 @@ def sync(home, refresh_only=False, daily=False):
     plugins = config / "plugins"
     plugins.mkdir(parents=True, exist_ok=True)
     with (plugins / ".workflow-sync.lock").open("a") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return 0
         marker = plugins / ".workflow-sync-date"
         today = datetime.date.today().isoformat()
         enabled = read(config / "settings.json").get("enabledPlugins", {})
