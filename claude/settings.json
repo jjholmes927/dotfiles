@@ -137,6 +137,7 @@
     "type": "command",
     "command": "~/.claude/scripts/statusline.sh"
   },
+  "otelHeadersHelper": "~/.claude/hooks/otel-headers.sh",
   "enabledPlugins": {
     "superpowers@superpowers-marketplace": true,
     "joel-workflow@jjholmes927-claude-skills": true,

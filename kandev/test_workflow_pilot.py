@@ -25,6 +25,18 @@ class ReadOnlyApi:
         ]}
 
 
+class ClaudeProfileApi:
+    def __init__(self, env_vars):
+        self.profile = {"id": "claude", "name": "Claude", "auto_approve": True, "env_vars": env_vars}
+        self.patches = []
+
+    def call(self, method, path, body=None, interlock=False):
+        if method == "PATCH":
+            self.patches.append((path, body))
+            return {}
+        return {"agents": [{"name": "claude-acp", "profiles": [self.profile]}]}
+
+
 class PilotTests(unittest.TestCase):
     def test_prepare_uses_portable_display_name_and_permission_mode(self):
         selected = {"id": "codex", "agent_display_name": "Codex", "model": "selected", "mode": "agent-full-access"}
@@ -45,6 +57,17 @@ class PilotTests(unittest.TestCase):
         for selection in [{}, {"name": "Default"}, {"agent": "missing"}]:
             with self.assertRaises(RuntimeError):
                 configure.select_agent_profile(api, selection)
+
+    def test_claude_profile_gets_the_machine_name_for_telemetry(self):
+        api = ClaudeProfileApi([{"key": "KEEP", "value": "1"}])
+        with patch.object(configure, "agent_host_name", return_value="test-host"), patch.object(configure.shutil, "which", return_value="/bin/claude"), contextlib.redirect_stdout(io.StringIO()):
+            configure.ensure_claude_profile(api, {})
+            api.profile["env_vars"] = api.patches[0][1]["env_vars"]
+            configure.ensure_claude_profile(api, {})
+        env = {e["key"]: e["value"] for e in api.profile["env_vars"]}
+        self.assertEqual("host.name=test-host", env["OTEL_RESOURCE_ATTRIBUTES"])
+        self.assertEqual("1", env["KEEP"])
+        self.assertEqual(1, len(api.patches))
 
     def test_only_evidence_gated_work_can_advance_automatically(self):
         data = pilot.document("codex-acp", "selected")
