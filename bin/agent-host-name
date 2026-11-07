@@ -1,0 +1,5 @@
+#!/bin/sh
+case "$(hostname -s)" in
+  Joel-Holmes-Product-Engineering) echo joel-work-mbp ;;
+  *) echo joel-personal-mbp ;;
+esac

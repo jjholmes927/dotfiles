@@ -89,7 +89,7 @@ chmod +x "$SCRIPT_DIR/sync-mcps.sh"
 
 header "Fleet tools (~/.local/bin)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-for tool in fleet fleet-status deck pair new-agent clone-status lane-sweep gmp-all closure-sweep fleet-toggle; do
+for tool in fleet fleet-status deck pair new-agent clone-status lane-sweep gmp-all closure-sweep fleet-toggle agent-host-name; do
   chmod +x "$REPO_DIR/bin/$tool"
   link "$REPO_DIR/bin/$tool" "$HOME/.local/bin/$tool"
 done
