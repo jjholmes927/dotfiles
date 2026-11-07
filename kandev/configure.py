@@ -74,7 +74,10 @@ def settings(conf, key):
 
 
 def require_kandev(minimum=(0, 98, 0)):
-    out = subprocess.run(["kandev", "--version"], capture_output=True, text=True).stdout
+    try:
+        out = subprocess.run(["kandev", "--version"], capture_output=True, text=True).stdout
+    except FileNotFoundError:
+        raise RuntimeError("kandev is not on PATH; install it with `brew install kdlbs/kandev/kandev` or run kandev/install.sh")
     match = re.search(r"(\d+)\.(\d+)\.(\d+)", out)
     if not match:
         raise RuntimeError(f"could not read the Kandev version from `kandev --version`: {out.strip()!r}")

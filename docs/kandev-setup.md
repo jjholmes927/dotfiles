@@ -45,7 +45,7 @@ Do every step while no Kandev task is running.
 | Setting | One-time step | Why it stays manual |
 |---|---|---|
 | Sidebar colours and sort | automatic colour rules: waiting for input → purple, failed → red; sort waiting and failed tasks first | the rule schema is a web-app type tied to step ids and a settings revision |
-| Phone notifications | undecided: Apprise to ntfy (`brew install apprise` on each laptop), the Telegram plugin (two-way answers), or desktop only | configure covers the Desktop and System providers only |
+| Phone notifications | desktop only for now (decided 7 Nov 2026); later options: Apprise to ntfy (`brew install apprise` on each laptop) or the Telegram plugin (two-way answers) | configure covers the Desktop and System providers only |
 | Kandev updates | never apply one while tasks run, until upstream #5109 ships | an update restarts the backend, and pending plan-gate questions live in memory |
 | `bigquery` MCP (work laptop) | in `~/engineering/mn1`, `claude mcp get bigquery`, then re-add it with `claude mcp add --scope user bigquery …` using the same command and env | it is scoped to the `mn1` path, so Kandev worktrees under `~/.kandev/tasks` do not load it |
 

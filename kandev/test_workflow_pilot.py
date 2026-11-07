@@ -278,6 +278,11 @@ class PilotTests(unittest.TestCase):
         with kandev_version("v0.99.1\n"):
             self.assertEqual("0.99.1", configure.require_kandev())
 
+    def test_missing_kandev_binary_is_a_clean_error(self):
+        with patch.object(configure.subprocess, "run", side_effect=FileNotFoundError("kandev")):
+            with self.assertRaisesRegex(RuntimeError, "brew install kdlbs/kandev/kandev"):
+                configure.require_kandev()
+
     def test_pr_merged_event_preserves_existing_events(self):
         api = StepApi()
         quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
