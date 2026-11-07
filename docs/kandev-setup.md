@@ -25,6 +25,30 @@ What `configure.py` ensures, all by lookup-then-create/patch: lane repositories 
 
 Settings blocks missing from an existing config get the defaults in `configure.py` (`DEFAULTS`); a block in the config wins, and `{"enabled": false}` opts out. `configure.py` refuses Kandev older than 0.98.0 before changing anything. A flag change needs a Kandev restart that `configure.py` never performs: it prints `restart Kandev when no task is running: KANDEV_RESTART=1 kandev/install.sh` until the restart happens. Env-locked flags (`KANDEV_FEATURES_*` in the service env) are left alone.
 
+## Rolling out to another machine
+
+Do every step while no Kandev task is running.
+
+1. **Version**: `kandev --version` below 0.98.0 → `brew upgrade kandev` first; `configure.py` refuses older versions before changing anything.
+2. **Apply**: `git pull && kandev/install.sh`, then read the `CHANGED …` lines.
+3. **Restart** only when configure printed `restart Kandev when no task is running`: `KANDEV_RESTART=1 kandev/install.sh`.
+4. **Check**:
+   - `curl -s 127.0.0.1:38429/api/v1/runtime-flags` shows `features.needsYouInbox` with `effective_value: true` and `requires_restart_to_apply: false`
+   - the Inbox appears in the sidebar
+   - a new Claude task starts and lists `Artifact` among its tools
+   - `GET /api/v1/workflow/steps/<Review step id>` shows `on_pr_merged` moving to Done
+   - a second `python3 kandev/configure.py` prints `no changes`
+5. **Manual settings**: the one-time steps below.
+
+## Not owned by configure.py
+
+| Setting | One-time step | Why it stays manual |
+|---|---|---|
+| Sidebar colours and sort | automatic colour rules: waiting for input → purple, failed → red; sort waiting and failed tasks first | the rule schema is a web-app type tied to step ids and a settings revision |
+| Phone notifications | undecided: Apprise to ntfy (`brew install apprise` on each laptop), the Telegram plugin (two-way answers), or desktop only | configure covers the Desktop and System providers only |
+| Kandev updates | never apply one while tasks run, until upstream #5109 ships | an update restarts the backend, and pending plan-gate questions live in memory |
+| `bigquery` MCP (work laptop) | in `~/engineering/mn1`, `claude mcp get bigquery`, then re-add it with `claude mcp add --scope user bigquery …` using the same command and env | it is scoped to the `mn1` path, so Kandev worktrees under `~/.kandev/tasks` do not load it |
+
 ## Operating model
 
 - **READY = Linear state Todo + assigned to me + one work-type label.** `agent:implement` → `/e2e <ticket>`; `agent:investigate` → `/investigate <ticket>` (joel-workflow ≥ 2.16.0: claims In Progress, evidence-tagged findings comment, In Review). The label opts an unclaimed issue into dispatch. Removing it does not prove an already-started task stopped; inspect/cancel that task explicitly when authorized. Per-watch deduplication does not replace checking for ownership by another watch or manual task.
