@@ -13,6 +13,11 @@ import urllib.request
 
 changes = []
 
+DEFAULTS = {
+    "runtime_flags": {"features.needsYouInbox": True},
+    "notifications": {"events": ["session.clarification_requested", "session.permission_requested", "session.failed"]},
+}
+
 
 def log(msg):
     print(f"kandev/configure: {msg}")
@@ -60,6 +65,22 @@ class Api:
             raise RuntimeError("could not read the settings interlock token from the boot payload")
         self.token = match.group(1)
         return self.token
+
+
+def settings(conf, key):
+    block = conf.get(key, DEFAULTS[key])
+    return {} if block.get("enabled") is False else block
+
+
+def require_kandev(minimum=(0, 98, 0)):
+    out = subprocess.run(["kandev", "--version"], capture_output=True, text=True).stdout
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", out)
+    if not match:
+        raise RuntimeError(f"could not read the Kandev version from `kandev --version`: {out.strip()!r}")
+    if tuple(int(n) for n in match.groups()) < minimum:
+        raise RuntimeError(f"Kandev {match.group(0)} is older than {'.'.join(map(str, minimum))}; "
+                           "run `brew upgrade kandev` while no task is running, then re-run")
+    return match.group(0)
 
 
 def expand(path):
@@ -176,6 +197,39 @@ def ensure_claude_profile(api, conf):
         api.call("PATCH", f"/api/v1/agent-profiles/{profile['id']}", patch, interlock=True)
         changed(f"claude profile {profile.get('name')}: {sorted(patch)}")
     return profile
+
+
+def ensure_runtime_flags(api, flags):
+    states = {f["key"]: f for f in api.call("GET", "/api/v1/runtime-flags").get("flags", [])}
+    pending = []
+    for key, value in flags.items():
+        state = states.get(key)
+        if state is None:
+            raise RuntimeError(f"runtime flag {key!r} not found in this Kandev")
+        if state.get("effective_value") != value:
+            if state.get("env_locked"):
+                log(f"runtime flag {key} is set by {state.get('env_var')}; leaving it")
+                continue
+            after = {f["key"]: f for f in api.mutate("PATCH", f"/api/v1/runtime-flags/{key}", {"override": value}).get("flags", [])}
+            state = after.get(key, {})
+            if state.get("effective_value") != value:
+                raise RuntimeError(f"runtime flag {key} did not persist as {value}")
+            changed(f"runtime flag {key} set to {value}")
+        if state.get("requires_restart_to_apply"):
+            pending.append(key)
+    return pending
+
+
+def ensure_notification_events(api, events):
+    for provider in api.call("GET", "/api/v1/notification-providers").get("providers", []):
+        current = provider.get("events") or []
+        if not provider.get("enabled") or set(events) <= set(current):
+            continue
+        wanted = sorted(set(current) | set(events))
+        after = api.mutate("PATCH", f"/api/v1/notification-providers/{provider['id']}", {"events": wanted})
+        if sorted(after.get("events") or []) != wanted:
+            raise RuntimeError(f"notification provider {provider.get('name')} events did not persist")
+        changed(f"notification provider {provider.get('name')}: events {sorted(set(events) - set(current))}")
 
 
 def select_agent_profile(api, selection):
@@ -295,6 +349,7 @@ def main():
     args = parser.parse_args()
     with open(args.conf) as fh:
         conf = json.load(fh)
+    log(f"kandev {require_kandev()}")
     api = Api(args.base)
     for _ in range(30):
         try:
@@ -307,6 +362,8 @@ def main():
     repos = ensure_repositories(api, ws, conf.get("lanes", []))
     profile = select_agent_profile(api, conf["agent_profile"]) if "agent_profile" in conf else ensure_claude_profile(api, conf)
     ensure_claude_env(api)
+    pending = ensure_runtime_flags(api, settings(conf, "runtime_flags"))
+    ensure_notification_events(api, settings(conf, "notifications").get("events", []))
     if conf.get("linear"):
         ensure_linear(api, ws, conf["linear"])
         ensure_watches(api, ws, conf, repos, profile)
@@ -314,6 +371,8 @@ def main():
         log(f"{len(changes)} change(s) applied")
     else:
         log("no changes; configuration already matches")
+    if pending:
+        log(f"{', '.join(pending)} not live yet; restart Kandev when no task is running: KANDEV_RESTART=1 kandev/install.sh")
 
 
 if __name__ == "__main__":

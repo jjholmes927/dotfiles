@@ -7,6 +7,12 @@
     "auto_approve": true,
     "model": "fable[1m]"
   },
+  "runtime_flags": {
+    "features.needsYouInbox": true
+  },
+  "notifications": {
+    "events": ["session.clarification_requested", "session.permission_requested", "session.failed"]
+  },
   "lanes": [
     {
       "name": "mn3",

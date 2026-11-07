@@ -4,6 +4,7 @@ import copy
 import io
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -44,6 +45,44 @@ class ClaudeProfileApi:
         return {"agents": copy.deepcopy(self.agents)}
 
 
+INBOX = "features.needsYouInbox"
+
+
+def flag(effective=False, override=None, pending=False, locked=False):
+    return {"key": INBOX, "effective_value": effective, "override_value": override,
+            "requires_restart_to_apply": pending, "env_locked": locked, "env_var": "KANDEV_FEATURES_NEEDS_YOU_INBOX"}
+
+
+class SettingsApi(configure.Api):
+    def __init__(self, flags=(), providers=()):
+        self.flags = copy.deepcopy(list(flags))
+        self.providers = copy.deepcopy(list(providers))
+        self.writes = []
+        self.persist = True
+
+    def call(self, method, path, body=None, interlock=False):
+        if method == "GET":
+            return {"flags": copy.deepcopy(self.flags), "providers": copy.deepcopy(self.providers)}
+        self.writes.append((method, path, body))
+        if path.startswith("/api/v1/runtime-flags/"):
+            if self.persist:
+                next(f for f in self.flags if path.endswith(f["key"])).update(override_value=body["override"], effective_value=body["override"], requires_restart_to_apply=True)
+            return {"flags": copy.deepcopy(self.flags)}
+        provider = next(p for p in self.providers if path.endswith("/" + p["id"]))
+        if self.persist:
+            provider.update(copy.deepcopy(body))
+        return copy.deepcopy(provider)
+
+
+def kandev_version(text):
+    return patch.object(configure.subprocess, "run", return_value=subprocess.CompletedProcess(["kandev"], 0, stdout=text, stderr=""))
+
+
+def quietly(fn, *args):
+    with contextlib.redirect_stdout(io.StringIO()):
+        return fn(*args)
+
+
 def env_of(profile):
     return {e["key"]: e["value"] for e in profile["env_vars"]}
 
@@ -56,6 +95,8 @@ def run_main(api, conf, *patches):
         stack.enter_context(patch.object(configure, "Api", return_value=api))
         stack.enter_context(patch.object(configure, "ensure_workspace", return_value={"id": "w", "name": "W"}))
         stack.enter_context(patch.object(configure, "ensure_repositories", return_value={}))
+        stack.enter_context(patch.object(configure, "ensure_runtime_flags", return_value=[]))
+        stack.enter_context(patch.object(configure, "ensure_notification_events"))
         for item in patches:
             stack.enter_context(item)
         stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
@@ -124,6 +165,7 @@ class PilotTests(unittest.TestCase):
     def test_main_applies_claude_env_with_a_codex_selection(self):
         api = ClaudeProfileApi([], [{"key": "KEEP", "value": "1"}])
         run_main(api, {"workspace": "W", "agent_profile": {"agent": "codex-acp"}},
+                 patch.object(configure, "require_kandev", return_value="0.99.1"),
                  patch.object(configure, "claude_executable", return_value="/h/.local/bin/claude"),
                  patch.object(configure, "agent_host_name", return_value="h"))
         self.assertEqual(["/api/v1/agent-profiles/claude0", "/api/v1/agent-profiles/claude1"], [path for path, _ in api.patches])
@@ -147,6 +189,63 @@ class PilotTests(unittest.TestCase):
         api = InterlockApi()
         self.assertEqual({"ok": True}, api.mutate("PATCH", "/x", {}))
         self.assertEqual([False, True], api.attempts)
+
+    def test_flag_already_set_is_not_patched(self):
+        api = SettingsApi([flag(effective=True, override=True)])
+        self.assertEqual([], quietly(configure.ensure_runtime_flags, api, {INBOX: True}))
+        self.assertEqual([], api.writes)
+
+    def test_flag_override_is_patched_and_restart_reported(self):
+        api = SettingsApi([flag()])
+        self.assertEqual([INBOX], quietly(configure.ensure_runtime_flags, api, {INBOX: True}))
+        self.assertEqual([("PATCH", "/api/v1/runtime-flags/features.needsYouInbox", {"override": True})], api.writes)
+
+    def test_pending_restart_is_reported_without_a_patch(self):
+        api = SettingsApi([flag(effective=True, override=True, pending=True)])
+        self.assertEqual([INBOX], quietly(configure.ensure_runtime_flags, api, {INBOX: True}))
+        self.assertEqual([], api.writes)
+
+    def test_env_locked_flag_is_left_alone(self):
+        api = SettingsApi([flag(locked=True)])
+        self.assertEqual([], quietly(configure.ensure_runtime_flags, api, {INBOX: True}))
+        self.assertEqual([], api.writes)
+
+    def test_unknown_flag_stops(self):
+        with self.assertRaisesRegex(RuntimeError, "features.missing"):
+            quietly(configure.ensure_runtime_flags, SettingsApi([flag()]), {"features.missing": True})
+
+    def test_notification_events_are_added_not_replaced(self):
+        api = SettingsApi(providers=[
+            {"id": "desktop", "name": "Desktop", "enabled": True, "events": ["session.clarification_requested", "office.inbox_item"]},
+            {"id": "complete", "name": "Complete", "enabled": True, "events": ["session.failed", "session.permission_requested", "system.update_available"]},
+            {"id": "off", "name": "Off", "enabled": False, "events": []},
+        ])
+        quietly(configure.ensure_notification_events, api, ["session.permission_requested", "session.failed"])
+        self.assertEqual([("PATCH", "/api/v1/notification-providers/desktop", {"events": ["office.inbox_item", "session.clarification_requested", "session.failed", "session.permission_requested"]})], api.writes)
+
+    def test_settings_read_back_mismatch_stops(self):
+        api = SettingsApi([flag()], [{"id": "desktop", "name": "Desktop", "enabled": True, "events": []}])
+        api.persist = False
+        with self.assertRaisesRegex(RuntimeError, "did not persist"):
+            quietly(configure.ensure_runtime_flags, api, {INBOX: True})
+        with self.assertRaisesRegex(RuntimeError, "did not persist"):
+            quietly(configure.ensure_notification_events, api, ["session.failed"])
+
+    def test_existing_config_without_blocks_gets_defaults(self):
+        self.assertEqual({"features.needsYouInbox": True}, configure.settings({"workspace": "W"}, "runtime_flags"))
+        self.assertEqual(["session.clarification_requested", "session.permission_requested", "session.failed"], configure.settings({"workspace": "W"}, "notifications")["events"])
+        self.assertEqual({"features.other": False}, configure.settings({"runtime_flags": {"features.other": False}}, "runtime_flags"))
+        self.assertEqual({}, configure.settings({"notifications": {"enabled": False}}, "notifications"))
+
+    def test_old_kandev_is_refused_before_any_change(self):
+        api = ClaudeProfileApi([])
+        with self.assertRaisesRegex(RuntimeError, "brew upgrade kandev"):
+            run_main(api, {"workspace": "W", "agent_profile": {"agent": "codex-acp"}}, kandev_version("v0.97.2\n"),
+                     patch.object(configure, "claude_executable", return_value="/bin/claude"),
+                     patch.object(configure, "agent_host_name", return_value="h"))
+        self.assertEqual([], api.patches)
+        with kandev_version("v0.99.1\n"):
+            self.assertEqual("0.99.1", configure.require_kandev())
 
     def test_only_evidence_gated_work_can_advance_automatically(self):
         data = pilot.document("codex-acp", "selected")
