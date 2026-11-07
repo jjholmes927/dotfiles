@@ -121,12 +121,13 @@ class SyncTests(unittest.TestCase):
         self.assertIn("Workflow drift remains", result.stderr)
         self.assertFalse((self.plugins / ".workflow-sync-date").exists())
 
-    def test_concurrent_sync_cannot_write_adapters(self):
+    def test_sync_already_running_elsewhere_exits_quietly_without_writing(self):
         with (self.plugins / ".workflow-sync.lock").open("a") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             result = self.run_sync()
-        self.assertEqual(1, result.returncode)
+        self.assertEqual((0, "", ""), (result.returncode, result.stdout, result.stderr))
         self.assertFalse((self.home / ".codex/workflow-migration.json").exists())
+        self.assertFalse((self.home / ".claude/calls").exists())
 
     def test_plugin_updates_reports_plugins_behind_a_manual_marketplace(self):
         installed = self.home / "superpowers"
