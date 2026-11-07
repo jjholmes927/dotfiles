@@ -13,6 +13,12 @@ import urllib.request
 
 changes = []
 
+DEFAULTS = {
+    "runtime_flags": {"features.needsYouInbox": True},
+    "notifications": {"events": ["session.clarification_requested", "session.permission_requested", "session.failed"]},
+    "pr_merged": {"workflow": "Development", "from_steps": ["In Progress", "Review"], "to_step": "Done"},
+}
+
 
 def log(msg):
     print(f"kandev/configure: {msg}")
@@ -42,6 +48,14 @@ class Api:
             raise RuntimeError(f"{method} {path} -> {err.code}: {raw[:300]}")
         return json.loads(raw) if raw.strip() else {}
 
+    def mutate(self, method, path, body):
+        try:
+            return self.call(method, path, body)
+        except RuntimeError as err:
+            if "interlock" not in str(err):
+                raise
+            return self.call(method, path, body, interlock=True)
+
     def interlock_token(self):
         if self.token:
             return self.token
@@ -52,6 +66,24 @@ class Api:
             raise RuntimeError("could not read the settings interlock token from the boot payload")
         self.token = match.group(1)
         return self.token
+
+
+def settings(conf, key):
+    return conf.get(key, DEFAULTS[key])
+
+
+def require_kandev(minimum=(0, 98, 0)):
+    try:
+        out = subprocess.run(["kandev", "--version"], capture_output=True, text=True).stdout
+    except FileNotFoundError:
+        raise RuntimeError("kandev is not on PATH; install it with `brew install kdlbs/kandev/kandev` or run kandev/install.sh")
+    match = re.search(r"(\d+)\.(\d+)\.(\d+)", out)
+    if not match:
+        raise RuntimeError(f"could not read the Kandev version from `kandev --version`: {out.strip()!r}")
+    if tuple(int(n) for n in match.groups()) < minimum:
+        raise RuntimeError(f"Kandev {match.group(0)} is older than {'.'.join(map(str, minimum))}; "
+                           "run `brew upgrade kandev` while no task is running, then re-run")
+    return match.group(0)
 
 
 def expand(path):
@@ -108,9 +140,56 @@ def agent_host_name():
     return socket.gethostname().split(".")[0]
 
 
-def ensure_claude_profile(api, conf):
+def claude_executable():
+    native = os.path.expanduser("~/.local/bin/claude")
+    path = native if os.access(native, os.X_OK) else shutil.which("claude")
+    if not path or "/.nvm/" in path:
+        raise RuntimeError(f"claude resolves to {path}; install the native build: curl -fsSL https://claude.ai/install.sh | bash")
+    return path
+
+
+def env_of(profile):
+    return {e["key"]: e.get("value", "") for e in (profile.get("env_vars") or [])}
+
+
+def env_list(env):
+    return [{"key": k, "value": v} for k, v in env.items()]
+
+
+def claude_agent(api):
     agents = api.call("GET", "/api/v1/agents").get("agents", [])
-    claude = next((a for a in agents if a["name"] == "claude-acp"), None)
+    return next((a for a in agents if a["name"] == "claude-acp"), None)
+
+
+def claude_profiles(api):
+    claude = claude_agent(api)
+    return claude.get("profiles", []) if claude else None
+
+
+def stale_env(profile, wanted):
+    current = env_of(profile)
+    return sorted(k for k, v in wanted.items() if current.get(k) != v)
+
+
+def ensure_claude_env(api):
+    profiles = claude_profiles(api)
+    if profiles is None:
+        log("no claude-acp agent; Claude profile env not applied")
+        return
+    wanted = {"CLAUDE_CODE_EXECUTABLE": claude_executable(), "CLAUDE_CODE_ARTIFACT": "1",
+              "OTEL_RESOURCE_ATTRIBUTES": f"host.name={agent_host_name()}"}
+    checked = [(p, stale_env(p, wanted)) for p in profiles]
+    stale = [(p, keys) for p, keys in checked if keys]
+    for profile, keys in stale:
+        merged = {**env_of(profile), **wanted}
+        api.call("PATCH", f"/api/v1/agent-profiles/{profile['id']}", {"env_vars": env_list(merged)}, interlock=True)
+        changed(f"claude profile {profile.get('name')}: env {keys}")
+    if stale and any(stale_env(p, wanted) for p in claude_profiles(api) or []):
+        raise RuntimeError("Claude profile env did not persist; check Settings > Agents")
+
+
+def ensure_claude_profile(api, conf):
+    claude = claude_agent(api)
     if not claude:
         raise RuntimeError("claude-acp agent not detected by Kandev; is `claude` on the service's PATH?")
     if claude.get("capability_status") not in (None, "ok"):
@@ -120,21 +199,48 @@ def ensure_claude_profile(api, conf):
         raise RuntimeError("claude-acp has no profile; open Settings > Agents once so Kandev seeds one")
     profile = profiles[0]
     want = conf.get("claude_profile", {})
-    exe = os.path.realpath(shutil.which("claude"))
-    env_wanted = {"CLAUDE_CODE_EXECUTABLE": exe, "OTEL_RESOURCE_ATTRIBUTES": f"host.name={agent_host_name()}"}
-    env_current = {e["key"]: e.get("value", "") for e in (profile.get("env_vars") or [])}
     patch = {}
     if want.get("auto_approve", True) != profile.get("auto_approve"):
         patch["auto_approve"] = want.get("auto_approve", True)
     if want.get("model") and want["model"] != profile.get("model"):
         patch["model"] = want["model"]
-    if any(env_current.get(k) != v for k, v in env_wanted.items()):
-        merged = {**env_current, **env_wanted}
-        patch["env_vars"] = [{"key": k, "value": v} for k, v in merged.items()]
     if patch:
         api.call("PATCH", f"/api/v1/agent-profiles/{profile['id']}", patch, interlock=True)
         changed(f"claude profile {profile.get('name')}: {sorted(patch)}")
     return profile
+
+
+def ensure_runtime_flags(api, flags):
+    states = {f["key"]: f for f in api.call("GET", "/api/v1/runtime-flags").get("flags", [])}
+    pending = []
+    for key, value in flags.items():
+        state = states.get(key)
+        if state is None:
+            raise RuntimeError(f"runtime flag {key!r} not found in this Kandev")
+        if state.get("effective_value") != value:
+            if state.get("env_locked"):
+                log(f"runtime flag {key} is set by {state.get('env_var')}; leaving it")
+                continue
+            after = {f["key"]: f for f in api.mutate("PATCH", f"/api/v1/runtime-flags/{key}", {"override": value}).get("flags", [])}
+            state = after.get(key, {})
+            if state.get("effective_value") != value:
+                raise RuntimeError(f"runtime flag {key} did not persist as {value}")
+            changed(f"runtime flag {key} set to {value}")
+        if state.get("requires_restart_to_apply"):
+            pending.append(key)
+    return pending
+
+
+def ensure_notification_events(api, events):
+    for provider in api.call("GET", "/api/v1/notification-providers").get("providers", []):
+        current = provider.get("events") or []
+        if not provider.get("enabled") or set(events) <= set(current):
+            continue
+        wanted = sorted(set(current) | set(events))
+        after = api.mutate("PATCH", f"/api/v1/notification-providers/{provider['id']}", {"events": wanted})
+        if sorted(after.get("events") or []) != wanted:
+            raise RuntimeError(f"notification provider {provider.get('name')} events did not persist")
+        changed(f"notification provider {provider.get('name')}: events {sorted(set(events) - set(current))}")
 
 
 def select_agent_profile(api, selection):
@@ -170,14 +276,44 @@ def lookup(api, ws, kind, team):
     return {item["name"]: item["id"] for item in data.get(kind, [])}
 
 
-def workflow_start_step(api, ws, name):
+def workflow_steps(api, ws, name):
     workflows = api.call("GET", f"/api/v1/workspaces/{ws['id']}/workflows").get("workflows", [])
     wf = next((w for w in workflows if w["name"] == name), None)
     if not wf:
+        return None, []
+    return wf, api.call("GET", f"/api/v1/workflows/{wf['id']}/workflow/steps").get("steps", [])
+
+
+def workflow_start_step(api, ws, name):
+    wf, steps = workflow_steps(api, ws, name)
+    if not wf:
         raise RuntimeError(f"workflow {name!r} not found in workspace")
-    steps = api.call("GET", f"/api/v1/workflows/{wf['id']}/workflow/steps").get("steps", [])
     start = next((s for s in steps if s.get("is_start_step")), None) or steps[0]
     return wf, start
+
+
+def ensure_pr_merged_moves(api, ws, block, explicit):
+    if not block:
+        return
+    by_name = {s["name"]: s for s in workflow_steps(api, ws, block["workflow"])[1]}
+    missing = [n for n in [*block["from_steps"], block["to_step"]] if n not in by_name]
+    if missing:
+        msg = f"pr_merged: {missing} not found in workflow {block['workflow']!r}"
+        if explicit:
+            raise RuntimeError(msg)
+        log(f"{msg}; skipping the default move-to-{block['to_step']}-on-merge")
+        return
+    move = [{"type": "move_to_step", "config": {"step_id": by_name[block["to_step"]]["id"]}}]
+    for name in block["from_steps"]:
+        step = by_name[name]
+        events = step.get("events") or {}
+        if events.get("on_pr_merged") == move:
+            continue
+        wanted = {**events, "on_pr_merged": move}
+        api.mutate("PUT", f"/api/v1/workflow/steps/{step['id']}", {"events": wanted})
+        if api.call("GET", f"/api/v1/workflow/steps/{step['id']}").get("step", {}).get("events") != wanted:
+            raise RuntimeError(f"step {name} events did not persist after the PUT")
+        changed(f"step {name}: move to {block['to_step']} when the PR merges")
 
 
 def executor_profile(api, executor_type):
@@ -189,18 +325,13 @@ def executor_profile(api, executor_type):
 
 
 def ensure_executor_path(api, prof):
-    current = {e["key"]: e.get("value", "") for e in (prof.get("env_vars") or [])}
+    current = env_of(prof)
     wanted = {k: v for k, v in current.items() if k != "CLAUDE_JOB_DIR"}
     wanted["PATH"] = os.environ.get("PATH", "")
     if wanted == current:
         return
-    body = {"env_vars": [{"key": k, "value": v} for k, v in wanted.items()]}
-    try:
-        api.call("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body)
-    except RuntimeError as err:
-        if "interlock" not in str(err):
-            raise
-        api.call("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body, interlock=True)
+    body = {"env_vars": env_list(wanted)}
+    api.mutate("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body)
     note = "; CLAUDE_JOB_DIR removed (worktree isolation is detected from git since joel-workflow 2.15.0)" if "CLAUDE_JOB_DIR" in current else ""
     changed(f"executor profile {prof.get('name')}: PATH set from the current shell{note}")
 
@@ -259,6 +390,7 @@ def main():
     args = parser.parse_args()
     with open(args.conf) as fh:
         conf = json.load(fh)
+    log(f"kandev {require_kandev()}")
     api = Api(args.base)
     for _ in range(30):
         try:
@@ -270,6 +402,10 @@ def main():
     log(f"workspace {ws['name']} ({ws['id'][:8]})")
     repos = ensure_repositories(api, ws, conf.get("lanes", []))
     profile = select_agent_profile(api, conf["agent_profile"]) if "agent_profile" in conf else ensure_claude_profile(api, conf)
+    ensure_claude_env(api)
+    pending = ensure_runtime_flags(api, settings(conf, "runtime_flags"))
+    ensure_notification_events(api, settings(conf, "notifications").get("events", []))
+    ensure_pr_merged_moves(api, ws, settings(conf, "pr_merged"), "pr_merged" in conf)
     if conf.get("linear"):
         ensure_linear(api, ws, conf["linear"])
         ensure_watches(api, ws, conf, repos, profile)
@@ -277,6 +413,8 @@ def main():
         log(f"{len(changes)} change(s) applied")
     else:
         log("no changes; configuration already matches")
+    if pending:
+        log(f"{', '.join(pending)} not live yet; restart Kandev when no task is running: KANDEV_RESTART=1 kandev/install.sh")
 
 
 if __name__ == "__main__":

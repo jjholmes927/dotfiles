@@ -1,8 +1,10 @@
 import importlib.util
 import contextlib
+import copy
 import io
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -26,15 +28,106 @@ class ReadOnlyApi:
 
 
 class ClaudeProfileApi:
-    def __init__(self, env_vars):
-        self.profile = {"id": "claude", "name": "Claude", "auto_approve": True, "env_vars": env_vars}
+    def __init__(self, *envs):
+        self.agents = [
+            {"name": "claude-acp", "profiles": [{"id": f"claude{i}", "name": "Claude", "auto_approve": True, "env_vars": env} for i, env in enumerate(envs)]},
+            {"name": "codex-acp", "profiles": [{"id": "codex", "name": "Codex", "env_vars": []}]},
+        ]
         self.patches = []
+        self.persist = True
 
     def call(self, method, path, body=None, interlock=False):
         if method == "PATCH":
             self.patches.append((path, body))
+            if self.persist:
+                next(p for a in self.agents for p in a["profiles"] if path.endswith("/" + p["id"])).update(copy.deepcopy(body))
             return {}
-        return {"agents": [{"name": "claude-acp", "profiles": [self.profile]}]}
+        return {"agents": copy.deepcopy(self.agents)}
+
+
+INBOX = "features.needsYouInbox"
+
+
+def flag(effective=False, override=None, pending=False, locked=False):
+    return {"key": INBOX, "effective_value": effective, "override_value": override,
+            "requires_restart_to_apply": pending, "env_locked": locked, "env_var": "KANDEV_FEATURES_NEEDS_YOU_INBOX"}
+
+
+class SettingsApi(configure.Api):
+    def __init__(self, flags=(), providers=()):
+        self.flags = copy.deepcopy(list(flags))
+        self.providers = copy.deepcopy(list(providers))
+        self.writes = []
+        self.persist = True
+
+    def call(self, method, path, body=None, interlock=False):
+        if method == "GET":
+            return {"flags": copy.deepcopy(self.flags), "providers": copy.deepcopy(self.providers)}
+        self.writes.append((method, path, body))
+        if path.startswith("/api/v1/runtime-flags/"):
+            if self.persist:
+                next(f for f in self.flags if path.endswith(f["key"])).update(override_value=body["override"], effective_value=body["override"], requires_restart_to_apply=True)
+            return {"flags": copy.deepcopy(self.flags)}
+        provider = next(p for p in self.providers if path.endswith("/" + p["id"]))
+        if self.persist:
+            provider.update(copy.deepcopy(body))
+        return copy.deepcopy(provider)
+
+
+MERGED = {"workflow": "Development", "from_steps": ["In Progress", "Review"], "to_step": "Done"}
+
+
+class StepApi(configure.Api):
+    def __init__(self):
+        self.steps = [
+            {"id": "backlog", "name": "Backlog", "events": {"on_turn_start": [{"type": "move_to_next"}]}},
+            {"id": "progress", "name": "In Progress", "events": {"on_enter": [{"type": "auto_start_agent"}]}},
+            {"id": "review", "name": "Review", "events": {"on_turn_start": [{"type": "move_to_previous"}]}},
+            {"id": "done", "name": "Done", "events": {}},
+        ]
+        self.puts = []
+        self.persist = True
+
+    def call(self, method, path, body=None, interlock=False):
+        if method == "PUT":
+            self.puts.append((path, body))
+            if self.persist:
+                self.step(path)["events"] = copy.deepcopy(body["events"])
+            return {}
+        if path.endswith("/workflows"):
+            return {"workflows": [{"id": "dev", "name": "Development"}]}
+        if path.endswith("/workflow/steps"):
+            return {"steps": copy.deepcopy(self.steps)}
+        return {"step": copy.deepcopy(self.step(path))}
+
+    def step(self, path):
+        return next(s for s in self.steps if path.endswith("/" + s["id"]))
+
+
+def kandev_version(text):
+    return patch.object(configure.subprocess, "run", return_value=subprocess.CompletedProcess(["kandev"], 0, stdout=text, stderr=""))
+
+
+def quietly(fn, *args):
+    with contextlib.redirect_stdout(io.StringIO()):
+        return fn(*args)
+
+
+def run_main(api, conf, *patches):
+    with tempfile.TemporaryDirectory() as temporary, contextlib.ExitStack() as stack:
+        path = Path(temporary) / "fleet.json"
+        path.write_text(json.dumps(conf))
+        stack.enter_context(patch("sys.argv", ["configure", "--conf", str(path)]))
+        stack.enter_context(patch.object(configure, "Api", return_value=api))
+        stack.enter_context(patch.object(configure, "ensure_workspace", return_value={"id": "w", "name": "W"}))
+        stack.enter_context(patch.object(configure, "ensure_repositories", return_value={}))
+        stack.enter_context(patch.object(configure, "ensure_runtime_flags", return_value=[]))
+        stack.enter_context(patch.object(configure, "ensure_notification_events"))
+        stack.enter_context(patch.object(configure, "ensure_pr_merged_moves"))
+        for item in patches:
+            stack.enter_context(item)
+        stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+        configure.main()
 
 
 class PilotTests(unittest.TestCase):
@@ -60,14 +153,166 @@ class PilotTests(unittest.TestCase):
 
     def test_claude_profile_gets_the_machine_name_for_telemetry(self):
         api = ClaudeProfileApi([{"key": "KEEP", "value": "1"}])
-        with patch.object(configure, "agent_host_name", return_value="test-host"), patch.object(configure.shutil, "which", return_value="/bin/claude"), contextlib.redirect_stdout(io.StringIO()):
-            configure.ensure_claude_profile(api, {})
-            api.profile["env_vars"] = api.patches[0][1]["env_vars"]
-            configure.ensure_claude_profile(api, {})
-        env = {e["key"]: e["value"] for e in api.profile["env_vars"]}
+        with patch.object(configure, "agent_host_name", return_value="test-host"), patch.object(configure, "claude_executable", return_value="/bin/claude"), contextlib.redirect_stdout(io.StringIO()):
+            configure.ensure_claude_env(api)
+            configure.ensure_claude_env(api)
+        env = configure.env_of(api.agents[0]["profiles"][0])
         self.assertEqual("host.name=test-host", env["OTEL_RESOURCE_ATTRIBUTES"])
         self.assertEqual("1", env["KEEP"])
         self.assertEqual(1, len(api.patches))
+
+    def test_claude_executable_prefers_native_link_unresolved(self):
+        with patch.object(configure.os.path, "expanduser", return_value="/h/.local/bin/claude"), patch.object(configure.os, "access", return_value=True), patch.object(configure.os.path, "realpath", side_effect=AssertionError):
+            self.assertEqual("/h/.local/bin/claude", configure.claude_executable())
+
+    def test_claude_executable_keeps_which_path_unresolved(self):
+        with patch.object(configure.os, "access", return_value=False), patch.object(configure.shutil, "which", return_value="/opt/homebrew/bin/claude"), patch.object(configure.os.path, "realpath", side_effect=AssertionError):
+            self.assertEqual("/opt/homebrew/bin/claude", configure.claude_executable())
+
+    def test_claude_executable_refuses_nvm(self):
+        with patch.object(configure.os, "access", return_value=False), patch.object(configure.shutil, "which", return_value="/h/.nvm/versions/node/v24.15.0/bin/claude"):
+            with self.assertRaisesRegex(RuntimeError, "claude.ai/install.sh"):
+                configure.claude_executable()
+
+    def test_claude_env_applies_when_another_profile_is_selected(self):
+        api = ClaudeProfileApi([{"key": "KEEP", "value": "1"}])
+        with patch.object(configure, "claude_executable", return_value="/h/.local/bin/claude"), patch.object(configure, "agent_host_name", return_value="h"), contextlib.redirect_stdout(io.StringIO()):
+            configure.ensure_claude_env(api)
+        env = {e["key"]: e["value"] for e in api.patches[0][1]["env_vars"]}
+        self.assertEqual({"KEEP": "1", "CLAUDE_CODE_EXECUTABLE": "/h/.local/bin/claude", "CLAUDE_CODE_ARTIFACT": "1", "OTEL_RESOURCE_ATTRIBUTES": "host.name=h"}, env)
+        self.assertNotIn("CLAUDE_CODE_ENABLE_CFC", env)
+
+    def test_claude_env_read_back_mismatch_stops(self):
+        api = ClaudeProfileApi([])
+        api.persist = False
+        with patch.object(configure, "claude_executable", return_value="/bin/claude"), patch.object(configure, "agent_host_name", return_value="h"), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(RuntimeError, "did not persist"):
+                configure.ensure_claude_env(api)
+
+    def test_main_applies_claude_env_with_a_codex_selection(self):
+        api = ClaudeProfileApi([], [{"key": "KEEP", "value": "1"}])
+        run_main(api, {"workspace": "W", "agent_profile": {"agent": "codex-acp"}},
+                 patch.object(configure, "require_kandev", return_value="0.99.1"),
+                 patch.object(configure, "claude_executable", return_value="/h/.local/bin/claude"),
+                 patch.object(configure, "agent_host_name", return_value="h"))
+        self.assertEqual(["/api/v1/agent-profiles/claude0", "/api/v1/agent-profiles/claude1"], [path for path, _ in api.patches])
+        for profile in api.agents[0]["profiles"]:
+            self.assertEqual("/h/.local/bin/claude", configure.env_of(profile)["CLAUDE_CODE_EXECUTABLE"])
+            self.assertEqual("1", configure.env_of(profile)["CLAUDE_CODE_ARTIFACT"])
+        self.assertEqual("1", configure.env_of(api.agents[0]["profiles"][1])["KEEP"])
+        self.assertEqual([], api.agents[1]["profiles"][0]["env_vars"])
+
+    def test_mutate_retries_with_the_interlock_only_when_refused(self):
+        class InterlockApi(configure.Api):
+            def __init__(self):
+                self.attempts = []
+
+            def call(self, method, path, body=None, interlock=False):
+                self.attempts.append(interlock)
+                if not interlock:
+                    raise RuntimeError(f"{method} {path} -> 403: interim settings interlock required")
+                return {"ok": True}
+
+        api = InterlockApi()
+        self.assertEqual({"ok": True}, api.mutate("PATCH", "/x", {}))
+        self.assertEqual([False, True], api.attempts)
+
+    def test_flag_already_set_is_not_patched(self):
+        api = SettingsApi([flag(effective=True, override=True)])
+        self.assertEqual([], quietly(configure.ensure_runtime_flags, api, {INBOX: True}))
+        self.assertEqual([], api.writes)
+
+    def test_flag_override_is_patched_and_restart_reported(self):
+        api = SettingsApi([flag()])
+        self.assertEqual([INBOX], quietly(configure.ensure_runtime_flags, api, {INBOX: True}))
+        self.assertEqual([("PATCH", "/api/v1/runtime-flags/features.needsYouInbox", {"override": True})], api.writes)
+
+    def test_pending_restart_is_reported_without_a_patch(self):
+        api = SettingsApi([flag(effective=True, override=True, pending=True)])
+        self.assertEqual([INBOX], quietly(configure.ensure_runtime_flags, api, {INBOX: True}))
+        self.assertEqual([], api.writes)
+
+    def test_env_locked_flag_is_left_alone(self):
+        api = SettingsApi([flag(locked=True)])
+        self.assertEqual([], quietly(configure.ensure_runtime_flags, api, {INBOX: True}))
+        self.assertEqual([], api.writes)
+
+    def test_unknown_flag_stops(self):
+        with self.assertRaisesRegex(RuntimeError, "features.missing"):
+            quietly(configure.ensure_runtime_flags, SettingsApi([flag()]), {"features.missing": True})
+
+    def test_notification_events_are_added_not_replaced(self):
+        api = SettingsApi(providers=[
+            {"id": "desktop", "name": "Desktop", "enabled": True, "events": ["session.clarification_requested", "office.inbox_item"]},
+            {"id": "complete", "name": "Complete", "enabled": True, "events": ["session.failed", "session.permission_requested", "system.update_available"]},
+            {"id": "off", "name": "Off", "enabled": False, "events": []},
+        ])
+        quietly(configure.ensure_notification_events, api, ["session.permission_requested", "session.failed"])
+        self.assertEqual([("PATCH", "/api/v1/notification-providers/desktop", {"events": ["office.inbox_item", "session.clarification_requested", "session.failed", "session.permission_requested"]})], api.writes)
+
+    def test_settings_read_back_mismatch_stops(self):
+        api = SettingsApi([flag()], [{"id": "desktop", "name": "Desktop", "enabled": True, "events": []}])
+        api.persist = False
+        with self.assertRaisesRegex(RuntimeError, "did not persist"):
+            quietly(configure.ensure_runtime_flags, api, {INBOX: True})
+        with self.assertRaisesRegex(RuntimeError, "did not persist"):
+            quietly(configure.ensure_notification_events, api, ["session.failed"])
+
+    def test_existing_config_without_blocks_gets_defaults(self):
+        self.assertEqual({"features.needsYouInbox": True}, configure.settings({"workspace": "W"}, "runtime_flags"))
+        self.assertEqual(["session.clarification_requested", "session.permission_requested", "session.failed"], configure.settings({"workspace": "W"}, "notifications")["events"])
+        self.assertEqual({"features.other": False}, configure.settings({"runtime_flags": {"features.other": False}}, "runtime_flags"))
+        self.assertEqual({}, configure.settings({"notifications": {}}, "notifications"))
+
+    def test_old_kandev_is_refused_before_any_change(self):
+        api = ClaudeProfileApi([])
+        with self.assertRaisesRegex(RuntimeError, "brew upgrade kandev"):
+            run_main(api, {"workspace": "W", "agent_profile": {"agent": "codex-acp"}}, kandev_version("v0.97.2\n"),
+                     patch.object(configure, "claude_executable", return_value="/bin/claude"),
+                     patch.object(configure, "agent_host_name", return_value="h"))
+        self.assertEqual([], api.patches)
+        with kandev_version("v0.99.1\n"):
+            self.assertEqual("0.99.1", configure.require_kandev())
+
+    def test_missing_kandev_binary_is_a_clean_error(self):
+        with patch.object(configure.subprocess, "run", side_effect=FileNotFoundError("kandev")):
+            with self.assertRaisesRegex(RuntimeError, "brew install kdlbs/kandev/kandev"):
+                configure.require_kandev()
+
+    def test_pr_merged_event_preserves_existing_events(self):
+        api = StepApi()
+        quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
+        self.assertEqual(["/api/v1/workflow/steps/progress", "/api/v1/workflow/steps/review"], [path for path, _ in api.puts])
+        self.assertEqual({"events": {"on_turn_start": [{"type": "move_to_previous"}], "on_pr_merged": [{"type": "move_to_step", "config": {"step_id": "done"}}]}}, api.puts[1][1])
+
+    def test_pr_merged_event_is_idempotent(self):
+        api = StepApi()
+        quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
+        quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
+        self.assertEqual(2, len(api.puts))
+
+    def test_unknown_step_name_stops_when_explicit(self):
+        with self.assertRaisesRegex(RuntimeError, "Shipped"):
+            quietly(configure.ensure_pr_merged_moves, StepApi(), {"id": "w"}, {**MERGED, "to_step": "Shipped"}, True)
+
+    def test_unknown_step_name_skips_for_defaults(self):
+        api = StepApi()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            configure.ensure_pr_merged_moves(api, {"id": "w"}, {**MERGED, "to_step": "Shipped"}, False)
+        self.assertEqual([], api.puts)
+        self.assertEqual(1, len(out.getvalue().splitlines()))
+
+    def test_opted_out_merge_routing_does_nothing(self):
+        api = StepApi()
+        quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, {}, True)
+        self.assertEqual([], api.puts)
+
+    def test_read_back_mismatch_stops(self):
+        api = StepApi()
+        api.persist = False
+        with self.assertRaisesRegex(RuntimeError, "did not persist"):
+            quietly(configure.ensure_pr_merged_moves, api, {"id": "w"}, MERGED, True)
 
     def test_only_evidence_gated_work_can_advance_automatically(self):
         data = pilot.document("codex-acp", "selected")

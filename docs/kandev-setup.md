@@ -21,7 +21,33 @@ Re-run `install.sh` (or just `python3 kandev/configure.py`) after editing the co
 
 What `install.sh` does, in order: Homebrew install → `~/.kandev/config.yaml` bound to `127.0.0.1` (refuses to continue otherwise) → warms the npm cache for the pinned Claude ACP adapter → `kandev service install|restart` (launchd, headless, keepalive) → waits for the API → `configure.py`.
 
-What `configure.py` ensures, all by lookup-then-create/patch: lane repositories with the setup and cleanup adapters; the selected existing `agent_profile` (or the legacy Claude profile when only `claude_profile` is configured); the Linear connection from the Keychain (tested); one issue watch per configured label.
+What `configure.py` ensures, all by lookup-then-create/patch: lane repositories with the setup and cleanup adapters; the selected existing `agent_profile` (or the legacy Claude profile when only `claude_profile` is configured); the Claude env on every Claude profile, whichever profile is selected (`CLAUDE_CODE_EXECUTABLE` = `~/.local/bin/claude`, else `claude` on PATH, unresolved so updates keep working; `CLAUDE_CODE_ARTIFACT=1`; `OTEL_RESOURCE_ATTRIBUTES`); the Linear connection from the Keychain (tested); one issue watch per configured label; Kandev runtime flags (`runtime_flags`, default: the Needs-you Inbox on); notification events added to every enabled provider (`notifications.events`, default: clarification, permission, failure); an `on_pr_merged` move to Done on Development's In Progress and Review steps (`pr_merged`), keeping each step's other events. Missing steps stop an explicit `pr_merged` block and are skipped with a log line for the default.
+
+Settings blocks missing from an existing config get the defaults in `configure.py` (`DEFAULTS`); a block in the config wins, and an empty block (`{}`) opts out. `configure.py` refuses Kandev older than 0.98.0 before changing anything. A flag change needs a Kandev restart that `configure.py` never performs: it prints `restart Kandev when no task is running: KANDEV_RESTART=1 kandev/install.sh` until the restart happens. Env-locked flags (`KANDEV_FEATURES_*` in the service env) are left alone.
+
+## Rolling out to another machine
+
+Do every step while no Kandev task is running.
+
+1. **Version**: `kandev --version` below 0.98.0 → `brew upgrade kandev` first; `configure.py` refuses older versions before changing anything.
+2. **Apply**: `git pull && kandev/install.sh`, then read the `CHANGED …` lines.
+3. **Restart** only when configure printed `restart Kandev when no task is running`: `KANDEV_RESTART=1 kandev/install.sh`.
+4. **Check**:
+   - `curl -s 127.0.0.1:38429/api/v1/runtime-flags` shows `features.needsYouInbox` with `effective_value: true` and `requires_restart_to_apply: false`
+   - the Inbox appears in the sidebar
+   - a new Claude task starts and lists `Artifact` among its tools
+   - `GET /api/v1/workflow/steps/<Review step id>` shows `on_pr_merged` moving to Done
+   - a second `python3 kandev/configure.py` prints `no changes`
+5. **Manual settings**: the one-time steps below.
+
+## Not owned by configure.py
+
+| Setting | One-time step | Why it stays manual |
+|---|---|---|
+| Sidebar colours and sort | automatic colour rules: waiting for input → purple, failed → red; sort waiting and failed tasks first | the rule schema is a web-app type tied to step ids and a settings revision |
+| Phone notifications | desktop only for now (decided 7 Nov 2026); later options: Apprise to ntfy (`brew install apprise` on each laptop) or the Telegram plugin (two-way answers) | configure covers the Desktop and System providers only |
+| Kandev updates | never apply one while tasks run, until upstream #5109 ships | an update restarts the backend, and pending plan-gate questions live in memory |
+| `bigquery` MCP (work laptop) | in `~/engineering/mn1`, `claude mcp get bigquery`, then re-add it with `claude mcp add --scope user bigquery …` using the same command and env | it is scoped to the `mn1` path, so Kandev worktrees under `~/.kandev/tasks` do not load it |
 
 ## Operating model
 
@@ -29,7 +55,7 @@ What `configure.py` ensures, all by lookup-then-create/patch: lane repositories 
 - **Lanes** are registered as repositories. Beam lanes (`mn1`…`mn5`) use the magicnotes adapters below; the personal GigMe lane uses `gigme/kandev_worktree_setup.sh` / `kandev_worktree_cleanup.sh`, thin wrappers over the repo's own `bin/create_worktree` (`WORKTREE_NAME=kandev-<task dir>` provisions in place: `DB_SUFFIX`, `PORT`, `master.key`, gems, node modules; GigMe PR #353) and `bin/remove_worktree --databases-only`; cleanup refuses any `DB_SUFFIX` not starting with `kandev_`. Beam lanes (`mn1`…`mn5`) each task gets its own worktree under `~/.kandev/tasks/…` with its own database and ports via `magicnotes/kandev_worktree_setup.sh` (unique `WORKTREE_OFFSET=kandev-<task dir>`). `kandev_worktree_cleanup.sh` drops those databases when Kandev reaps the worktree.
 - **Human gate** = the `/e2e` plan question, posted through Kandev's own question tool; answer it in the task or on `/threads` at http://localhost:38429.
 - **Completion**: E2E invokes `/ship`, then owns the authorized ticket move to In Review after the required PR/CI outcome. The portable workflow uses an explicit Kandev completion signal only after the current step's criteria are met. Linear's Done-on-merge automation does not establish deployment or production success.
-- **Current routing gap (22 September 2026)**: Development's Backlog/In Progress steps move to Review on turn completion, with `auto_advance_requires_signal=false` and `cancel_triggers_turn_complete=true`. The separate pilot below addresses this for opt-in tasks; for the existing Development workflow, read the task's evidence and pending decisions rather than interpreting that column as successful delivery. This documentation change does not alter those settings.
+- **Current routing gap (22 September 2026)**: Development's Backlog/In Progress steps move to Review on turn completion, with `auto_advance_requires_signal=false` and `cancel_triggers_turn_complete=true`. The separate pilot below addresses this for opt-in tasks; for the existing Development workflow, read the task's evidence and pending decisions rather than interpreting that column as successful delivery. This documentation change does not alter those settings. `configure.py`'s merge routing (In Progress/Review → Done when the task's PR merges) does not change advancement on turn completion or cancellation, so a card in Review still says nothing about the PR on its own.
 
 ## ADHD reading theme (plugin)
 
@@ -51,6 +77,7 @@ Conventions the agent text has to follow for the colour to land (also in `~/.cla
 | Claude probe fails with npm `ETARGET` on a stale npm cache | `install.sh` warms the cache with `--prefer-online`; `kandev service restart` re-probes |
 | The launchd service runs with a minimal PATH (nvm + brew + system: no rbenv shims, no `~/.local/bin`), so `bin/create_worktree` hit system Ruby 2.6 and the setup script failed non-fatally, leaving worktrees on the unsuffixed default database | `configure.py` writes the operator's full PATH onto the Worktree executor profile (agents and scripts inherit it); the setup adapter also inits rbenv itself. Re-run `configure.py` after changing PATH |
 | The launchd service doesn't load your shell profile, so Claude sessions had no Honeycomb key or machine name and sent no telemetry (none of 10 Kandev sessions in a week, Nov 2026) | `otelHeadersHelper` in `claude/settings.json` reads the key from the Keychain, and `configure.py` sets `OTEL_RESOURCE_ATTRIBUTES` on the Claude agent profile. Re-run `configure.py` on each machine |
+| nvm-installed Claude pins one Node version; configure refuses it | install the native build (`curl -fsSL https://claude.ai/install.sh \| bash`) and re-run `configure.py` |
 | Profile edits over HTTP need the `X-Kandev-Interim-Settings-Interlock` header | `configure.py` reads the token from the boot payload |
 | No HTTP route to send a chat message; it is the `message.queue.add` WebSocket action | answer gates in the UI, or `answer_question_kandev` over the API while the question is live |
 | Pending questions live in memory; a backend restart loses them (the session itself resumes via ACP `session/load`) | after a restart, resume with a chat message rather than the question API |
