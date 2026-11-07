@@ -4,6 +4,7 @@ import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import time
@@ -100,6 +101,13 @@ def ensure_repositories(api, ws, lanes):
     return result
 
 
+def agent_host_name():
+    helper = os.path.expanduser("~/.local/bin/agent-host-name")
+    if os.access(helper, os.X_OK):
+        return subprocess.run([helper], capture_output=True, text=True, check=True).stdout.strip()
+    return socket.gethostname().split(".")[0]
+
+
 def ensure_claude_profile(api, conf):
     agents = api.call("GET", "/api/v1/agents").get("agents", [])
     claude = next((a for a in agents if a["name"] == "claude-acp"), None)
@@ -113,7 +121,7 @@ def ensure_claude_profile(api, conf):
     profile = profiles[0]
     want = conf.get("claude_profile", {})
     exe = os.path.realpath(shutil.which("claude"))
-    env_wanted = {"CLAUDE_CODE_EXECUTABLE": exe}
+    env_wanted = {"CLAUDE_CODE_EXECUTABLE": exe, "OTEL_RESOURCE_ATTRIBUTES": f"host.name={agent_host_name()}"}
     env_current = {e["key"]: e.get("value", "") for e in (profile.get("env_vars") or [])}
     patch = {}
     if want.get("auto_approve", True) != profile.get("auto_approve"):

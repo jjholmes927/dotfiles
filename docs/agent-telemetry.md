@@ -33,18 +33,19 @@ Non-secret config goes in `~/.claude/settings.json`:
 }
 ```
 
-The secret header + per-machine host alias come from your shell profile (so the key stays in the Keychain). Add to a sourced profile file:
+The secret header comes from a helper that reads the Keychain, so it works in every session, including ones a background service starts without your shell profile (Kandev runs under launchd). Add to `~/.claude/settings.json`:
+
+```json
+{ "otelHeadersHelper": "~/.claude/hooks/otel-headers.sh" }
+```
+
+`claude/hooks/otel-headers.sh` prints `{"x-honeycomb-team": "<key>", "x-honeycomb-dataset": "claude-code-metrics"}`, and exits non-zero when the key is missing, which `/status` reports. The per-machine host alias comes from your shell profile:
 
 ```bash
-_hc_key=$(security find-generic-password -s honeycomb-agent-traces -w 2>/dev/null)
-if [ -n "$_hc_key" ]; then
-  export OTEL_EXPORTER_OTLP_HEADERS="x-honeycomb-team=${_hc_key},x-honeycomb-dataset=claude-code-metrics"
-fi
-unset _hc_key
 export OTEL_RESOURCE_ATTRIBUTES="host.name=<your-machine-alias>"
 ```
 
-Restart `claude` **from a shell that sourced that file**. Gotchas that will bite you otherwise:
+Kandev sessions skip the profile, so `kandev/configure.py` puts the same `OTEL_RESOURCE_ATTRIBUTES` on Kandev's Claude agent profile. Restart `claude` **from a shell that sourced the profile**. Gotchas that will bite you otherwise:
 
 - OTel env is read **once at startup** — editing config mid-session does nothing.
 - The vars are deliberately **not passed to subprocesses**, so `echo $OTEL_*` inside a Claude session proves nothing.
