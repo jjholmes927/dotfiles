@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import runpy
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,7 +31,7 @@ class SyncTests(unittest.TestCase):
         self.write(self.home / ".claude/settings.json", {"enabledPlugins": {IDENTITY: True}})
         self.write(self.home / ".codex/config.toml", "preserve my configuration")
         fake = self.home / "bin/claude"
-        self.write(fake, f"#!{sys.executable}\nimport os, sys\nfrom pathlib import Path\np=Path(os.environ['CLAUDE_CONFIG_DIR'])/'calls'\nwith p.open('a') as log: log.write(' '.join(sys.argv[1:])+'\\n')\nsys.exit(int(os.environ.get('FAKE_FAIL','0')))\n")
+        self.write(fake, f"#!{sys.executable}\nimport os, sys\nfrom pathlib import Path\np=Path(os.environ['CLAUDE_CONFIG_DIR'])/'calls'\nwith p.open('a') as log: log.write(' '.join(sys.argv[1:])+'\\n')\nsys.exit(int(os.environ.get('FAKE_FAIL','0')) if os.environ.get('FAKE_FAIL_MATCH','') in ' '.join(sys.argv[1:]) else 0)\n")
         fake.chmod(0o755)
         self.environment = {**os.environ, "PATH": str(fake.parent) + os.pathsep + os.defpath}
 
@@ -84,6 +85,23 @@ class SyncTests(unittest.TestCase):
         self.assertFalse((self.home / ".codex/workflow-migration.json").exists())
         self.environment.pop("FAKE_FAIL")
         self.assertEqual(0, self.run_sync().returncode)
+
+    def test_unreachable_beam_marketplace_is_noted_and_the_rest_syncs(self):
+        beam = "beam-claude-skills@beam-claude-skills"
+        self.write(self.home / ".claude/settings.json", {"enabledPlugins": {IDENTITY: True, beam: True}})
+        registry = json.loads((self.plugins / "installed_plugins.json").read_text())
+        registry["plugins"][beam] = [{"scope": "user", "version": "1.26.0", "installPath": str(self.home / "beam")}]
+        self.write(self.plugins / "installed_plugins.json", registry)
+        (self.home / "beam").mkdir()
+        shutil.rmtree(self.home / ".codex")
+        self.environment.update(FAKE_FAIL="1", FAKE_FAIL_MATCH="beam-claude-skills")
+        result = self.run_sync()
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("NOTE beam-claude-skills", result.stdout)
+        calls = (self.home / ".claude/calls").read_text().splitlines()
+        self.assertEqual(["plugin marketplace update jjholmes927-claude-skills", "plugin update " + IDENTITY,
+                          "plugin marketplace update beam-claude-skills"], calls)
+        self.assertTrue((self.plugins / ".workflow-sync-date").exists())
 
     def test_local_marketplace_pin_is_rejected_before_any_update(self):
         self.write(self.plugins / "known_marketplaces.json", {"jjholmes927-claude-skills": {"source": {"source": "directory", "path": str(self.release)}}})
