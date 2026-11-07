@@ -113,10 +113,6 @@ def quietly(fn, *args):
         return fn(*args)
 
 
-def env_of(profile):
-    return {e["key"]: e["value"] for e in profile["env_vars"]}
-
-
 def run_main(api, conf, *patches):
     with tempfile.TemporaryDirectory() as temporary, contextlib.ExitStack() as stack:
         path = Path(temporary) / "fleet.json"
@@ -160,7 +156,7 @@ class PilotTests(unittest.TestCase):
         with patch.object(configure, "agent_host_name", return_value="test-host"), patch.object(configure, "claude_executable", return_value="/bin/claude"), contextlib.redirect_stdout(io.StringIO()):
             configure.ensure_claude_env(api)
             configure.ensure_claude_env(api)
-        env = env_of(api.agents[0]["profiles"][0])
+        env = configure.env_of(api.agents[0]["profiles"][0])
         self.assertEqual("host.name=test-host", env["OTEL_RESOURCE_ATTRIBUTES"])
         self.assertEqual("1", env["KEEP"])
         self.assertEqual(1, len(api.patches))
@@ -201,9 +197,9 @@ class PilotTests(unittest.TestCase):
                  patch.object(configure, "agent_host_name", return_value="h"))
         self.assertEqual(["/api/v1/agent-profiles/claude0", "/api/v1/agent-profiles/claude1"], [path for path, _ in api.patches])
         for profile in api.agents[0]["profiles"]:
-            self.assertEqual("/h/.local/bin/claude", env_of(profile)["CLAUDE_CODE_EXECUTABLE"])
-            self.assertEqual("1", env_of(profile)["CLAUDE_CODE_ARTIFACT"])
-        self.assertEqual("1", env_of(api.agents[0]["profiles"][1])["KEEP"])
+            self.assertEqual("/h/.local/bin/claude", configure.env_of(profile)["CLAUDE_CODE_EXECUTABLE"])
+            self.assertEqual("1", configure.env_of(profile)["CLAUDE_CODE_ARTIFACT"])
+        self.assertEqual("1", configure.env_of(api.agents[0]["profiles"][1])["KEEP"])
         self.assertEqual([], api.agents[1]["profiles"][0]["env_vars"])
 
     def test_mutate_retries_with_the_interlock_only_when_refused(self):
@@ -266,7 +262,7 @@ class PilotTests(unittest.TestCase):
         self.assertEqual({"features.needsYouInbox": True}, configure.settings({"workspace": "W"}, "runtime_flags"))
         self.assertEqual(["session.clarification_requested", "session.permission_requested", "session.failed"], configure.settings({"workspace": "W"}, "notifications")["events"])
         self.assertEqual({"features.other": False}, configure.settings({"runtime_flags": {"features.other": False}}, "runtime_flags"))
-        self.assertEqual({}, configure.settings({"notifications": {"enabled": False}}, "notifications"))
+        self.assertEqual({}, configure.settings({"notifications": {}}, "notifications"))
 
     def test_old_kandev_is_refused_before_any_change(self):
         api = ClaudeProfileApi([])

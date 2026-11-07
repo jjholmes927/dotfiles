@@ -69,8 +69,7 @@ class Api:
 
 
 def settings(conf, key):
-    block = conf.get(key, DEFAULTS[key])
-    return {} if block.get("enabled") is False else block
+    return conf.get(key, DEFAULTS[key])
 
 
 def require_kandev(minimum=(0, 98, 0)):
@@ -153,9 +152,18 @@ def env_of(profile):
     return {e["key"]: e.get("value", "") for e in (profile.get("env_vars") or [])}
 
 
-def claude_profiles(api):
+def env_list(env):
+    return [{"key": k, "value": v} for k, v in env.items()]
+
+
+def claude_agent(api):
     agents = api.call("GET", "/api/v1/agents").get("agents", [])
-    return next((a.get("profiles", []) for a in agents if a["name"] == "claude-acp"), None)
+    return next((a for a in agents if a["name"] == "claude-acp"), None)
+
+
+def claude_profiles(api):
+    claude = claude_agent(api)
+    return claude.get("profiles", []) if claude else None
 
 
 def stale_env(profile, wanted):
@@ -170,19 +178,18 @@ def ensure_claude_env(api):
         return
     wanted = {"CLAUDE_CODE_EXECUTABLE": claude_executable(), "CLAUDE_CODE_ARTIFACT": "1",
               "OTEL_RESOURCE_ATTRIBUTES": f"host.name={agent_host_name()}"}
-    stale = [p for p in profiles if stale_env(p, wanted)]
-    for profile in stale:
+    checked = [(p, stale_env(p, wanted)) for p in profiles]
+    stale = [(p, keys) for p, keys in checked if keys]
+    for profile, keys in stale:
         merged = {**env_of(profile), **wanted}
-        api.call("PATCH", f"/api/v1/agent-profiles/{profile['id']}",
-                 {"env_vars": [{"key": k, "value": v} for k, v in merged.items()]}, interlock=True)
-        changed(f"claude profile {profile.get('name')}: env {stale_env(profile, wanted)}")
+        api.call("PATCH", f"/api/v1/agent-profiles/{profile['id']}", {"env_vars": env_list(merged)}, interlock=True)
+        changed(f"claude profile {profile.get('name')}: env {keys}")
     if stale and any(stale_env(p, wanted) for p in claude_profiles(api) or []):
         raise RuntimeError("Claude profile env did not persist; check Settings > Agents")
 
 
 def ensure_claude_profile(api, conf):
-    agents = api.call("GET", "/api/v1/agents").get("agents", [])
-    claude = next((a for a in agents if a["name"] == "claude-acp"), None)
+    claude = claude_agent(api)
     if not claude:
         raise RuntimeError("claude-acp agent not detected by Kandev; is `claude` on the service's PATH?")
     if claude.get("capability_status") not in (None, "ok"):
@@ -318,12 +325,12 @@ def executor_profile(api, executor_type):
 
 
 def ensure_executor_path(api, prof):
-    current = {e["key"]: e.get("value", "") for e in (prof.get("env_vars") or [])}
+    current = env_of(prof)
     wanted = {k: v for k, v in current.items() if k != "CLAUDE_JOB_DIR"}
     wanted["PATH"] = os.environ.get("PATH", "")
     if wanted == current:
         return
-    body = {"env_vars": [{"key": k, "value": v} for k, v in wanted.items()]}
+    body = {"env_vars": env_list(wanted)}
     api.mutate("PATCH", f"/api/v1/executors/{prof['executor_id']}/profiles/{prof['id']}", body)
     note = "; CLAUDE_JOB_DIR removed (worktree isolation is detected from git since joel-workflow 2.15.0)" if "CLAUDE_JOB_DIR" in current else ""
     changed(f"executor profile {prof.get('name')}: PATH set from the current shell{note}")
