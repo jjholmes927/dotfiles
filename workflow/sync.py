@@ -51,8 +51,13 @@ def sync(home, refresh_only=False, daily=False):
             environment = {**os.environ, "CLAUDE_CONFIG_DIR": str(config)}
             for identity in packages:
                 marketplace = identity.split("@", 1)[1]
-                subprocess.run(["claude", "plugin", "marketplace", "update", marketplace], env=environment, check=True, timeout=120)
-                subprocess.run(["claude", "plugin", "update", identity], env=environment, check=True, timeout=120)
+                try:
+                    subprocess.run(["claude", "plugin", "marketplace", "update", marketplace], env=environment, check=True, timeout=120)
+                    subprocess.run(["claude", "plugin", "update", identity], env=environment, check=True, timeout=120)
+                except subprocess.SubprocessError:
+                    if identity == IDENTITY:
+                        raise
+                    print(f"NOTE {marketplace}: could not update, keeping the installed version")
         codex = runpy.run_path(str(ROOT / "codex/sync-workflow.py"))
         source = codex["installed_source"](home)
         current = read(plugins / "installed_plugins.json")["plugins"][IDENTITY]
