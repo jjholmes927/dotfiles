@@ -176,3 +176,79 @@
   opacity: 1;
   color: var(--foreground);
 }
+
+.tiptap-plan-wrapper .adhd-meta {
+  margin-top: -0.2rem;
+  font-size: 0.82rem;
+  color: var(--muted-foreground);
+}
+.tiptap-plan-wrapper .adhd-quiet {
+  font-size: 0.85rem;
+  color: var(--muted-foreground);
+}
+.tiptap-plan-wrapper .adhd-sec {
+  --sec: var(--muted-foreground);
+  --sec-bg: color-mix(in oklch, var(--foreground) 5%, transparent);
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0.15rem 1.15rem;
+  max-width: var(--adhd-measure);
+  background: var(--sec-bg);
+  border: 0;
+  border-radius: 0;
+  color: color-mix(in oklch, var(--foreground) 82%, transparent);
+}
+.tiptap-plan-wrapper .adhd-sec-first { margin-top: 0.9rem !important; padding-top: 0.85rem; border-radius: 10px 10px 0 0; }
+.tiptap-plan-wrapper .adhd-sec-last { padding-bottom: 0.85rem; border-radius: 0 0 10px 10px; }
+.tiptap-plan-wrapper .adhd-sec-first.adhd-sec-last { border-radius: 10px; }
+.tiptap-plan-wrapper .adhd-sec-what { --sec: var(--adhd-ask); --sec-bg: color-mix(in oklch, var(--adhd-ask) 13%, transparent); }
+.tiptap-plan-wrapper .adhd-sec-effects { --sec: var(--adhd-warn); --sec-bg: color-mix(in oklch, var(--adhd-warn) 13%, transparent); }
+.tiptap-plan-wrapper .adhd-sec-done { --sec: var(--adhd-ok); --sec-bg: color-mix(in oklch, var(--adhd-ok) 9%, transparent); }
+.tiptap-plan-wrapper .adhd-sec-how { --sec: var(--adhd-info); --sec-bg: color-mix(in oklch, var(--adhd-info) 10%, transparent); }
+.tiptap-plan-wrapper.markdown-body .adhd-sec strong { color: var(--foreground); font-weight: 600; }
+.tiptap-plan-wrapper :is(ul, ol).adhd-sec { padding-left: 2.6rem; }
+.tiptap-plan-wrapper ul[data-type="taskList"].adhd-sec { padding-left: 1.15rem; list-style: none; }
+.tiptap-plan-wrapper ul[data-type="taskList"].adhd-sec > li { display: flex; gap: 0.65rem; align-items: flex-start; margin: 0.25rem 0; }
+.tiptap-plan-wrapper ul[data-type="taskList"].adhd-sec > li > label { flex: none; margin-top: 0.2rem; }
+.tiptap-plan-wrapper ul[data-type="taskList"].adhd-sec > li > div > p { margin: 0; }
+.tiptap-plan-wrapper .adhd-sec li > p { margin: 0; }
+.tiptap-plan-wrapper.markdown-body .adhd-sec-first > strong:first-child {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--sec);
+}
+.tiptap-plan-wrapper .adhd-sec-first > strong[data-adhd-count]::after {
+  content: " · " attr(data-adhd-count);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: color-mix(in oklch, var(--sec) 70%, var(--muted-foreground));
+}
+.tiptap-plan-wrapper blockquote.adhd-sec-what { padding-top: 1rem; padding-bottom: 1rem; font-size: 1.1em; line-height: 1.5; }
+.tiptap-plan-wrapper blockquote.adhd-sec-what::before {
+  content: "What & why";
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--sec);
+}
+.tiptap-plan-wrapper.markdown-body blockquote.adhd-sec-what strong:first-child { color: color-mix(in oklch, var(--sec) 55%, var(--foreground)); }
+.tiptap-plan-wrapper .adhd-sec-what.adhd-sec-first:not(.adhd-sec-last) { padding-bottom: 0.6rem; }
+.tiptap-plan-wrapper ul[data-type="taskList"].adhd-sec-done input[type="checkbox"] { accent-color: var(--adhd-ok); }
+.tiptap-plan-wrapper ol.adhd-sec-how > li::marker { color: var(--adhd-info); font-weight: 700; }
+.tiptap-plan-wrapper.markdown-body .adhd-sec-tasks { padding-left: 0.6rem; padding-right: 0.6rem; max-width: var(--adhd-measure); }
+.tiptap-plan-wrapper .adhd-sec-tasks table { margin: 0; width: 100%; }
+.tiptap-plan-wrapper .adhd-sec-tasks :is(th, td) { border: 0; border-bottom: 1px solid color-mix(in oklch, var(--foreground) 9%, transparent); background: transparent !important; }
+.tiptap-plan-wrapper .adhd-sec-tasks th { color: var(--muted-foreground); font-weight: 600; }
+.tiptap-plan-wrapper .adhd-sec-tasks tr:last-child td { border-bottom: 0; }
+.tiptap-plan-wrapper .adhd-sec-tasks td:first-child { font-weight: 400; color: var(--muted-foreground); }
+.markdown-body td.adhd-effort-low { color: var(--adhd-ok); font-weight: 600; }
+.markdown-body td.adhd-effort-medium { color: var(--adhd-warn); font-weight: 600; }
+.markdown-body :is(td.adhd-effort-high, td.adhd-effort-xhigh) { color: var(--adhd-bad); font-weight: 600; }

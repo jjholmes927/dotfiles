@@ -6,6 +6,15 @@ const RULES = [
   ["adhd-info", /^(?:→\s*)?(?:p[23]\b|also found\b|note\b|fyi\b|context\b|background\b|measured\b|evidence\b|next\b|follow-?ups?\b)/i],
 ];
 const CLASSES = RULES.map((r) => r[0]);
+const EFFORT = /^(low|medium|high|xhigh)$/i;
+const SECTION_KINDS = ["what", "effects", "defaults", "done", "how", "tasks"];
+const SECTION_CLASSES = ["adhd-sec", "adhd-sec-first", "adhd-sec-last", "adhd-meta", "adhd-quiet", ...SECTION_KINDS.map((k) => `adhd-sec-${k}`)];
+const LEADS = [
+  ["effects", /^effects\b/i],
+  ["defaults", /^defaults\b/i],
+  ["done", /^done when\b/i],
+  ["how", /^how\b/i],
+];
 
 function classify(text) {
   const t = text.replace(/^[\s*_`"'([]+/, "").trim();
@@ -18,6 +27,10 @@ function paint(root) {
   scope.querySelectorAll(".markdown-body strong:not([data-adhd]), .markdown-body td:not([data-adhd])").forEach((el) => {
     el.dataset.adhd = "1";
     const cls = classify(el.textContent || "");
+    if (!cls && el.tagName === "TD" && EFFORT.test((el.textContent || "").trim())) {
+      el.classList.add(`adhd-effort-${el.textContent.trim().toLowerCase()}`);
+      return;
+    }
     if (!cls) return;
     el.classList.add(cls);
     if (el.tagName === "TD" && el.parentElement && el.cellIndex <= 1 && cls !== "adhd-info" && cls !== "adhd-ask") {
@@ -29,6 +42,77 @@ function paint(root) {
     const first = bq.querySelector("p > strong:first-child, p > em:first-child");
     const cls = first ? classify(first.textContent || "") : null;
     if (cls === "adhd-ask") bq.classList.add("adhd-ask");
+  });
+}
+
+function leadStrong(el) {
+  const first = el.firstChild && el.firstChild.nodeType === 3 && !el.firstChild.textContent.trim() ? el.firstChild.nextSibling : el.firstChild;
+  return first && first.nodeName === "STRONG" ? first.textContent.trim() : "";
+}
+function sectionKind(el) {
+  if (el.tagName === "BLOCKQUOTE") {
+    const strong = el.querySelector("p > strong:first-child");
+    return strong && /^what\b/i.test(strong.textContent.trim()) ? "what" : null;
+  }
+  if (el.classList.contains("tableWrapper") || el.tagName === "TABLE") return "tasks";
+  if (el.tagName !== "P") return null;
+  const lead = leadStrong(el);
+  const match = LEADS.find(([, re]) => re.test(lead));
+  return match ? match[0] : null;
+}
+function markSection(kind, members) {
+  members.forEach((el, i) => {
+    el.classList.add("adhd-sec", `adhd-sec-${kind}`);
+    if (i === 0) el.classList.add("adhd-sec-first");
+    if (i === members.length - 1) el.classList.add("adhd-sec-last");
+  });
+  if (kind !== "done") return;
+  const items = members.flatMap((el) => [...el.querySelectorAll('li[data-checked]')]);
+  const label = members[0].querySelector("strong");
+  if (label && items.length) label.dataset.adhdCount = `${items.filter((li) => li.dataset.checked === "true").length} of ${items.length}`;
+}
+function sectionize(root) {
+  const scope = root.querySelectorAll ? root : document;
+  scope.querySelectorAll(".tiptap-plan-wrapper .tiptap-plan-editor").forEach((editor) => {
+    const children = [...editor.children];
+    children.forEach((el) => el.classList.remove(...SECTION_CLASSES));
+    editor.querySelectorAll("[data-adhd-count]").forEach((el) => delete el.dataset.adhdCount);
+    let kind = null;
+    let members = [];
+    let afterTitle = false;
+    const flush = () => {
+      if (kind) markSection(kind, members);
+      kind = null;
+      members = [];
+    };
+    for (const el of children) {
+      if (el.tagName === "HR") break;
+      if (/^H[1-6]$/.test(el.tagName)) {
+        flush();
+        afterTitle = el.tagName === "H1";
+        continue;
+      }
+      const next = sectionKind(el);
+      if (afterTitle && !next && el.tagName === "P") {
+        el.classList.add("adhd-meta");
+        afterTitle = false;
+        continue;
+      }
+      afterTitle = false;
+      if (next) {
+        flush();
+        kind = next;
+        members = [el];
+        continue;
+      }
+      if (kind && el.matches("ul, ol, .mermaid-container")) {
+        members.push(el);
+        continue;
+      }
+      flush();
+      if (el.tagName === "P" && /^audit\b|agent detail/i.test((el.textContent || "").trim())) el.classList.add("adhd-quiet");
+    }
+    flush();
   });
 }
 
@@ -100,6 +184,7 @@ function schedule() {
   requestAnimationFrame(() => {
     scheduled = false;
     paint(document);
+    sectionize(document);
     ensureMeasureButtons();
   });
 }
@@ -110,6 +195,7 @@ window.registerKandevPlugin("jjholmes927-adhd-theme", {
     refreshStyles();
     applyMeasure(loadMeasure());
     paint(document);
+    sectionize(document);
     ensureMeasureButtons();
     observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
@@ -124,5 +210,9 @@ window.registerKandevPlugin("jjholmes927-adhd-theme", {
       delete el.dataset.adhd;
       el.classList.remove(...CLASSES, "adhd-row-bad", "adhd-row-warn", "adhd-row-ok");
     });
+    document.querySelectorAll(".adhd-sec, .adhd-meta, .adhd-quiet, [class*='adhd-effort-']").forEach((el) => {
+      el.classList.remove(...SECTION_CLASSES, "adhd-effort-low", "adhd-effort-medium", "adhd-effort-high", "adhd-effort-xhigh");
+    });
+    document.querySelectorAll("[data-adhd-count]").forEach((el) => delete el.dataset.adhdCount);
   },
 });
