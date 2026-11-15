@@ -33,6 +33,8 @@ test("a user message also ends the window", () => {
 test("the task's own starting prompt is not an answer", () => {
   const start = { author_type: "user", type: "message", content: "/e2e NEV-268", metadata: { auto_start: true } };
   assert.deepEqual([...repliesSinceLastAnswer([question(), reply("progress"), start])], []);
+  const stepStart = { author_type: "user", type: "message", content: "next step", metadata: { workflow_auto_start: true } };
+  assert.deepEqual([...repliesSinceLastAnswer([question(), reply("progress"), stepStart])], []);
 });
 
 test("no earlier answer in view means no pin", () => {

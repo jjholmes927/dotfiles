@@ -255,98 +255,93 @@
 
 [data-testid="clarification-overlay"] {
   border-top: 2px solid var(--adhd-ask);
+
+  & [data-testid="clarification-context"] {
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 72ch;
+    color: var(--foreground);
+  }
+  & [data-testid="clarification-question-card"] > div:has(> [data-testid="clarification-question-title"]) + div {
+    font-size: 19px;
+    line-height: 1.4;
+    max-width: 72ch;
+
+    & > p:first-child { font-weight: 600; }
+    & :is(ul, ol) { font-size: 15px; line-height: 1.55; }
+  }
+  & [data-testid="clarification-option"] {
+    min-height: 52px;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+
+    & > kbd {
+      min-width: 26px;
+      height: 26px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    &.adhd-recommended {
+      border-color: color-mix(in oklch, var(--adhd-ask) 60%, transparent);
+      background: color-mix(in oklch, var(--adhd-ask) 10%, transparent);
+    }
+    &.adhd-recommended > kbd {
+      border-color: transparent;
+      background: var(--adhd-ask);
+      color: var(--background);
+    }
+  }
+  & [data-testid="clarification-option-label"] {
+    font-size: 16px;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+  & [data-testid="clarification-option-description"] {
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  & .adhd-own-label {
+    display: block;
+    margin-top: 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
+  & .adhd-own-label + [data-testid="clarification-custom-input"] { margin-top: 4px; }
+  & [data-testid="clarification-input"] { font-size: 15px; }
+  & [data-testid="clarification-custom-submit"] {
+    padding: 0 12px;
+    border-radius: 6px;
+    background: var(--adhd-ask);
+    color: var(--background);
+    font-weight: 600;
+  }
 }
-[data-testid="clarification-overlay"] [data-testid="clarification-context"] {
-  font-size: 15px;
-  line-height: 1.6;
-  max-width: 72ch;
-  color: var(--foreground);
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-question-title"] {
+[data-testid="clarification-overlay"] [data-testid="clarification-question-title"],
+.adhd-pin-head > span {
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--adhd-ask);
 }
-[data-testid="clarification-overlay"] [data-testid="clarification-question-card"] > div:has(> [data-testid="clarification-question-title"]) + div {
-  font-size: 19px;
-  line-height: 1.4;
-  max-width: 72ch;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-question-card"] > div:has(> [data-testid="clarification-question-title"]) + div > p:first-child {
-  font-weight: 600;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-question-card"] > div:has(> [data-testid="clarification-question-title"]) + div :is(ul, ol) {
-  font-size: 15px;
-  line-height: 1.55;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-option"] {
-  min-height: 52px;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 14px;
-  border-radius: 10px;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-option"] > kbd {
-  min-width: 26px;
-  height: 26px;
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 700;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-option-label"] {
-  font-size: 16px;
-  line-height: 1.4;
-  font-weight: 600;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-option-description"] {
-  font-size: 14px;
-  line-height: 1.45;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-option"].adhd-recommended {
-  border-color: color-mix(in oklch, var(--adhd-ask) 60%, transparent);
-  background: color-mix(in oklch, var(--adhd-ask) 12%, transparent);
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-option"].adhd-recommended > kbd {
-  border-color: transparent;
-  background: var(--adhd-ask);
-  color: var(--background);
-}
-[data-testid="clarification-overlay"] .adhd-own-label {
-  display: block;
-  margin-top: 14px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted-foreground);
-}
-[data-testid="clarification-overlay"] .adhd-own-label + [data-testid="clarification-custom-input"] {
-  margin-top: 4px;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-input"] {
-  font-size: 15px;
-}
-[data-testid="clarification-overlay"] [data-testid="clarification-custom-submit"] {
-  padding: 0 12px;
-  border-radius: 6px;
-  background: var(--adhd-ask);
-  color: var(--background);
-  font-weight: 600;
-}
+[data-testid="clarification-overlay"] [data-testid="clarification-question-title"] { color: var(--adhd-ask); }
 [data-session-id]:has([data-testid="clarification-overlay"]) [data-testid="chat-input-editor-shell"]:has(.is-editor-empty):not(:hover) {
   opacity: 0.5;
   transition: opacity 0.15s;
 }
-[data-testid="clarification-overlay"] .adhd-pin {
+.adhd-pin {
   margin: 10px 16px 4px;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid color-mix(in oklch, var(--adhd-tldr) 35%, transparent);
-  background: color-mix(in oklch, var(--adhd-tldr) 9%, transparent);
+  background: color-mix(in oklch, var(--adhd-tldr) 10%, transparent);
 }
 .adhd-pin-head {
   display: flex;
@@ -354,10 +349,6 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 4px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
   color: var(--adhd-tldr);
 }
 .adhd-pin-toggle {
@@ -366,14 +357,10 @@
   background: none;
   font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
   color: var(--muted-foreground);
   cursor: pointer;
 }
-.adhd-pin-toggle:hover {
-  color: var(--foreground);
-}
+.adhd-pin-toggle:hover { color: var(--foreground); }
 .adhd-pin-body {
   display: -webkit-box;
   -webkit-line-clamp: 2;
