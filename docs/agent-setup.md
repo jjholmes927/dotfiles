@@ -149,6 +149,12 @@ When a copy or extraction is actually made, add a record here with: original rep
 
 ## Maintenance and validation
 
+Reusable personal workflow bodies belong in the personal marketplace. CI rejects
+new or changed bodies under each harness's `skills/` and `commands/` unless their
+exact path has a reason in `workflow/local-workflows.json`. Those exceptions cover
+native behavior and explicitly retained legacy ports; they cannot override a
+marketplace workflow with the same name. Adapter compatibility files remain local.
+
 Update this map with each package/source change, alongside the owning install manifest and affected workflow links. Keep generated caches/manifests machine-local; this readable map links their locations. Introduce a package manifest only when an installer or drift check will consume it.
 
 ### Checking for drift
