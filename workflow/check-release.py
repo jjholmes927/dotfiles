@@ -19,9 +19,9 @@ def check_edits(workflows, base):
         raise ValueError("Each local workflow exception needs a concrete reason")
     paths = [f"{harness}/{kind}" for harness in ["claude", "codex", "cursor", "opencode"]
              for kind in ["skills", "commands"]]
-    changed = subprocess.check_output(["git", "diff", "--name-only", "--diff-filter=ACMRT", base, "HEAD",
+    changed = subprocess.check_output(["git", "diff", "--name-only", "-z", "--diff-filter=ACMRT", base, "HEAD",
                                        "--", *paths], cwd=ROOT, text=True)
-    for filename in changed.splitlines():
+    for filename in changed.split("\0"):
         path = Path(filename)
         if path.stem.lower() == "readme":
             continue

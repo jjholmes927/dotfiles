@@ -89,23 +89,23 @@ class DoctorTests(unittest.TestCase):
     def test_shared_instruction_edits_belong_in_marketplace(self):
         guard = runpy.run_path(str(doctor.ROOT / "workflow/check-release.py"))["check_edits"]
         for path in ["codex/skills/shared/SKILL.md", "claude/commands/shared.md"]:
-            with patch.object(subprocess, "check_output", return_value=path + "\n"):
+            with patch.object(subprocess, "check_output", return_value=path + "\0"):
                 with self.assertRaisesRegex(ValueError, "edit shared instructions"):
                     guard({"shared"}, "base")
-        with patch.object(subprocess, "check_output", return_value="codex/skills/shared/compat.md\nclaude/commands/style.md\n"):
+        with patch.object(subprocess, "check_output", return_value="codex/skills/shared/compat.md\0claude/commands/style.md\0"):
             guard({"shared"}, "base")
 
     def test_new_workflows_need_a_deliberate_native_exception_in_every_harness(self):
         guard = runpy.run_path(str(doctor.ROOT / "workflow/check-release.py"))["check_edits"]
         for harness in ["claude", "codex", "cursor", "opencode"]:
             for path in [f"{harness}/skills/new-flow/SKILL.md", f"{harness}/commands/new-flow.md"]:
-                with self.subTest(path=path), patch.object(subprocess, "check_output", return_value=path + "\n"):
+                with self.subTest(path=path), patch.object(subprocess, "check_output", return_value=path + "\0"):
                     with self.assertRaisesRegex(ValueError, "shared instructions"):
                         guard(set(), "base")
 
     def test_native_exception_cannot_shadow_a_shared_workflow(self):
         guard = runpy.run_path(str(doctor.ROOT / "workflow/check-release.py"))["check_edits"]
-        with patch.object(subprocess, "check_output", return_value="claude/commands/style.md\n"):
+        with patch.object(subprocess, "check_output", return_value="claude/commands/style.md\0"):
             with self.assertRaisesRegex(ValueError, "shared instructions"):
                 guard({"style"}, "base")
 
@@ -118,13 +118,13 @@ class DoctorTests(unittest.TestCase):
                 subprocess.run(["git", "add", "."], cwd=root, check=True)
                 subprocess.run(["git", "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "fixture"], cwd=root, check=True)
             commit()
-            self.write(root / "claude/skills/new-flow/SKILL.md", "A reusable workflow")
+            self.write(root / "claude/skills/new-flow-✓/SKILL.md", "A reusable workflow")
             commit()
             guard = runpy.run_path(str(doctor.ROOT / "workflow/check-release.py"))["check_edits"]
             guard.__globals__["ROOT"] = root
             with self.assertRaisesRegex(ValueError, "shared instructions"):
                 guard(set(), "HEAD~1")
-            (root / "claude/skills/new-flow/SKILL.md").unlink()
+            (root / "claude/skills/new-flow-✓/SKILL.md").unlink()
             self.write(root / "claude/commands/native.md", "A native workflow")
             commit()
             guard(set(), "HEAD~1")
