@@ -91,10 +91,16 @@ Whenever writing or editing a PR description, invoke the **`writing-pr-descripti
 
 ## Commands and Skills
 
-When creating new slash commands or skills, prefer placing them in the global dotfiles (`~/.claude/commands/`, `~/.claude/skills/`) unless they are truly project-specific. This makes them available across all projects automatically.
+Shared personal workflows belong in `jjholmes927/jjholmes927-claude-skills/skills/`.
+Dotfiles owns harness adapters, hooks and configuration. Project-specific behavior
+belongs in that project's guides or local skills. Third-party skills belong in
+dotfiles' `upstream-skills` registry.
 
-- **Project-agnostic tools** (verify-ui, brag-doc, etc.) → `~/.claude/commands/`
-- **Project-specific workflows** (brainstorm, write-plan, etc.) → `.claude/commands/` in the repo
+Installed skills and plugin caches are generated outputs. Test unpublished changes
+in temporary targets, publish through the marketplace, then run `workflow-sync`
+and start fresh sessions. A skill-only change needs no dotfiles content copy.
+New dotfiles workflow bodies require a justified native-only exception in
+`workflow/local-workflows.json`; shared names cannot be overridden there.
 
 ## Working Style
 

@@ -75,15 +75,16 @@ Write like an experienced, plain-speaking engineer: clear, punchy, grounded in r
 
 ## Skills
 
-When creating new reusable Codex workflows, prefer global skills in `~/.codex/skills` unless they are truly project-specific.
+Shared personal workflows belong in `jjholmes927/jjholmes927-claude-skills/skills/`.
+Dotfiles owns harness adapters, hooks and configuration. Project-specific behavior
+belongs in that project's guides or local skills. Third-party skills belong in
+dotfiles' `upstream-skills` registry.
 
-- Project-agnostic workflows belong in global Codex skills.
-- Project-specific workflows belong in repo-local skills or repo docs.
-
-Shared personal workflows are maintained in `jjholmes927/jjholmes927-claude-skills`.
-Dotfiles owns harness adapters; installed copies are generated outputs. Test
-unpublished skill changes in temporary targets, release through the marketplace,
-then run `workflow-sync`. A skill-only change needs no dotfiles content copy.
+Installed skills and plugin caches are generated outputs. Test unpublished changes
+in temporary targets, publish through the marketplace, then run `workflow-sync`
+and start fresh sessions. A skill-only change needs no dotfiles content copy.
+New dotfiles workflow bodies require a justified native-only exception in
+`workflow/local-workflows.json`; shared names cannot be overridden there.
 
 ## Working style
 

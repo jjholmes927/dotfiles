@@ -14,13 +14,25 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def check_edits(workflows, base):
-    changed = subprocess.check_output(["git", "diff", "--name-only", "--diff-filter=ACMRT", base, "HEAD",
-                                       "--", "codex/skills", "claude/commands"], cwd=ROOT, text=True)
-    for filename in changed.splitlines():
+    native = json.loads((ROOT / "workflow/local-workflows.json").read_text())
+    if not isinstance(native, dict) or any(not isinstance(reason, str) or len(reason.strip()) < 10 for reason in native.values()):
+        raise ValueError("Each local workflow exception needs a concrete reason")
+    paths = [f"{harness}/{kind}" for harness in ["claude", "codex", "cursor", "opencode"]
+             for kind in ["skills", "commands"]]
+    changed = subprocess.check_output(["git", "diff", "--name-only", "-z", "--diff-filter=ACMRT", base, "HEAD",
+                                       "--", *paths], cwd=ROOT, text=True)
+    for filename in changed.split("\0"):
         path = Path(filename)
-        name = path.parent.name if path.name == "SKILL.md" else path.stem if path.parent == Path("claude/commands") else None
-        if name in workflows:
-            raise ValueError(f"{filename}: edit shared instructions in jjholmes927-claude-skills, then run workflow-sync")
+        if path.stem.lower() == "readme" and len(path.parts) == 3 and path.parts[1] == "commands":
+            continue
+        if len(path.parts) >= 4 and path.parts[1] == "skills":
+            if path.name == "compat.md" and len(path.parts) == 4:
+                continue
+            name = path.parts[2] if path.suffix == ".md" else None
+        else:
+            name = path.stem if "commands" in path.parts and path.suffix == ".md" else None
+        if name is not None and (name in workflows or filename not in native):
+            raise ValueError(f"{filename}: edit shared instructions in jjholmes927-claude-skills, then run workflow-sync; native-only exceptions need a reason in workflow/local-workflows.json")
 
 
 def check(source, base=None):
