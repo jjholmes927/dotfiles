@@ -177,6 +177,104 @@ function refreshStyles() {
   });
 }
 
+const OVERLAY = '[data-testid="clarification-overlay"]';
+const QUESTION_CARD = '[data-testid="clarification-question-card"]';
+
+function repliesSinceLastAnswer(messages) {
+  const start = messages.findIndex((m) => m.type === "clarification_request");
+  if (start < 0 || (messages[start].metadata || {}).status !== "pending") return [];
+  const replies = [];
+  for (const m of messages.slice(start + 1)) {
+    if (m.type === "clarification_request" || m.author_type === "user") return replies.reverse();
+    if (m.author_type === "agent" && m.type === "message" && (m.content || "").trim()) replies.push(m.content);
+  }
+  return [];
+}
+
+function toPlainText(markdown) {
+  return markdown
+    .split("\n")
+    .map((line) => line
+      .replace(/^\s*(?:#{1,6}|>)\s*/, "")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/\*\*|__|`/g, "")
+      .trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function loadReplies(sessionId) {
+  const res = await fetch(`/api/v1/task-sessions/${encodeURIComponent(sessionId)}/messages?sort=desc&limit=100`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return repliesSinceLastAnswer(Array.isArray(data.messages) ? data.messages : []);
+}
+
+function buildPin(replies) {
+  const pin = document.createElement("div");
+  pin.className = "adhd-pin";
+  const head = document.createElement("div");
+  head.className = "adhd-pin-head";
+  const label = document.createElement("span");
+  label.textContent = replies.length > 1 ? `Since your last answer (${replies.length})` : "Since your last answer";
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "adhd-pin-toggle";
+  const body = document.createElement("div");
+  body.className = "adhd-pin-body";
+  const render = (open) => {
+    pin.classList.toggle("adhd-pin-open", open);
+    toggle.textContent = open ? "Show less" : "Show all";
+    body.textContent = open ? replies.map(toPlainText).join("\n\n") : toPlainText(replies[replies.length - 1]);
+  };
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    render(!pin.classList.contains("adhd-pin-open"));
+  });
+  head.append(label, toggle);
+  pin.append(head, body);
+  render(false);
+  return pin;
+}
+
+function pinReplies() {
+  document.querySelectorAll(OVERLAY).forEach((overlay) => {
+    const card = overlay.querySelector(QUESTION_CARD);
+    const key = card ? card.textContent.slice(0, 400) : "";
+    if (!key || overlay.dataset.adhdPin === key) return;
+    overlay.dataset.adhdPin = key;
+    overlay.querySelectorAll(".adhd-pin").forEach((p) => p.remove());
+    const host = overlay.closest("[data-session-id]");
+    if (!host) return;
+    loadReplies(host.dataset.sessionId)
+      .then((replies) => {
+        if (!replies.length || !overlay.isConnected || overlay.dataset.adhdPin !== key) return;
+        const anchor = overlay.querySelector('[data-testid="clarification-context"]') || overlay.querySelector(QUESTION_CARD);
+        if (!anchor || !anchor.parentElement) return;
+        overlay.querySelectorAll(".adhd-pin").forEach((p) => p.remove());
+        anchor.parentElement.insertBefore(buildPin(replies), anchor);
+      })
+      .catch(() => {});
+  });
+}
+
+function markQuestions() {
+  document.querySelectorAll('[data-testid="clarification-option"]').forEach((option) => {
+    const label = option.querySelector('[data-testid="clarification-option-label"]');
+    option.classList.toggle("adhd-recommended", /recommended/i.test(label ? label.textContent : ""));
+  });
+  document.querySelectorAll('[data-testid="clarification-custom-input"]').forEach((box) => {
+    const before = box.previousElementSibling;
+    if (before && before.classList.contains("adhd-own-label")) return;
+    const label = document.createElement("label");
+    label.className = "adhd-own-label";
+    label.textContent = "Or answer in your own words";
+    const input = box.querySelector("textarea");
+    if (input && input.id) label.htmlFor = input.id;
+    box.parentElement.insertBefore(label, box);
+  });
+}
+
 let scheduled = false;
 function schedule() {
   if (scheduled) return;
@@ -186,6 +284,8 @@ function schedule() {
     paint(document);
     sectionize(document);
     ensureMeasureButtons();
+    markQuestions();
+    pinReplies();
   });
 }
 
@@ -197,13 +297,17 @@ window.registerKandevPlugin("jjholmes927-adhd-theme", {
     paint(document);
     sectionize(document);
     ensureMeasureButtons();
+    markQuestions();
+    pinReplies();
     observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   },
   destroy() {
     if (observer) observer.disconnect();
     observer = null;
-    document.querySelectorAll(".adhd-measure-btn").forEach((b) => b.remove());
+    document.querySelectorAll(".adhd-measure-btn, .adhd-pin, .adhd-own-label").forEach((b) => b.remove());
+    document.querySelectorAll(".adhd-recommended").forEach((el) => el.classList.remove("adhd-recommended"));
+    document.querySelectorAll("[data-adhd-pin]").forEach((el) => delete el.dataset.adhdPin);
     document.documentElement.style.removeProperty("--adhd-measure");
     document.documentElement.style.removeProperty("--adhd-table-measure");
     document.querySelectorAll("[data-adhd]").forEach((el) => {
