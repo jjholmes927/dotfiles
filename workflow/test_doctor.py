@@ -109,6 +109,15 @@ class DoctorTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "shared instructions"):
                 guard({"style"}, "base")
 
+    def test_referenced_instructions_have_the_same_owner_as_the_skill(self):
+        guard = runpy.run_path(str(doctor.ROOT / "workflow/check-release.py"))["check_edits"]
+        for harness in ["claude", "codex", "cursor", "opencode"]:
+            for name in ["shared", "new-flow"]:
+                path = f"{harness}/skills/{name}/references/instructions.md"
+                with self.subTest(path=path), patch.object(subprocess, "check_output", return_value=path + "\0"):
+                    with self.assertRaisesRegex(ValueError, "shared instructions"):
+                        guard({"shared"}, "base")
+
     def test_real_git_diff_rejects_a_new_body_in_a_previously_unchecked_path(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

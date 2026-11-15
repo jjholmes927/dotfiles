@@ -25,7 +25,12 @@ def check_edits(workflows, base):
         path = Path(filename)
         if path.stem.lower() == "readme":
             continue
-        name = path.parent.name if path.name == "SKILL.md" else path.stem if "commands" in path.parts and path.suffix == ".md" else None
+        if len(path.parts) >= 4 and path.parts[1] == "skills":
+            if path.name == "compat.md" and len(path.parts) == 4:
+                continue
+            name = path.parts[2] if path.suffix == ".md" else None
+        else:
+            name = path.stem if "commands" in path.parts and path.suffix == ".md" else None
         if name is not None and (name in workflows or filename not in native):
             raise ValueError(f"{filename}: edit shared instructions in jjholmes927-claude-skills, then run workflow-sync; native-only exceptions need a reason in workflow/local-workflows.json")
 
