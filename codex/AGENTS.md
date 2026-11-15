@@ -88,6 +88,7 @@ then run `workflow-sync`. A skill-only change needs no dotfiles content copy.
 ## Working style
 
 - When scope is unclear, ask one clarifying question instead of guessing.
+- A Kandev question must make sense without the chat behind it, because its panel covers the chat.
 - For multi-step tasks, keep an explicit plan.
 - Commit frequently with clear messages.
 - When touching multiple files, summarize what changed at the end.

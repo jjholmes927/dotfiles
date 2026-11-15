@@ -185,6 +185,7 @@ function repliesSinceLastAnswer(messages) {
   if (start < 0 || (messages[start].metadata || {}).status !== "pending") return [];
   const replies = [];
   for (const m of messages.slice(start + 1)) {
+    if (m.author_type === "user" && (m.metadata || {}).auto_start) return [];
     if (m.type === "clarification_request" || m.author_type === "user") return replies.reverse();
     if (m.author_type === "agent" && m.type === "message" && (m.content || "").trim()) replies.push(m.content);
   }
