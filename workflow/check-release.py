@@ -23,7 +23,7 @@ def check_edits(workflows, base):
                                        "--", *paths], cwd=ROOT, text=True)
     for filename in changed.split("\0"):
         path = Path(filename)
-        if path.stem.lower() == "readme":
+        if path.stem.lower() == "readme" and len(path.parts) == 3 and path.parts[1] == "commands":
             continue
         if len(path.parts) >= 4 and path.parts[1] == "skills":
             if path.name == "compat.md" and len(path.parts) == 4:
