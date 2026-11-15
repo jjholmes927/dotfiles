@@ -39,7 +39,7 @@ Settings blocks missing from an existing config get the defaults in `configure.p
 - **Codex fallback**: when Claude limits are hit, swap a ticket's label to the `-codex` one. Don't add it next to the Claude label: watch label filters match any label, so both watches would fire.
 - **Overrides**: a config watch with the same label wins field by field (`prompt`, `label_id`, `repository`, `agent_profile`, `max_inflight`). `"skip": true` drops one flow; `"core_watches": []` drops them all.
 - **Unlisted flows** run in `linear.repository`, or the only lane. If their label or agent profile is missing, `configure.py` logs a warning and skips them instead of stopping. Labels must be created in Linear by hand; Kandev can only look them up.
-- **Drift check**: `workflow-doctor` asks the local Kandev, read-only, what `configure.py` would change and prints `WARN kandev` with the fix. Inside a workflow sync it reports without failing the sync. It compares against this machine's dotfiles checkout, so `git pull` first.
+- **Drift check**: `workflow-doctor` asks the local Kandev, read-only, whether its watches match what `configure.py` would set, and prints `DRIFT kandev` with the fix. Drift is reported but never fails the doctor or a workflow sync. It compares against this machine's dotfiles checkout, so `git pull` first.
 
 ## Rolling out to another machine
 

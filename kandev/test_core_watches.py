@@ -20,15 +20,6 @@ def fleet(watches=None, lanes=None, **extra):
     }
 
 
-def desired_watch(label_id, profile, prompt):
-    return {
-        "workflowId": "wf", "workflowStepId": "start", "repositoryId": "repo", "baseBranch": "main",
-        "filter": {"teamKey": "NEV", "stateIds": ["todo"], "assigned": "me", "labelIds": [label_id]},
-        "agentProfileId": profile, "executorProfileId": "exec", "prompt": prompt,
-        "pollIntervalSeconds": 60, "maxInflightTasks": 4, "sortBy": "priority", "enabled": True,
-    }
-
-
 class FleetApi:
     def __init__(self, labels=None, watches=None, codex=True):
         self.labels = labels if labels is not None else {name: f"id-{name}" for name in CORE_LABELS}
@@ -58,9 +49,14 @@ class FleetApi:
         return self.call(method, path, body)
 
 
-def live(label, profile="claude", prompt=None, watch_id=None):
-    prompt = prompt or ("/investigate {{issue.identifier}}" if "investigate" in label else "/e2e {{issue.identifier}}")
-    return {"id": watch_id or f"w-{label}", **desired_watch(f"id-{label}", profile, prompt)}
+def live(label, profile):
+    prompt = "/investigate {{issue.identifier}}" if "investigate" in label else "/e2e {{issue.identifier}}"
+    return {
+        "id": f"w-{label}", "workflowId": "wf", "workflowStepId": "start", "repositoryId": "repo", "baseBranch": "main",
+        "filter": {"teamKey": "NEV", "stateIds": ["todo"], "assigned": "me", "labelIds": [f"id-{label}"]},
+        "agentProfileId": profile, "executorProfileId": "exec", "prompt": prompt,
+        "pollIntervalSeconds": 60, "maxInflightTasks": 4, "sortBy": "priority", "enabled": True,
+    }
 
 
 def all_live():

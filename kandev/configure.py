@@ -33,6 +33,7 @@ DEFAULTS = {
     ],
 }
 SOURCE_PLUGIN_SCRIPT = Path(__file__).resolve().parent / "plugins/install-source-plugin.sh"
+KANDEV = "http://127.0.0.1:38429"
 
 
 def log(msg):
@@ -45,8 +46,9 @@ def changed(msg):
 
 
 class Api:
-    def __init__(self, base):
+    def __init__(self, base, timeout=60):
         self.base = base
+        self.timeout = timeout
         self.token = None
 
     def call(self, method, path, body=None, interlock=False):
@@ -56,7 +58,7 @@ class Api:
         if interlock:
             req.add_header("X-Kandev-Interim-Settings-Interlock", self.interlock_token())
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 raw = resp.read().decode()
         except urllib.error.HTTPError as err:
             raw = err.read().decode()
@@ -121,9 +123,13 @@ def ensure_workspace(api, conf):
     raise RuntimeError(f"workspace {wanted!r} not found; create it in Kandev first")
 
 
-def ensure_repositories(api, ws, lanes):
+def repositories_by_path(api, ws):
     existing = api.call("GET", f"/api/v1/workspaces/{ws['id']}/repositories").get("repositories", [])
-    by_path = {expand(r.get("local_path")): r for r in existing}
+    return {expand(r.get("local_path")): r for r in existing}
+
+
+def ensure_repositories(api, ws, lanes):
+    by_path = repositories_by_path(api, ws)
     result = {}
     for lane in lanes:
         path = expand(lane["path"])
@@ -149,8 +155,7 @@ def ensure_repositories(api, ws, lanes):
 
 
 def find_repositories(api, ws, lanes):
-    existing = api.call("GET", f"/api/v1/workspaces/{ws['id']}/repositories").get("repositories", [])
-    by_path = {expand(r.get("local_path")): r for r in existing}
+    by_path = repositories_by_path(api, ws)
     return {lane["name"]: by_path[expand(lane["path"])] for lane in lanes if expand(lane["path"]) in by_path}
 
 
@@ -209,16 +214,20 @@ def ensure_claude_env(api):
         raise RuntimeError("Claude profile env did not persist; check Settings > Agents")
 
 
-def ensure_claude_profile(api, conf):
+def first_claude_profile(api):
     claude = claude_agent(api)
     if not claude:
         raise RuntimeError("claude-acp agent not detected by Kandev; is `claude` on the service's PATH?")
-    if claude.get("capability_status") not in (None, "ok"):
-        log(f"warning: claude-acp probe status {claude.get('capability_status')}: {str(claude.get('capability_error'))[:160]}")
     profiles = claude.get("profiles", [])
     if not profiles:
         raise RuntimeError("claude-acp has no profile; open Settings > Agents once so Kandev seeds one")
-    profile = profiles[0]
+    return claude, profiles[0]
+
+
+def ensure_claude_profile(api, conf):
+    claude, profile = first_claude_profile(api)
+    if claude.get("capability_status") not in (None, "ok"):
+        log(f"warning: claude-acp probe status {claude.get('capability_status')}: {str(claude.get('capability_error'))[:160]}")
     want = conf.get("claude_profile", {})
     patch = {}
     if want.get("auto_approve", True) != profile.get("auto_approve"):
@@ -395,11 +404,12 @@ def fleet_watches(conf):
     lane = linear.get("repository") or (lanes[0] if len(lanes) == 1 else None)
     watches = []
     for core in settings(conf, "core_watches"):
+        base = {"repository": lane, **core}
         mine = own.pop(core["label"], None)
         if mine is None:
-            watches.append({"repository": lane, **core, "optional": True})
+            watches.append({**base, "optional": True})
         elif not mine.get("skip"):
-            watches.append({"repository": lane, **core, **mine})
+            watches.append({**base, **mine})
     return watches + [w for w in own.values() if not w.get("skip")]
 
 
@@ -418,7 +428,7 @@ def resolve_watch(api, watch, labels, repos, profile, team):
     return label_id, repo, watch_profile
 
 
-def plan_watches(api, ws, conf, repos, profile, exec_prof):
+def plan_watches(api, ws, conf, repos, profile):
     linear = conf["linear"]
     team = linear["team"]
     labels = lookup(api, ws, "labels", team)
@@ -427,6 +437,7 @@ def plan_watches(api, ws, conf, repos, profile, exec_prof):
     if not state_id:
         raise RuntimeError(f"Linear state {linear.get('state', 'Todo')!r} not found for team {team}")
     wf, step = workflow_start_step(api, ws, conf.get("workflow", "Development"))
+    exec_prof = executor_profile(api, conf.get("executor", "worktree"))
     existing = api.call("GET", f"/api/v1/linear/watches/issue?workspace_id={ws['id']}").get("watches", [])
     ops, skipped = [], []
     for watch in fleet_watches(conf):
@@ -462,9 +473,8 @@ def plan_watches(api, ws, conf, repos, profile, exec_prof):
 
 
 def ensure_watches(api, ws, conf, repos, profile):
-    exec_prof = executor_profile(api, conf.get("executor", "worktree"))
-    ensure_executor_path(api, exec_prof)
-    ops, skipped = plan_watches(api, ws, conf, repos, profile, exec_prof)
+    ensure_executor_path(api, executor_profile(api, conf.get("executor", "worktree")))
+    ops, skipped = plan_watches(api, ws, conf, repos, profile)
     for line in skipped:
         log(f"warning: {line}")
     for op in ops:
@@ -479,17 +489,13 @@ def ensure_watches(api, ws, conf, repos, profile):
 def default_profile(api, conf):
     if "agent_profile" in conf:
         return select_agent_profile(api, conf["agent_profile"])
-    profiles = claude_profiles(api)
-    if not profiles:
-        raise RuntimeError("claude-acp has no profile in Kandev")
-    return profiles[0]
+    return first_claude_profile(api)[1]
 
 
 def watch_drift(api, conf):
     ws = ensure_workspace(api, conf)
     repos = find_repositories(api, ws, conf.get("lanes", []))
-    exec_prof = executor_profile(api, conf.get("executor", "worktree"))
-    ops, skipped = plan_watches(api, ws, conf, repos, default_profile(api, conf), exec_prof)
+    ops, skipped = plan_watches(api, ws, conf, repos, default_profile(api, conf))
     drift = [f"watch {op['label']} is missing" if "create" in op else f"watch {op['label']} differs: {', '.join(sorted(op['patch']))}"
              for op in ops]
     return drift + skipped
@@ -498,7 +504,7 @@ def watch_drift(api, conf):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--conf", default=os.path.expanduser("~/.config/kandev-fleet.json"))
-    parser.add_argument("--base", default="http://127.0.0.1:38429")
+    parser.add_argument("--base", default=KANDEV)
     args = parser.parse_args()
     with open(args.conf) as fh:
         conf = json.load(fh)

@@ -12,7 +12,6 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KANDEV = "http://127.0.0.1:38429"
 
 
 def read(path):
@@ -67,17 +66,17 @@ def load_configure():
     return runpy.run_path(str(ROOT / "kandev/configure.py"))
 
 
-def audit_kandev(conf_path, base=KANDEV, configure=None):
+def audit_kandev(conf_path):
     if not conf_path.is_file():
         return ("SKIP", "kandev", [f"no fleet config at {conf_path}"], "")
     try:
         conf = read(conf_path)
     except (OSError, ValueError) as exc:
-        return ("WARN", "kandev", [f"cannot read {conf_path}: {exc}"], "")
+        return ("DRIFT", "kandev", [f"cannot read {conf_path}: {exc}"], "")
     if not conf.get("linear"):
         return ("SKIP", "kandev", ["fleet config has no Linear watches"], "")
-    configure = configure or load_configure()
-    api = configure["Api"](base)
+    configure = load_configure()
+    api = configure["Api"](configure["KANDEV"], timeout=10)
     try:
         api.call("GET", "/api/v1/workspaces")
     except (OSError, RuntimeError):
@@ -86,7 +85,7 @@ def audit_kandev(conf_path, base=KANDEV, configure=None):
         problems = configure["watch_drift"](api, conf)
     except (OSError, RuntimeError, ValueError, KeyError, TypeError) as exc:
         problems = [f"cannot check watches: {exc}"]
-    return ("WARN" if problems else "OK", "kandev", problems, f"cd {shlex.quote(str(ROOT))} && python3 kandev/configure.py")
+    return ("DRIFT" if problems else "OK", "kandev", problems, f"cd {shlex.quote(str(ROOT))} && python3 kandev/configure.py")
 
 
 def audit(home, codex, opencode, cursor=None):
@@ -153,7 +152,7 @@ def audit(home, codex, opencode, cursor=None):
     return results
 
 
-def main(argv=None, kandev_blocks=True):
+def main(argv=None):
     parser = argparse.ArgumentParser(description="Read-only local workflow drift checks (files and the local Kandev API); no automatic updates")
     parser.add_argument("--home", type=Path, default=Path.home())
     parser.add_argument("--codex", type=Path)
@@ -174,10 +173,10 @@ def main(argv=None, kandev_blocks=True):
             print(f"  {problem}")
         if len(problems) > 3:
             print(f"  ... and {len(problems) - 3} more")
-        if status == "WARN" and repair:
+        if status in ("WARN", "DRIFT") and repair:
             print(f"  Refresh: {repair}")
     print("Local files and the local Kandev API only; upstream freshness and running-session reloads are not checked.")
-    return int(any(status == "WARN" and (kandev_blocks or label != "kandev") for status, label, *_ in results))
+    return int(any(status == "WARN" for status, *_ in results))
 
 
 def after_refresh():
@@ -192,7 +191,7 @@ def after_refresh():
         elif link.resolve() != source:
             print(f"WARN existing {link} preserved; run python3 {source} for this checkout")
     with contextlib.redirect_stdout(sys.stderr):
-        return main([], kandev_blocks=False)
+        return main([])
 
 
 if __name__ == "__main__":
