@@ -177,15 +177,122 @@ function refreshStyles() {
   });
 }
 
+const OVERLAY = '[data-testid="clarification-overlay"]';
+
+function isStartingPrompt(m) {
+  return Boolean(m.metadata?.auto_start || m.metadata?.workflow_auto_start);
+}
+
+function repliesSinceLastAnswer(messages) {
+  const start = messages.findIndex((m) => m.type === "clarification_request");
+  if (start < 0 || messages[start].metadata?.status !== "pending") return [];
+  const replies = [];
+  for (const m of messages.slice(start + 1)) {
+    if (m.author_type === "user" && isStartingPrompt(m)) return [];
+    if (m.type === "clarification_request" || m.author_type === "user") return replies.reverse();
+    if (m.author_type === "agent" && m.type === "message" && m.content?.trim()) replies.push(m.content);
+  }
+  return [];
+}
+
+function toPlainText(markdown) {
+  return markdown
+    .split("\n")
+    .map((line) => line
+      .replace(/^\s*(?:#{1,6}|>)\s*/, "")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/\*\*|__|`/g, "")
+      .trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function loadReplies(sessionId) {
+  const res = await fetch(`/api/v1/task-sessions/${encodeURIComponent(sessionId)}/messages?sort=desc&limit=100`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return repliesSinceLastAnswer(Array.isArray(data.messages) ? data.messages : []);
+}
+
+function buildPin(replies) {
+  const pin = document.createElement("div");
+  pin.className = "adhd-pin";
+  const head = document.createElement("div");
+  head.className = "adhd-pin-head";
+  const label = document.createElement("span");
+  label.textContent = replies.length > 1 ? `Since your last answer (${replies.length})` : "Since your last answer";
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "adhd-pin-toggle";
+  const body = document.createElement("div");
+  body.className = "adhd-pin-body";
+  const render = (open) => {
+    pin.classList.toggle("adhd-pin-open", open);
+    toggle.textContent = open ? "Show less" : "Show all";
+    body.textContent = open ? replies.map(toPlainText).join("\n\n") : toPlainText(replies[replies.length - 1]);
+  };
+  toggle.addEventListener("mousedown", (e) => e.preventDefault());
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    render(!pin.classList.contains("adhd-pin-open"));
+  });
+  head.append(label, toggle);
+  pin.append(head, body);
+  render(false);
+  return pin;
+}
+
+function pinReplies(overlay) {
+  const card = overlay.querySelector('[data-testid="clarification-question-card"]');
+  const key = card?.dataset.questionId || card?.textContent.slice(0, 400) || "";
+  if (!key || overlay.dataset.adhdPin === key) return;
+  overlay.dataset.adhdPin = key;
+  overlay.querySelectorAll(".adhd-pin").forEach((p) => p.remove());
+  const sessionId = overlay.closest("[data-session-id]")?.dataset.sessionId;
+  if (!sessionId) return;
+  loadReplies(sessionId)
+    .then((replies) => {
+      const header = overlay.querySelector('[data-testid="clarification-overlay-header"]');
+      if (!replies.length || !header || !overlay.isConnected || overlay.dataset.adhdPin !== key) return;
+      overlay.querySelectorAll(".adhd-pin").forEach((p) => p.remove());
+      header.after(buildPin(replies));
+    })
+    .catch(() => {});
+}
+
+function markQuestion(overlay) {
+  overlay.querySelectorAll('[data-testid="clarification-option"]').forEach((option) => {
+    const label = option.querySelector('[data-testid="clarification-option-label"]');
+    option.classList.toggle("adhd-recommended", /\(recommended\)/i.test(label?.textContent || ""));
+  });
+  overlay.querySelectorAll('[data-testid="clarification-custom-input"]').forEach((box) => {
+    if (box.previousElementSibling?.classList.contains("adhd-own-label")) return;
+    const label = document.createElement("label");
+    label.className = "adhd-own-label";
+    label.textContent = "Or answer in your own words";
+    const input = box.querySelector("textarea");
+    if (input?.id) label.htmlFor = input.id;
+    box.before(label);
+  });
+}
+
+function run() {
+  paint(document);
+  sectionize(document);
+  ensureMeasureButtons();
+  document.querySelectorAll(OVERLAY).forEach((overlay) => {
+    markQuestion(overlay);
+    pinReplies(overlay);
+  });
+}
+
 let scheduled = false;
 function schedule() {
   if (scheduled) return;
   scheduled = true;
   requestAnimationFrame(() => {
     scheduled = false;
-    paint(document);
-    sectionize(document);
-    ensureMeasureButtons();
+    run();
   });
 }
 
@@ -194,16 +301,16 @@ window.registerKandevPlugin("jjholmes927-adhd-theme", {
   initialize() {
     refreshStyles();
     applyMeasure(loadMeasure());
-    paint(document);
-    sectionize(document);
-    ensureMeasureButtons();
+    run();
     observer = new MutationObserver(schedule);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   },
   destroy() {
     if (observer) observer.disconnect();
     observer = null;
-    document.querySelectorAll(".adhd-measure-btn").forEach((b) => b.remove());
+    document.querySelectorAll(".adhd-measure-btn, .adhd-pin, .adhd-own-label").forEach((b) => b.remove());
+    document.querySelectorAll(".adhd-recommended").forEach((el) => el.classList.remove("adhd-recommended"));
+    document.querySelectorAll("[data-adhd-pin]").forEach((el) => delete el.dataset.adhdPin);
     document.documentElement.style.removeProperty("--adhd-measure");
     document.documentElement.style.removeProperty("--adhd-table-measure");
     document.querySelectorAll("[data-adhd]").forEach((el) => {
