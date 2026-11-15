@@ -19,6 +19,7 @@ jobs:
           - { dir: cursor, module: test_install }
           - { dir: opencode, module: test_install }
           - { dir: kandev, module: test_workflow_pilot }
+          - { dir: kandev, module: test_core_watches }
     name: ${{ matrix.suite.dir }}/${{ matrix.suite.module }}
     steps:
       - uses: actions/checkout@v4

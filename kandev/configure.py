@@ -23,8 +23,17 @@ DEFAULTS = {
         "source": [{"id": "kandev-plugin-brainstorm", "repo": "Prithpal-Sooriya/kandev-plugin-brainstorm",
                     "commit": "67e65dfaecc83e3040f8357780852e3d5600cc69"}],
     },
+    "core_watches": [
+        {"label": "agent:implement", "prompt": "/e2e {{issue.identifier}}"},
+        {"label": "agent:investigate", "prompt": "/investigate {{issue.identifier}}"},
+        {"label": "agent:implement-codex", "prompt": "/e2e {{issue.identifier}}",
+         "agent_profile": {"agent": "codex-acp", "model": "gpt-6.1-sol"}},
+        {"label": "agent:investigate-codex", "prompt": "/investigate {{issue.identifier}}",
+         "agent_profile": {"agent": "codex-acp", "model": "gpt-6.1-sol"}},
+    ],
 }
 SOURCE_PLUGIN_SCRIPT = Path(__file__).resolve().parent / "plugins/install-source-plugin.sh"
+KANDEV = "http://127.0.0.1:38429"
 
 
 def log(msg):
@@ -37,8 +46,9 @@ def changed(msg):
 
 
 class Api:
-    def __init__(self, base):
+    def __init__(self, base, timeout=60):
         self.base = base
+        self.timeout = timeout
         self.token = None
 
     def call(self, method, path, body=None, interlock=False):
@@ -48,7 +58,7 @@ class Api:
         if interlock:
             req.add_header("X-Kandev-Interim-Settings-Interlock", self.interlock_token())
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
                 raw = resp.read().decode()
         except urllib.error.HTTPError as err:
             raw = err.read().decode()
@@ -113,9 +123,13 @@ def ensure_workspace(api, conf):
     raise RuntimeError(f"workspace {wanted!r} not found; create it in Kandev first")
 
 
-def ensure_repositories(api, ws, lanes):
+def repositories_by_path(api, ws):
     existing = api.call("GET", f"/api/v1/workspaces/{ws['id']}/repositories").get("repositories", [])
-    by_path = {expand(r.get("local_path")): r for r in existing}
+    return {expand(r.get("local_path")): r for r in existing}
+
+
+def ensure_repositories(api, ws, lanes):
+    by_path = repositories_by_path(api, ws)
     result = {}
     for lane in lanes:
         path = expand(lane["path"])
@@ -138,6 +152,11 @@ def ensure_repositories(api, ws, lanes):
                 changed(f"updated repository {lane['name']}: {sorted(patch)}")
         result[lane["name"]] = repo
     return result
+
+
+def find_repositories(api, ws, lanes):
+    by_path = repositories_by_path(api, ws)
+    return {lane["name"]: by_path[expand(lane["path"])] for lane in lanes if expand(lane["path"]) in by_path}
 
 
 def agent_host_name():
@@ -195,16 +214,20 @@ def ensure_claude_env(api):
         raise RuntimeError("Claude profile env did not persist; check Settings > Agents")
 
 
-def ensure_claude_profile(api, conf):
+def first_claude_profile(api):
     claude = claude_agent(api)
     if not claude:
         raise RuntimeError("claude-acp agent not detected by Kandev; is `claude` on the service's PATH?")
-    if claude.get("capability_status") not in (None, "ok"):
-        log(f"warning: claude-acp probe status {claude.get('capability_status')}: {str(claude.get('capability_error'))[:160]}")
     profiles = claude.get("profiles", [])
     if not profiles:
         raise RuntimeError("claude-acp has no profile; open Settings > Agents once so Kandev seeds one")
-    profile = profiles[0]
+    return claude, profiles[0]
+
+
+def ensure_claude_profile(api, conf):
+    claude, profile = first_claude_profile(api)
+    if claude.get("capability_status") not in (None, "ok"):
+        log(f"warning: claude-acp probe status {claude.get('capability_status')}: {str(claude.get('capability_error'))[:160]}")
     want = conf.get("claude_profile", {})
     patch = {}
     if want.get("auto_approve", True) != profile.get("auto_approve"):
@@ -374,7 +397,38 @@ def ensure_executor_path(api, prof):
     changed(f"executor profile {prof.get('name')}: PATH set from the current shell{note}")
 
 
-def ensure_watches(api, ws, conf, repos, profile):
+def fleet_watches(conf):
+    linear = conf["linear"]
+    own = {w["label"]: w for w in linear.get("watches", [])}
+    lanes = [lane["name"] for lane in conf.get("lanes", [])]
+    lane = linear.get("repository") or (lanes[0] if len(lanes) == 1 else None)
+    watches = []
+    for core in settings(conf, "core_watches"):
+        base = {"repository": lane, **core}
+        mine = own.pop(core["label"], None)
+        if mine is None:
+            watches.append({**base, "optional": True})
+        elif not mine.get("skip"):
+            watches.append({**base, **mine})
+    return watches + [w for w in own.values() if not w.get("skip")]
+
+
+def resolve_watch(api, watch, labels, repos, profile, team):
+    label_id = watch.get("label_id") or labels.get(watch["label"])
+    if not label_id:
+        raise RuntimeError(
+            f"Linear label {watch['label']!r} not visible to Kandev's team lookup (workspace-level labels are not "
+            f"listed); create label {watch['label']!r} in team {team}, or set \"label_id\" for this watch in the config")
+    if not watch.get("repository"):
+        raise RuntimeError("no lane to run it in; set linear.repository to one of the lanes")
+    repo = repos.get(watch["repository"])
+    if not repo:
+        raise RuntimeError(f"watch {watch['label']} names lane {watch['repository']!r}, which is not in lanes or not registered in Kandev")
+    watch_profile = select_agent_profile(api, watch["agent_profile"]) if "agent_profile" in watch else profile
+    return label_id, repo, watch_profile
+
+
+def plan_watches(api, ws, conf, repos, profile):
     linear = conf["linear"]
     team = linear["team"]
     labels = lookup(api, ws, "labels", team)
@@ -384,18 +438,16 @@ def ensure_watches(api, ws, conf, repos, profile):
         raise RuntimeError(f"Linear state {linear.get('state', 'Todo')!r} not found for team {team}")
     wf, step = workflow_start_step(api, ws, conf.get("workflow", "Development"))
     exec_prof = executor_profile(api, conf.get("executor", "worktree"))
-    ensure_executor_path(api, exec_prof)
     existing = api.call("GET", f"/api/v1/linear/watches/issue?workspace_id={ws['id']}").get("watches", [])
-    for watch in linear.get("watches", []):
-        watch_profile = select_agent_profile(api, watch["agent_profile"]) if "agent_profile" in watch else profile
-        label_id = watch.get("label_id") or labels.get(watch["label"])
-        if not label_id:
-            raise RuntimeError(
-                f"Linear label {watch['label']!r} not visible to Kandev's team lookup (workspace-level labels are not "
-                f"listed); set \"label_id\" for this watch in the config, or create the label as a team label")
-        repo = repos.get(watch["repository"])
-        if not repo:
-            raise RuntimeError(f"watch {watch['label']} names unknown lane {watch['repository']!r}")
+    ops, skipped = [], []
+    for watch in fleet_watches(conf):
+        try:
+            label_id, repo, watch_profile = resolve_watch(api, watch, labels, repos, profile, team)
+        except RuntimeError as err:
+            if not watch.get("optional"):
+                raise
+            skipped.append(f"core flow {watch['label']} skipped: {err}")
+            continue
         desired = {
             "workflowId": wf["id"], "workflowStepId": step["id"],
             "repositoryId": repo["id"], "baseBranch": repo.get("default_branch", "main"),
@@ -407,8 +459,7 @@ def ensure_watches(api, ws, conf, repos, profile):
         }
         current = next((w for w in existing if (w.get("filter") or {}).get("labelIds") == [label_id]), None)
         if current is None:
-            api.call("POST", "/api/v1/linear/watches/issue", {"workspaceId": ws["id"], **desired})
-            changed(f"created watch for {watch['label']}")
+            ops.append({"label": watch["label"], "create": desired})
             continue
         patch = {}
         for key in ("prompt", "pollIntervalSeconds", "maxInflightTasks", "sortBy", "enabled", "agentProfileId", "executorProfileId", "repositoryId", "workflowStepId"):
@@ -417,14 +468,43 @@ def ensure_watches(api, ws, conf, repos, profile):
         if (current.get("filter") or {}) != desired["filter"]:
             patch["filter"] = desired["filter"]
         if patch:
-            api.call("PATCH", f"/api/v1/linear/watches/issue/{current['id']}?workspace_id={ws['id']}", patch)
-            changed(f"updated watch for {watch['label']}: {sorted(patch)}")
+            ops.append({"label": watch["label"], "id": current["id"], "patch": patch})
+    return ops, skipped
+
+
+def ensure_watches(api, ws, conf, repos, profile):
+    ensure_executor_path(api, executor_profile(api, conf.get("executor", "worktree")))
+    ops, skipped = plan_watches(api, ws, conf, repos, profile)
+    for line in skipped:
+        log(f"warning: {line}")
+    for op in ops:
+        if "create" in op:
+            api.call("POST", "/api/v1/linear/watches/issue", {"workspaceId": ws["id"], **op["create"]})
+            changed(f"created watch for {op['label']}")
+        else:
+            api.call("PATCH", f"/api/v1/linear/watches/issue/{op['id']}?workspace_id={ws['id']}", op["patch"])
+            changed(f"updated watch for {op['label']}: {sorted(op['patch'])}")
+
+
+def default_profile(api, conf):
+    if "agent_profile" in conf:
+        return select_agent_profile(api, conf["agent_profile"])
+    return first_claude_profile(api)[1]
+
+
+def watch_drift(api, conf):
+    ws = ensure_workspace(api, conf)
+    repos = find_repositories(api, ws, conf.get("lanes", []))
+    ops, skipped = plan_watches(api, ws, conf, repos, default_profile(api, conf))
+    drift = [f"watch {op['label']} is missing" if "create" in op else f"watch {op['label']} differs: {', '.join(sorted(op['patch']))}"
+             for op in ops]
+    return drift + skipped
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--conf", default=os.path.expanduser("~/.config/kandev-fleet.json"))
-    parser.add_argument("--base", default="http://127.0.0.1:38429")
+    parser.add_argument("--base", default=KANDEV)
     args = parser.parse_args()
     with open(args.conf) as fh:
         conf = json.load(fh)

@@ -228,5 +228,74 @@ class DoctorTests(unittest.TestCase):
         self.assertIn("WARN cursor/personal", output)
 
 
+class KandevApi:
+    def __init__(self, running):
+        self.running = running
+
+    def call(self, method, path, body=None, interlock=False):
+        if not self.running:
+            raise OSError("connection refused")
+        if method != "GET":
+            raise AssertionError(f"doctor sent {method} {path}")
+        return {"workspaces": []}
+
+
+class KandevDoctorTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.conf = Path(self.temporary.name) / "kandev-fleet.json"
+        self.conf.write_text(json.dumps({"lanes": [], "linear": {"team": "NEV", "watches": []}}))
+
+    def configure(self, drift=None, running=True):
+        def watch_drift(api, conf):
+            if isinstance(drift, Exception):
+                raise drift
+            return drift or []
+        configure = {"KANDEV": "http://kandev", "Api": lambda base, timeout: KandevApi(running), "watch_drift": watch_drift}
+        return patch.object(doctor, "load_configure", return_value=configure)
+
+    def audit(self, conf=None, **configure):
+        with self.configure(**configure):
+            return doctor.audit_kandev(conf or self.conf)
+
+    def test_missing_fleet_config_is_skipped(self):
+        status, label, _, _ = self.audit(self.conf.with_name("absent.json"))
+        self.assertEqual(("SKIP", "kandev"), (status, label))
+
+    def test_stopped_kandev_is_skipped(self):
+        status, _, problems, _ = self.audit(running=False)
+        self.assertEqual(("SKIP", ["Kandev is not running"]), (status, problems))
+
+    def test_matching_fleet_is_ok(self):
+        self.assertEqual("OK", self.audit()[0])
+
+    def test_drift_is_reported_with_the_configure_fix(self):
+        status, _, problems, repair = self.audit(drift=["watch agent:implement-codex is missing"])
+        self.assertEqual(("DRIFT", ["watch agent:implement-codex is missing"]), (status, problems))
+        self.assertIn("python3 kandev/configure.py", repair)
+
+    def test_check_failure_is_drift_not_a_crash(self):
+        status, _, problems, _ = self.audit(drift=RuntimeError("workspace 'W' not found"))
+        self.assertEqual("DRIFT", status)
+        self.assertIn("workspace 'W' not found", problems[0])
+
+    def test_default_loader_finds_the_configure_check(self):
+        loaded = doctor.load_configure()
+        self.assertTrue(callable(loaded["Api"]) and callable(loaded["watch_drift"]) and loaded["KANDEV"])
+
+    def test_main_reports_kandev_without_a_fleet_config(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            doctor.main(["--home", self.temporary.name])
+        self.assertIn("SKIP kandev", output.getvalue())
+
+    def test_kandev_drift_is_printed_but_never_fails_the_doctor(self):
+        drift = ("DRIFT", "kandev", ["watch agent:implement-codex is missing"], "fix it")
+        with patch.object(doctor, "audit_kandev", return_value=drift), contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(0, doctor.main(["--home", self.temporary.name]))
+        self.assertIn("DRIFT kandev\n  watch agent:implement-codex is missing\n  Refresh: fix it", output.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

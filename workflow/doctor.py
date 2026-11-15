@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import runpy
 import shlex
 import sys
 
@@ -59,6 +60,32 @@ def inspect_manifest(path, target, selected):
                 state = "missing" if actual is None else "changed"
                 problems.append(f"{label} {state}: {relative}")
     return problems
+
+
+def load_configure():
+    return runpy.run_path(str(ROOT / "kandev/configure.py"))
+
+
+def audit_kandev(conf_path):
+    if not conf_path.is_file():
+        return ("SKIP", "kandev", [f"no fleet config at {conf_path}"], "")
+    try:
+        conf = read(conf_path)
+    except (OSError, ValueError) as exc:
+        return ("DRIFT", "kandev", [f"cannot read {conf_path}: {exc}"], "")
+    if not conf.get("linear"):
+        return ("SKIP", "kandev", ["fleet config has no Linear watches"], "")
+    configure = load_configure()
+    api = configure["Api"](configure["KANDEV"], timeout=10)
+    try:
+        api.call("GET", "/api/v1/workspaces")
+    except (OSError, RuntimeError):
+        return ("SKIP", "kandev", ["Kandev is not running"], "")
+    try:
+        problems = configure["watch_drift"](api, conf)
+    except (OSError, RuntimeError, ValueError, KeyError, TypeError) as exc:
+        problems = [f"cannot check watches: {exc}"]
+    return ("DRIFT" if problems else "OK", "kandev", problems, f"cd {shlex.quote(str(ROOT))} && python3 kandev/configure.py")
 
 
 def audit(home, codex, opencode, cursor=None):
@@ -126,7 +153,7 @@ def audit(home, codex, opencode, cursor=None):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Read-only local workflow drift checks; no network or automatic updates")
+    parser = argparse.ArgumentParser(description="Read-only local workflow drift checks (files and the local Kandev API); no automatic updates")
     parser.add_argument("--home", type=Path, default=Path.home())
     parser.add_argument("--codex", type=Path)
     parser.add_argument("--opencode", type=Path)
@@ -139,15 +166,16 @@ def main(argv=None):
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         print(f"WARN plugin registry: {exc}; inspect Claude's local plugin settings")
         return 1
+    results.append(audit_kandev(config / "kandev-fleet.json"))
     for status, label, problems, repair in results:
         print(f"{status} {label}")
         for problem in problems[:3]:
             print(f"  {problem}")
         if len(problems) > 3:
             print(f"  ... and {len(problems) - 3} more")
-        if status == "WARN" and repair:
+        if status in ("WARN", "DRIFT") and repair:
             print(f"  Refresh: {repair}")
-    print("Local files only; upstream freshness and running-session reloads are not checked.")
+    print("Local files and the local Kandev API only; upstream freshness and running-session reloads are not checked.")
     return int(any(status == "WARN" for status, *_ in results))
 
 
