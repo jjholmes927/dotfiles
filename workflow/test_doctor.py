@@ -341,6 +341,67 @@ class KandevDoctorTests(unittest.TestCase):
         self.assertIn("DRIFT kandev\n  watch agent:implement-codex is missing\n  Refresh: fix it", output.getvalue())
 
 
+class AgentAppDoctorTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.config = Path(self.temporary.name) / ".config"
+        self.app = self.config / "jjholmes927-agent/app.json"
+        self.app.parent.mkdir(parents=True)
+        self.app.write_text(json.dumps({"id": 5878121, "slug": "never-miss-a-bot", "keychain_service": "agent-service"}))
+        self.calls = []
+
+    def audit(self, returncode=0, error=None):
+        def run(args, **kwargs):
+            self.calls.append((args, kwargs))
+            if error:
+                raise error
+            return subprocess.CompletedProcess(args, returncode, b"keychain attributes", b"")
+        with patch.object(doctor.subprocess, "run", side_effect=run):
+            return doctor.audit_agent_app(self.config)
+
+    def test_machine_without_the_app_is_skipped(self):
+        self.app.unlink()
+        self.assertEqual(("SKIP", "agent-github-app", ["no agent GitHub app on this machine"], ""), self.audit())
+        self.assertEqual([], self.calls)
+
+    def test_app_with_its_keychain_entry_is_ok_without_reading_the_secret(self):
+        self.assertEqual(("OK", "agent-github-app", [], ""), self.audit())
+        [(args, kwargs)] = self.calls
+        self.assertEqual(["security", "find-generic-password", "-s", "agent-service", "-a", "private-key"], args)
+        self.assertTrue(kwargs["capture_output"])
+        self.assertNotIn("-w", args)
+        self.assertNotIn("-g", args)
+
+    def test_missing_keychain_entry_is_drift_with_the_fix(self):
+        for result in [{"returncode": 44}, {"error": FileNotFoundError("security")}]:
+            with self.subTest(result=result):
+                status, label, problems, repair = self.audit(**result)
+                self.assertEqual(("DRIFT", "agent-github-app"), (status, label))
+                self.assertIn("no private key in the macOS Keychain (service agent-service", problems[0])
+                self.assertIn("security add-generic-password -U -s agent-service -a private-key -w", repair)
+
+    def test_unreadable_app_config_is_drift(self):
+        for content in ["broken", json.dumps({"id": 5878121}), json.dumps({"keychain_service": "agent-service"}), "[]"]:
+            with self.subTest(content=content):
+                self.app.write_text(content)
+                status, _, problems, _ = self.audit()
+                self.assertEqual("DRIFT", status)
+                self.assertIn("cannot read", problems[0])
+
+    def test_main_skips_the_app_on_a_machine_without_it(self):
+        self.app.unlink()
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            doctor.main(["--home", self.temporary.name])
+        self.assertIn("SKIP agent-github-app\n  no agent GitHub app on this machine", output.getvalue())
+
+    def test_app_drift_is_printed_but_never_fails_the_doctor(self):
+        drift = ("DRIFT", "agent-github-app", ["no private key in the macOS Keychain"], "store it")
+        with patch.object(doctor, "audit_agent_app", return_value=drift), contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(0, doctor.main(["--home", self.temporary.name]))
+        self.assertIn("DRIFT agent-github-app\n  no private key in the macOS Keychain\n  Refresh: store it", output.getvalue())
+
+
 class LspDoctorTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
