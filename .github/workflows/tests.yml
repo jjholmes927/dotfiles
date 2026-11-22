@@ -21,6 +21,7 @@ jobs:
           - { dir: kandev, module: test_workflow_pilot }
           - { dir: kandev, module: test_core_watches }
           - { dir: tests, module: github_posts_test }
+          - { dir: tests, module: gh_agent_test }
     name: ${{ matrix.suite.dir }}/${{ matrix.suite.module }}
     steps:
       - uses: actions/checkout@v4

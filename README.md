@@ -27,7 +27,7 @@ retry and release-check details.
 |-----------|---------|
 | `alacritty/` | Alacritty terminal config |
 | `bash/` | Bash shell config — aliases, exports, history and completion |
-| `bin/` | Legacy Fleet/operator helpers, symlinked into `~/.local/bin` by `claude/install.sh`; [historical reference](docs/operator-workflow.md#legacy-fleet-reference) |
+| `bin/` | Legacy Fleet/operator helpers and [`gh-agent`](docs/agent-setup.md#agent-github-app), symlinked into `~/.local/bin` by `claude/install.sh`; [historical reference](docs/operator-workflow.md#legacy-fleet-reference) |
 | `claude/` | Claude Code global config — `CLAUDE.md`, settings, commands, hooks, scripts |
 | `codex/` | Codex global config — `AGENTS.md`, skills, installer, MCP bootstrap |
 | `cursor/` | Cursor CLI — shared personal/Beam skill adapters, compatibility and drift checks |
