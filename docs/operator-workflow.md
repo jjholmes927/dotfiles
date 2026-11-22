@@ -98,6 +98,8 @@ Before every push, use the correct PR base and the exact diff being published. A
 
 Unresolved review findings can be carried to a PR only under the active workflow's documented policy, with visible comments/dispositions; this does not make the branch ready to merge. End-to-end completion must distinguish PR readiness, successful deployment and confirmed rollout. Linear Done-on-merge is issue automation, not production evidence.
 
+**Per-repository merge policy.** Stage 11 stays a human action unless a repository opts in. A repository whose guide carries `**Merge policy: agents merge their own PRs once required checks pass.**` and whose default branch requires status checks lets ship queue squash auto-merge once verification is ✅ and CI and review are green (personal ship Step 9). Since 22 November 2026 only GigMe opts in; Beam repositories keep human merge and review. Widening the policy to another repository is the operator's decision.
+
 ### Current implementation and remaining validation
 
 | Area | Current status |
