@@ -161,6 +161,8 @@ Update this map with each package/source change, alongside the owning install ma
 
 Run `python3 workflow/doctor.py` from this checkout, or `workflow-doctor` after a normal Codex/OpenCode refresh registers that command in `~/.local/bin`. Refreshes automatically run the checker; E2E/ship preflight uses it when available. Direct checks are read-only, local and need no model call or network access.
 
+The checker also runs each enabled LSP plugin's server with `--version` inside the current repository, for servers that handle file types the repository tracks. A server missing for the repository's Ruby or Node version prints `DRIFT lsp/<server>` with its install command, so E2E preflight catches it after a runtime bump. Ruby LSP installs per Ruby version (`gem install ruby-lsp`); the TypeScript server installs once with Homebrew's Node (`npm install -g typescript-language-server typescript`).
+
 Cursor imports also register/run the checker. After a personal or Beam package
 update, run the matching Cursor refresh above alongside the other installed
 harnesses. Cursor checks cover the selected package and recorded source/output/
@@ -171,6 +173,7 @@ generator hashes; they do not prove which duplicate skill an active session chos
 | `OK` | Selected local source, recorded hashes and managed files agree |
 | `WARN` | Source selection changed, a managed file changed/disappeared, or provenance is incomplete; the output includes a refresh command |
 | `PINNED` | An intentional local marketplace source is selected; upstream updates are paused |
+| `DRIFT` | Kandev watches differ from `configure.py`, or an enabled language server cannot start in this repository; printed with the fix, never fails the doctor |
 | `SKIP` | This harness or optional package is not installed |
 
 Warnings return exit 1 for scripts, but refresh/preflight reports them without adding an approval gate or automatically changing an installation. They do not replace verification. Old manifests need one refresh; OpenCode needs a full refresh to establish complete provenance. Partial refreshes retain evidence for untouched adapters rather than certifying them as current.

@@ -8,10 +8,15 @@ import os
 from pathlib import Path
 import runpy
 import shlex
+import subprocess
 import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
+LSP_INSTALL = {
+    "ruby-lsp": "gem install ruby-lsp",
+    "typescript-language-server": "npm install -g typescript-language-server typescript",
+}
 
 
 def read(path):
@@ -88,6 +93,64 @@ def audit_kandev(conf_path):
     return ("DRIFT" if problems else "OK", "kandev", problems, f"cd {shlex.quote(str(ROOT))} && python3 kandev/configure.py")
 
 
+def lsp_servers(home, identity, source):
+    name, _, market = identity.partition("@")
+    servers = {}
+    catalog = home / ".claude/plugins/marketplaces" / market / ".claude-plugin/marketplace.json"
+    if market and catalog.is_file():
+        for entry in read(catalog).get("plugins", []):
+            if entry.get("name") == name and isinstance(entry.get("lspServers"), dict):
+                servers.update(entry["lspServers"])
+    manifest = source / ".claude-plugin/plugin.json"
+    if manifest.is_file() and isinstance(read(manifest).get("lspServers"), dict):
+        servers.update(read(manifest)["lspServers"])
+    if (source / ".lsp.json").is_file():
+        servers.update(read(source / ".lsp.json"))
+    return servers
+
+
+def probe_lsp(command, cwd):
+    try:
+        result = subprocess.run([command, "--version"], cwd=cwd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30)
+    except FileNotFoundError:
+        return f"{command}: command not found"
+    except subprocess.TimeoutExpired:
+        return f"{command} --version did not answer within 30s"
+    if result.returncode == 0:
+        return None
+    lines = (result.stderr or result.stdout).strip().splitlines()
+    return lines[0] if lines else f"{command} --version exited {result.returncode}"
+
+
+def audit_lsp(home, repo):
+    top = subprocess.run(["git", "-C", str(repo), "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    if top.returncode != 0:
+        return [("SKIP", "lsp", ["not in a git repository"], "")]
+    root = Path(top.stdout.strip())
+    tracked = subprocess.run(["git", "-C", str(root), "ls-files"], capture_output=True, text=True).stdout
+    suffixes = {Path(line).suffix for line in tracked.splitlines()}
+    registry = home / ".claude/plugins/installed_plugins.json"
+    settings = home / ".claude/settings.json"
+    if not registry.is_file() or not settings.is_file():
+        return [("SKIP", "lsp", ["no installed plugin registry"], "")]
+    enabled = read(settings).get("enabledPlugins", {})
+    results = []
+    for identity, entries in read(registry).get("plugins", {}).items():
+        if enabled.get(identity) is not True or not entries:
+            continue
+        for server, spec in lsp_servers(home, identity, Path(entries[0]["installPath"])).items():
+            if not suffixes & set(spec.get("extensionToLanguage", {})):
+                continue
+            command = spec.get("command", "")
+            problem = probe_lsp(command, root)
+            if problem is None:
+                results.append(("OK", f"lsp/{server}", [], ""))
+                continue
+            install = LSP_INSTALL.get(Path(command).name, f"install {command} for this repository")
+            results.append(("DRIFT", f"lsp/{server}", [problem], f"cd {shlex.quote(str(root))} && {install}"))
+    return results or [("SKIP", "lsp", ["no enabled LSP plugin serves this repository's files"], "")]
+
+
 def audit(home, codex, opencode, cursor=None):
     results = []
     selected = {}
@@ -158,6 +221,7 @@ def main(argv=None):
     parser.add_argument("--codex", type=Path)
     parser.add_argument("--opencode", type=Path)
     parser.add_argument("--cursor", type=Path)
+    parser.add_argument("--repo", type=Path, default=Path.cwd())
     args = parser.parse_args(argv)
     home = args.home.expanduser().resolve()
     config = Path(os.environ.get("XDG_CONFIG_HOME", str(home / ".config"))) if home == Path.home() else home / ".config"
@@ -167,6 +231,10 @@ def main(argv=None):
         print(f"WARN plugin registry: {exc}; inspect Claude's local plugin settings")
         return 1
     results.append(audit_kandev(config / "kandev-fleet.json"))
+    try:
+        results.extend(audit_lsp(home, args.repo))
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        results.append(("DRIFT", "lsp", [f"cannot check language servers: {exc}"], ""))
     for status, label, problems, repair in results:
         print(f"{status} {label}")
         for problem in problems[:3]:
@@ -175,7 +243,7 @@ def main(argv=None):
             print(f"  ... and {len(problems) - 3} more")
         if status in ("WARN", "DRIFT") and repair:
             print(f"  Refresh: {repair}")
-    print("Local files and the local Kandev API only; upstream freshness and running-session reloads are not checked.")
+    print("Local files, the local Kandev API and language-server --version probes only; upstream freshness and running-session reloads are not checked.")
     return int(any(status == "WARN" for status, *_ in results))
 
 
