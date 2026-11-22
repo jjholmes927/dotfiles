@@ -89,9 +89,9 @@ link "$SCRIPT_DIR/mcp-servers.json" "$CLAUDE_HOME/mcp-servers.json"
 chmod +x "$SCRIPT_DIR/sync-mcps.sh"
 "$SCRIPT_DIR/sync-mcps.sh"
 
-header "Fleet tools (~/.local/bin)"
+header "Fleet and agent tools (~/.local/bin)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-for tool in fleet fleet-status deck pair new-agent clone-status lane-sweep gmp-all closure-sweep fleet-toggle agent-host-name; do
+for tool in fleet fleet-status deck pair new-agent clone-status lane-sweep gmp-all closure-sweep fleet-toggle agent-host-name gh-agent; do
   chmod +x "$REPO_DIR/bin/$tool"
   link "$REPO_DIR/bin/$tool" "$HOME/.local/bin/$tool"
 done

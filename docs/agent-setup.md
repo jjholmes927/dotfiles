@@ -149,7 +149,7 @@ When a copy or extraction is actually made, add a record here with: original rep
 
 ## Agent GitHub app
 
-> **TL;DR** Agents post PR comments as `never-miss-a-bot`, a private GitHub App, so nothing goes out as Joel. Revoke it by uninstalling the app.
+> **TL;DR** Agents post PR comments as `never-miss-a-bot`, a private GitHub App, through `gh-agent`, so nothing goes out as Joel. Revoke it by uninstalling the app.
 
 The app has one permission (pull requests: write), no webhooks, and is installed on `jjholmes927/NeverMissABeat` only. It can comment on, review and edit pull requests in that repository; it cannot push or merge.
 
@@ -157,14 +157,18 @@ The app has one permission (pull requests: write), no webhooks, and is installed
 |---|---|
 | App details (`id`, `slug`, `keychain_service`) | `~/.config/jjholmes927-agent/app.json`, mode 600 |
 | Private key (base64 of the PEM) | macOS Keychain, service `jjholmes927-agent-github-app`, account `private-key` |
+| Token cache | `~/.cache/jjholmes927-agent/<owner>__<repo>.json`, mode 600 |
+| Command | [`bin/gh-agent`](../bin/gh-agent), linked into `~/.local/bin` by `claude/install.sh` on every machine |
+
+**Use:** `gh-agent <owner/repo> <gh args…>` runs one `gh` command as the bot, for example `gh-agent jjholmes927/NeverMissABeat pr comment 518 --body-file verdict.md`. It signs a 10-minute app JWT with the Keychain key, mints a 1-hour installation token scoped to that repository's id with pull requests write only, and reuses it until 10 minutes before expiry. The key, JWT and token are never printed. `gh-agent --check <owner/repo>` mints a fresh token and prints only the repositories it reaches.
 
 **Guard:** `claude/hooks/confirm-github-posts.sh` auto-allows a single `gh-agent <owner/repo> pr comment …` command. Anything chained (`;`, `&`, `|`, backticks, `$(`, redirects, newlines, so heredocs too) or containing another `gh` call falls through to the normal rules. Other bot posts (reviews, `api` comment writes) ask, and are denied in bypass mode. Write the body to a file and pass `--body-file`.
 
-**Doctor:** prints `OK agent-github-app` when `app.json` and the Keychain entry exist, and `SKIP agent-github-app` on machines without `app.json` (the work laptop). It never reads the key or calls GitHub.
+**Other machines:** without `app.json` (the work laptop) `gh-agent` exits non-zero with a clear message, and the doctor prints `SKIP agent-github-app`. With it, the doctor prints `OK agent-github-app` when the Keychain entry exists. It never reads the key or calls GitHub.
 
-**Add a repository:** add it to the app's installation on GitHub.
+**Add a repository:** add it to the app's installation on GitHub; `gh-agent` needs no change.
 
-**Revoke:** uninstall the app (GitHub → Settings → Applications → `never-miss-a-bot` → Configure → Uninstall), or remove one repository from its installation there; its tokens stop working. To retire it entirely, also delete the app from its settings page, then remove the Keychain entry (`security delete-generic-password -s jjholmes927-agent-github-app -a private-key`) and `app.json`.
+**Revoke:** uninstall the app (GitHub → Settings → Applications → `never-miss-a-bot` → Configure → Uninstall), or remove one repository from its installation there; its tokens stop working. To retire it entirely, also delete the app from its settings page, then remove the Keychain entry (`security delete-generic-password -s jjholmes927-agent-github-app -a private-key`), `app.json` and the token cache.
 
 ## Maintenance and validation
 
