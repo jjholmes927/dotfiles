@@ -341,5 +341,79 @@ class KandevDoctorTests(unittest.TestCase):
         self.assertIn("DRIFT kandev\n  watch agent:implement-codex is missing\n  Refresh: fix it", output.getvalue())
 
 
+class LspDoctorTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        base = Path(self.temporary.name)
+        self.home = base / "home"
+        self.plugin = base / "plugin"
+        self.plugin.mkdir(parents=True)
+        self.repo = base / "repo"
+        self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True)
+        self.track("app/models/user.rb")
+        self.identity = "ruby-lsp@official"
+        self.write(self.home / ".claude/settings.json", {"enabledPlugins": {self.identity: True}})
+        self.write(self.home / ".claude/plugins/installed_plugins.json", {"plugins": {self.identity: [{"scope": "user", "installPath": str(self.plugin)}]}})
+        self.server = base / "bin/ruby-lsp"
+        self.server_script("echo 0.26.11")
+
+    def write(self, path, content):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(content) if isinstance(content, dict) else content)
+
+    def track(self, relative):
+        self.write(self.repo / relative, "")
+        subprocess.run(["git", "-C", str(self.repo), "add", relative], check=True)
+
+    def server_script(self, body):
+        self.write(self.server, f"#!/bin/sh\n{body}\n")
+        self.server.chmod(0o755)
+        self.write(self.plugin / ".lsp.json", {"ruby-lsp": {"command": str(self.server), "extensionToLanguage": {".rb": "ruby"}}})
+
+    def test_server_that_starts_in_the_repository_is_ok(self):
+        self.assertEqual([("OK", "lsp/ruby-lsp", [], "")], doctor.audit_lsp(self.home, self.repo / "app"))
+
+    def test_server_missing_for_the_repository_runtime_is_drift_with_its_install_command(self):
+        self.server_script("echo 'rbenv: ruby-lsp: command not found' >&2; exit 127")
+        [(status, label, problems, repair)] = doctor.audit_lsp(self.home, self.repo)
+        self.assertEqual(("DRIFT", "lsp/ruby-lsp", ["rbenv: ruby-lsp: command not found"]), (status, label, problems))
+        self.assertEqual(f"cd {self.repo.resolve()} && gem install ruby-lsp", repair)
+
+    def test_absent_command_is_drift(self):
+        self.server.unlink()
+        [(status, _, problems, _)] = doctor.audit_lsp(self.home, self.repo)
+        self.assertEqual("DRIFT", status)
+        self.assertIn("command not found", problems[0])
+
+    def test_server_for_files_the_repository_lacks_is_not_checked(self):
+        subprocess.run(["git", "-C", str(self.repo), "rm", "-q", "--cached", "app/models/user.rb"], check=True)
+        self.track("script.py")
+        self.server_script("exit 1")
+        self.assertEqual([("SKIP", "lsp", ["no enabled LSP plugin serves this repository's files"], "")], doctor.audit_lsp(self.home, self.repo))
+
+    def test_disabled_plugin_is_not_checked(self):
+        self.write(self.home / ".claude/settings.json", {"enabledPlugins": {self.identity: False}})
+        self.assertEqual("SKIP", doctor.audit_lsp(self.home, self.repo)[0][0])
+
+    def test_marketplace_entry_supplies_the_server(self):
+        (self.plugin / ".lsp.json").unlink()
+        catalog = {"plugins": [{"name": "ruby-lsp", "lspServers": {"ruby-lsp": {"command": str(self.server), "extensionToLanguage": {".rb": "ruby"}}}}]}
+        self.write(self.home / ".claude/plugins/marketplaces/official/.claude-plugin/marketplace.json", catalog)
+        self.assertEqual("OK", doctor.audit_lsp(self.home, self.repo)[0][0])
+
+    def test_outside_a_git_repository_is_skipped(self):
+        outside = Path(self.temporary.name) / "plain"
+        outside.mkdir()
+        self.assertEqual([("SKIP", "lsp", ["not in a git repository"], "")], doctor.audit_lsp(self.home, outside))
+
+    def test_lsp_drift_is_printed_but_never_fails_the_doctor(self):
+        self.server_script("echo 'rbenv: ruby-lsp: command not found' >&2; exit 127")
+        with contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(0, doctor.main(["--home", str(self.home), "--repo", str(self.repo)]))
+        self.assertIn("DRIFT lsp/ruby-lsp\n  rbenv: ruby-lsp: command not found\n  Refresh: cd ", output.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
