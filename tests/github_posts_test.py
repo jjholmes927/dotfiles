@@ -102,6 +102,18 @@ class ExistingGuardTests(HookCase):
         for command in ["gh pr comment 518 --body '[e2e resolved] fixed in abc'", "gh pr comment 518 --body '[e2e unresolved] still failing'"]:
             self.assertDecision(command, "allow", "allow", "e2e pipeline finding comment - auto-allowed")
 
+    def test_e2e_tag_does_not_carry_other_posts_as_joel(self):
+        for command in [
+            "gh pr comment 518 --body '[e2e resolved] fixed'; gh pr comment 519 --body 'anything'",
+            "gh pr comment 518 --body '[e2e resolved] fixed' && gh pr comment 519 --body 'anything'",
+            "gh pr comment 518 --body '[e2e resolved] fixed' | tee out.txt",
+            "gh pr comment 518 --body \"$(cat notes.md) [e2e resolved]\"",
+            "gh pr comment 518 --body-file notes.md # [e2e resolved]\ngh pr comment 519 --body x",
+            "cd repo && gh pr comment 518 --body '[e2e resolved] fixed'",
+            "gh issue comment 518 --body '[e2e resolved] fixed'",
+        ]:
+            self.assertDecision(command, "deny", "ask", "posts to GitHub as Joel")
+
     def test_reads_and_unrelated_commands_get_no_decision(self):
         for command in ["gh pr view 518", "gh api repos/o/r/pulls/518/comments", "gh pr list", "git status", "ls -la", ""]:
             self.assertDecision(command, None, None, "")

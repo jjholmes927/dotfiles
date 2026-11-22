@@ -14,7 +14,7 @@ unchained() {
 if [[ $cmd =~ $agent_comment ]] && ! [[ $cmd =~ $other_gh ]] && unchained "$cmd"; then
   echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"Single gh-agent pr comment posts as the agent bot, not Joel - auto-allowed"}}'
 elif echo "$cmd" | grep -qE "$posts"; then
-  if echo "$cmd" | grep -q 'gh pr comment' && echo "$cmd" | grep -qE '\[e2e (un)?resolved\]'; then
+  if [[ $cmd =~ ^[[:space:]]*gh[[:space:]]+pr[[:space:]]+comment[[:space:]] ]] && [ "$(grep -oE "$other_gh" <<<"$cmd" | wc -l)" -eq 1 ] && unchained "$cmd" && echo "$cmd" | grep -qE '\[e2e (un)?resolved\]'; then
     echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"e2e pipeline finding comment - auto-allowed"}}'
   elif [ "$mode" = "bypassPermissions" ]; then
     echo '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"This posts to GitHub as Joel and bypass mode cannot confirm it - ask Joel in chat first, then have him post it or switch out of bypass mode"}}'
