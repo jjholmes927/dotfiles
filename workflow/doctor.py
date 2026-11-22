@@ -93,6 +93,28 @@ def audit_kandev(conf_path):
     return ("DRIFT" if problems else "OK", "kandev", problems, f"cd {shlex.quote(str(ROOT))} && python3 kandev/configure.py")
 
 
+def audit_agent_app(config):
+    label = "agent-github-app"
+    app = config / "jjholmes927-agent/app.json"
+    if not app.is_file():
+        return ("SKIP", label, ["no agent GitHub app on this machine"], "")
+    try:
+        data = read(app)
+        service = data["keychain_service"]
+        if not data.get("id") or not isinstance(service, str) or not service:
+            raise ValueError("needs id and keychain_service")
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return ("DRIFT", label, [f"cannot read {app}: {exc}"], "")
+    try:
+        found = subprocess.run(["security", "find-generic-password", "-s", service, "-a", "private-key"], stdin=subprocess.DEVNULL, capture_output=True, timeout=10).returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        found = False
+    if not found:
+        repair = f"security add-generic-password -U -s {shlex.quote(service)} -a private-key -w  (paste the base64 private key at the prompt)"
+        return ("DRIFT", label, [f"no private key in the macOS Keychain (service {service}, account private-key)"], repair)
+    return ("OK", label, [], "")
+
+
 def lsp_servers(home, identity, source):
     name, _, market = identity.partition("@")
     servers = {}
@@ -231,6 +253,7 @@ def main(argv=None):
         print(f"WARN plugin registry: {exc}; inspect Claude's local plugin settings")
         return 1
     results.append(audit_kandev(config / "kandev-fleet.json"))
+    results.append(audit_agent_app(config))
     try:
         results.extend(audit_lsp(home, args.repo))
     except (OSError, ValueError, KeyError, TypeError) as exc:
@@ -243,7 +266,7 @@ def main(argv=None):
             print(f"  ... and {len(problems) - 3} more")
         if status in ("WARN", "DRIFT") and repair:
             print(f"  Refresh: {repair}")
-    print("Local files, the local Kandev API and language-server --version probes only; upstream freshness and running-session reloads are not checked.")
+    print("Local files, the local Kandev API, Keychain entry presence and language-server --version probes only; upstream freshness and running-session reloads are not checked.")
     return int(any(status == "WARN" for status, *_ in results))
 
 

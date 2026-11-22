@@ -147,6 +147,25 @@ Codex additionally has the five dotfiles utilities listed in the ownership table
 
 When a copy or extraction is actually made, add a record here with: original repository/path/revision and author evidence; destination repository/path/revision; upstream link; why it diverged; remaining dependencies; and maintenance policy (follow upstream or independent fork). Distinguish an adapter that still needs Beam source access from a standalone personal copy. Record unknown provenance explicitly; never infer that everything in a personal repository originated there.
 
+## Agent GitHub app
+
+> **TL;DR** Agents post PR comments as `never-miss-a-bot`, a private GitHub App, so nothing goes out as Joel. Revoke it by uninstalling the app.
+
+The app has one permission (pull requests: write), no webhooks, and is installed on `jjholmes927/NeverMissABeat` only. It can comment on, review and edit pull requests in that repository; it cannot push or merge.
+
+| Piece | Where |
+|---|---|
+| App details (`id`, `slug`, `keychain_service`) | `~/.config/jjholmes927-agent/app.json`, mode 600 |
+| Private key (base64 of the PEM) | macOS Keychain, service `jjholmes927-agent-github-app`, account `private-key` |
+
+**Guard:** `claude/hooks/confirm-github-posts.sh` auto-allows a single `gh-agent <owner/repo> pr comment …` command. Anything chained (`;`, `&`, `|`, backticks, `$(`, redirects, newlines, so heredocs too) or containing another `gh` call falls through to the normal rules. Other bot posts (reviews, `api` comment writes) ask, and are denied in bypass mode. Write the body to a file and pass `--body-file`.
+
+**Doctor:** prints `OK agent-github-app` when `app.json` and the Keychain entry exist, and `SKIP agent-github-app` on machines without `app.json` (the work laptop). It never reads the key or calls GitHub.
+
+**Add a repository:** add it to the app's installation on GitHub.
+
+**Revoke:** uninstall the app (GitHub → Settings → Applications → `never-miss-a-bot` → Configure → Uninstall), or remove one repository from its installation there; its tokens stop working. To retire it entirely, also delete the app from its settings page, then remove the Keychain entry (`security delete-generic-password -s jjholmes927-agent-github-app -a private-key`) and `app.json`.
+
 ## Maintenance and validation
 
 Reusable personal workflow bodies belong in the personal marketplace. CI rejects
@@ -173,8 +192,8 @@ generator hashes; they do not prove which duplicate skill an active session chos
 | `OK` | Selected local source, recorded hashes and managed files agree |
 | `WARN` | Source selection changed, a managed file changed/disappeared, or provenance is incomplete; the output includes a refresh command |
 | `PINNED` | An intentional local marketplace source is selected; upstream updates are paused |
-| `DRIFT` | Kandev watches differ from `configure.py`, or an enabled language server cannot start in this repository; printed with the fix, never fails the doctor |
-| `SKIP` | This harness or optional package is not installed |
+| `DRIFT` | Kandev watches differ from `configure.py`, an enabled language server cannot start in this repository, or the [agent GitHub app](#agent-github-app) has no Keychain key; printed with the fix, never fails the doctor |
+| `SKIP` | This harness, optional package or agent GitHub app is not set up |
 
 Warnings return exit 1 for scripts, but refresh/preflight reports them without adding an approval gate or automatically changing an installation. They do not replace verification. Old manifests need one refresh; OpenCode needs a full refresh to establish complete provenance. Partial refreshes retain evidence for untouched adapters rather than certifying them as current.
 
