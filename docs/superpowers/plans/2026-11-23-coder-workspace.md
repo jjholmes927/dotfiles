@@ -229,7 +229,7 @@ Expected: PASS on both.
   - **Links:** `~/.tmux.conf` and `~/.tmux.conf.local`; `coder/gh` as `~/.local/bin/gh`.
   - **Installers:** `bash/install.sh`, `claude/install.sh`, `codex/install.sh`.
   - **Repos:** clone magicnotes to `mn1` and run `git remote set-head origin -a`. `life-vault` and `second-brain` are never cloned on the box.
-  - **magicnotes setup:** `docker compose up -d`, then `bin/setup`, once. It needs `development.key` (`SKIP` without it) and leaves the marker `$CODER_SETUP_STATE/mn1-setup-done`.
+  - **magicnotes setup:** `docker compose up -d`, then `bin/setup`, once. It needs `config/credentials/development.key` and `test.key` and the Avo licence line in `~/.bundle/config` (`SKIP magicnotes-secrets` without them) and leaves the marker `$CODER_SETUP_STATE/mn1-setup-done`.
   - **Kandev:** copy `coder/kandev-fleet.json` to `~/.config/kandev-fleet.json` when missing, then run `kandev/install-linux.sh`. `SKIP linear-key` when `secret-get linear-api-key` fails; `SKIP codex-login` when `codex login status` fails.
   - **PATH:** sources `bash/linux/exports` before any step, so `configure.py` records the full PATH.
 - `coder/kandev-fleet.json`: `workspace` `Default Workspace`, `workflow` `Development`, `executor` `worktree`, `kandev_version` `0.100.0`, `claude_acp_version` `0.70.0`, `claude_profile` `{auto_approve: true, model: "opus[1m]"}`, lanes `[{name: "mn1", path: "~/engineering/mn1"}]`. `linear` has `keychain_item: linear-api-key`, `team: INT`, `state: Todo`, `assigned: me`, `poll_seconds: 60`, `max_inflight: 1`, and the four core labels (`agent:implement`, `agent:investigate`, `agent:implement-codex`, `agent:investigate-codex`), each with `repository: mn1, enabled: false`.
@@ -271,7 +271,7 @@ Run: `coder ssh joel-holmes-AKA-the-night-dragon -- 'git clone -b jjholmes927-co
 Expected: returns in under 3 minutes with rc 0, and `~/.local/state/coder-setup/status` shows `system OK`.
 
 - [ ] **Step 4: Wait for the home phase**, polling `cat ~/.local/state/coder-setup/status` every 2 minutes. Ruby compiles on the first run.
-Expected: `home SKIP … linear-key codex-login magicnotes-setup`, and no `FAIL`. **`test_partial_ruby_dir_is_rebuilt`:** `~/.rbenv/versions/4.0.10/bin/ruby -v` prints `ruby 4.0.10`.
+Expected: `home SKIP … linear-key codex-login magicnotes-secrets`, and no `FAIL`. **`test_partial_ruby_dir_is_rebuilt`:** `~/.rbenv/versions/4.0.10/bin/ruby -v` prints `ruby 4.0.10`.
 
 - [ ] **Step 5: Check the tools:** `bash -lc 'node -v; pnpm -v; ruby -v; go version; claude --version; codex --version; overmind -v; ldcli --version; agent-browser --version; gh auth status; ls -l ~/.claude/CLAUDE.md'`
 Expected: Node `v24.19.0`, pnpm `12.6.0`, Ruby `4.0.10`; every command resolves; `CLAUDE.md` is a link into the dotfiles.
@@ -286,7 +286,8 @@ Expected: Node `v24.19.0`, pnpm `12.6.0`, Ruby `4.0.10`; every command resolves;
 B=joel-holmes-AKA-the-night-dragon
 security find-generic-password -s linear-api-key -w | coder ssh $B -- 'umask 077; mkdir -p ~/.config/secrets; cat > ~/.config/secrets/linear-api-key'
 security find-generic-password -s honeycomb-agent-traces -w | coder ssh $B -- 'umask 077; cat > ~/.config/secrets/honeycomb-agent-traces'
-coder ssh $B -- 'umask 077; cat > ~/engineering/mn1/config/credentials/development.key' < ~/engineering/mn3/config/credentials/development.key
+for k in development test; do coder ssh $B -- "umask 077; cat > ~/engineering/mn1/config/credentials/$k.key" < ~/engineering/mn1/config/credentials/$k.key; done
+grep '^BUNDLE_HTTPS://PACKAGER__DEV/AVO___HQ/:' ~/.bundle/config | coder ssh $B -- 'umask 077; mkdir -p ~/.bundle; [ -s ~/.bundle/config ] || echo --- > ~/.bundle/config; grep -q "^BUNDLE_HTTPS://PACKAGER__DEV/AVO___HQ/:" ~/.bundle/config || cat >> ~/.bundle/config'
 coder ssh $B -- 'umask 077; mkdir -p ~/.config/ldcli; cat > ~/.config/ldcli/config.yml' < ~/.config/ldcli/config.yml
 ```
 
