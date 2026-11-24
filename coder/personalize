@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+dotfiles="${DOTFILES_DIR:-$HOME/engineering/dotfiles}"
+url="${DOTFILES_URL:-https://github.com/jjholmes927/dotfiles.git}"
+state="${CODER_SETUP_STATE:-$HOME/.local/state/coder-setup}"
+
+mkdir -p "$state"
+log="$state/personalize-$(date -u +%Y%m%dT%H%M%SZ).log"
+exec 3>&1
+exec >>"$log" 2>&1
+
+say() { printf '%s %s\n' "$(date -u +%H:%M:%S)" "$*"; }
+
+limited() {
+  local seconds="$1"
+  shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$seconds" "$@"
+  else
+    "$@"
+  fi
+}
+
+set_status() {
+  local file="$state/status"
+  { grep -v "^$1 " "$file" 2>/dev/null; printf '%s %s %s\n' "$1" "$2" "$log"; } > "$file.tmp"
+  mv "$file.tmp" "$file"
+}
+
+finish() {
+  ls -1t "$state"/personalize-*.log 2>/dev/null | tail -n +11 | while read -r old; do rm -f "$old"; done
+  printf 'personalize: %s (log %s)\n' "$1" "$log" >&3
+  exit 0
+}
+
+agent_env="$HOME/.config/coder-setup/agent.env"
+mkdir -p "$(dirname "$agent_env")"
+(
+  umask 077
+  : > "$agent_env.tmp"
+  for name in CODER_AGENT_URL CODER_AGENT_TOKEN CODER_AGENT_AUTH; do
+    [ -n "${!name:-}" ] && printf '%s=%s\n' "$name" "${!name}" >> "$agent_env.tmp"
+  done
+  mv "$agent_env.tmp" "$agent_env"
+)
+chmod 600 "$agent_env"
+
+if [ ! -d "$dotfiles/.git" ]; then
+  say "cloning $url into $dotfiles"
+  mkdir -p "$(dirname "$dotfiles")"
+  if ! limited 60 git clone -q "$url" "$dotfiles"; then
+    say "clone failed"
+    set_status system FAIL
+    finish "clone failed"
+  fi
+else
+  branch=$(git -C "$dotfiles" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ -n "$(git -C "$dotfiles" status --porcelain 2>/dev/null)" ]; then
+    say "skip pull: dirty"
+  elif [ "$branch" != master ]; then
+    say "skip pull: on $branch"
+  elif limited 60 git -C "$dotfiles" pull -q --ff-only; then
+    say "pulled $(git -C "$dotfiles" rev-parse --short HEAD)"
+  else
+    say "pull failed; continuing with $(git -C "$dotfiles" rev-parse --short HEAD)"
+  fi
+fi
+
+setup="$dotfiles/coder/setup.sh"
+say "system phase"
+if CODER_SETUP_STATE="$state" "$setup" system; then
+  set_status system OK
+else
+  set_status system FAIL
+fi
+
+say "starting home phase in the background"
+if command -v setsid >/dev/null 2>&1; then
+  CODER_SETUP_STATE="$state" setsid nohup "$setup" home </dev/null >/dev/null 2>&1 &
+else
+  CODER_SETUP_STATE="$state" nohup "$setup" home </dev/null >/dev/null 2>&1 &
+fi
+
+finish "$(grep '^system ' "$state/status" | cut -d' ' -f2)"

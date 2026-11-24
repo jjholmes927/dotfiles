@@ -34,6 +34,7 @@ retry and release-check details.
 | `opencode/` | OpenCode migration — workflow adapters, skills, MCPs, notifications, installer |
 | `upstream-skills/` | Third-party skills (e.g. `grill-me`) linked from upstream repos into every harness |
 | `kandev/` | Task intake, worktree/profile setup and local Kandev configuration |
+| `coder/` | Beam Coder workspace bootstrap: `personalize`, `setup.sh`, GitHub credential helper, box Kandev config |
 | `docs/` | Agent package map, shared workflow contract and setup guides |
 | `git/` | Git config |
 | `tmux/` | tmux config |
@@ -69,6 +70,30 @@ npm install -g @anthropic-ai/claude-code
 The `npm install` gives you the `claude` CLI. The install script symlinks `CLAUDE.md`, `settings.json`, `commands/`, `scripts/statusline.sh`, and `hooks/tmux-alert.sh` into `~/.claude/`. Idempotent and safe to re-run.
 
 Note: project-level `CLAUDE.md` files live in each project repo, not here.
+
+## Coder workspace (Linux)
+
+> **TL;DR** On Beam's Coder workspace, `~/personalize` runs `coder/setup.sh` on every start and rebuilds this setup: system packages before login, then toolchains, harnesses, magicnotes and Kandev in the background. Design: [`docs/superpowers/specs/2026-11-23-coder-workspace-design.md`](docs/superpowers/specs/2026-11-23-coder-workspace-design.md).
+
+**First time on a new workspace:**
+
+```bash
+git clone https://github.com/jjholmes927/dotfiles.git ~/engineering/dotfiles
+ln -sf ~/engineering/dotfiles/coder/personalize ~/personalize
+~/personalize
+```
+
+**Status:** `cat ~/.local/state/coder-setup/status`. A new shell prints a `coder-setup:` line when a phase failed, is running or skipped a step; the line names the log.
+
+**Secrets** are Coder user secrets written to `~/.config/secrets/<name>` on every start (`coder secret list` shows them). `bin/secret-get <name>` reads them, and the Keychain on the Mac.
+
+**Re-copy the good-code checklist** after editing it on the Mac:
+
+```bash
+coder ssh joel-holmes-AKA-the-night-dragon -- 'mkdir -p ~/.config/good-code && cat > ~/.config/good-code/good-code.md' < ~/engineering/life-vault/06-principles/good-code.md
+```
+
+**Kandev UI from the Mac:** `coder port-forward joel-holmes-AKA-the-night-dragon --tcp 38430:38429`, then open `http://localhost:38430`. Linear watches are off on the box.
 
 ## Warp
 

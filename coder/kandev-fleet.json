@@ -1,0 +1,50 @@
+{
+  "workspace": "Default Workspace",
+  "workflow": "Development",
+  "executor": "worktree",
+  "kandev_version": "0.100.0",
+  "claude_acp_version": "0.70.0",
+  "claude_profile": {
+    "auto_approve": true,
+    "model": "opus[1m]"
+  },
+  "lanes": [
+    {
+      "name": "mn1",
+      "path": "~/engineering/mn1",
+      "default_branch": "main",
+      "setup_script": "~/engineering/dotfiles/magicnotes/kandev_worktree_setup.sh",
+      "cleanup_script": "~/engineering/dotfiles/magicnotes/kandev_worktree_cleanup.sh"
+    }
+  ],
+  "linear": {
+    "keychain_item": "linear-api-key",
+    "team": "INT",
+    "state": "Todo",
+    "assigned": "me",
+    "poll_seconds": 60,
+    "max_inflight": 1,
+    "watches": [
+      {
+        "label": "agent:implement",
+        "repository": "mn1",
+        "enabled": false
+      },
+      {
+        "label": "agent:investigate",
+        "repository": "mn1",
+        "enabled": false
+      },
+      {
+        "label": "agent:implement-codex",
+        "repository": "mn1",
+        "enabled": false
+      },
+      {
+        "label": "agent:investigate-codex",
+        "repository": "mn1",
+        "enabled": false
+      }
+    ]
+  }
+}

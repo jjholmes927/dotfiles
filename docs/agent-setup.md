@@ -223,3 +223,7 @@ Guides and evidence consulted: dotfiles installer code and harness READMEs; curr
 [dotfiles]: https://github.com/jjholmes927/dotfiles
 [socratic-addition]: https://github.com/wearebeam/beam-claude-skills/commit/467c8048983b48b908b2f57e10a1d22b741af75f
 [e2e-ticket]: https://app.todoist.com/app/task/6hXxx47R6x5JXFgG
+
+## Coder workspace
+
+The Beam Coder workspace runs the same harnesses from `coder/` (see the README's Coder section). Differences from the Mac: secrets come from Coder user secrets via `bin/secret-get`; GitHub uses Coder's token through `coder/git-credential-coder`; Kandev runs under systemd with Linear watches off; the Linear MCP uses an Interpret-only API key, Honeycomb MCP is read-only and Sentry MCP is scoped to `beam-eu/magic-notes`.

@@ -5,13 +5,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_FILE="$SCRIPT_DIR/mcp-servers.json"
 TARGET_FILE="$HOME/.claude.json"
+OVERRIDES_FILE="${CLAUDE_MCP_OVERRIDES:-$HOME/.config/coder-setup/mcp-overrides.json}"
 
 if [[ ! -f "$SOURCE_FILE" ]]; then
   echo "Missing MCP source file: $SOURCE_FILE" >&2
   exit 1
 fi
 
-python3 - "$SOURCE_FILE" "$TARGET_FILE" <<'PY'
+python3 - "$SOURCE_FILE" "$TARGET_FILE" "$OVERRIDES_FILE" <<'PY'
 import json
 import shutil
 import sys
@@ -20,6 +21,7 @@ from pathlib import Path
 
 source_path = Path(sys.argv[1])
 target_path = Path(sys.argv[2])
+overrides_path = Path(sys.argv[3])
 
 source_servers = json.loads(source_path.read_text())
 filtered_servers = dict(source_servers)
@@ -55,7 +57,8 @@ else:
 
 previous = target_data.get("mcpServers", {})
 
-merged = {**previous, **filtered_servers}
+overrides = json.loads(overrides_path.read_text()) if overrides_path.exists() else {}
+merged = {**previous, **filtered_servers, **overrides}
 for name in skipped:
     merged.pop(name, None)
 
@@ -76,7 +79,11 @@ target_path.write_text(json.dumps(target_data, indent=2) + "\n")
 print(f"Synced {len(filtered_servers)} repo-defined Claude MCP servers into {target_path}")
 for name in filtered_servers:
     print(f"  - {name}")
-machine_local = sorted(set(merged) - set(filtered_servers))
+if overrides:
+    print(f"Applied machine overrides from {overrides_path}:")
+    for name in overrides:
+        print(f"  - {name}")
+machine_local = sorted(set(merged) - set(filtered_servers) - set(overrides))
 if machine_local:
     print("Preserved machine-local servers:")
     for name in machine_local:
