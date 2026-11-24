@@ -23,6 +23,7 @@ jobs:
           - { dir: tests, module: github_posts_test }
           - { dir: tests, module: gh_agent_test }
           - { dir: tests, module: secret_get_test }
+          - { dir: tests, module: portability_test }
           - { dir: kandev, module: test_secret }
     name: ${{ matrix.suite.dir }}/${{ matrix.suite.module }}
     steps:

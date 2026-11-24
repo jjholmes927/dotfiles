@@ -25,11 +25,11 @@ else
   second_pass=1
 fi
 
-sed -i '' "s/^WORKTREE_OFFSET=.*/WORKTREE_OFFSET=$offset/" .env
+sed -i.kandev-bak "s/^WORKTREE_OFFSET=.*/WORKTREE_OFFSET=$offset/" .env && rm -f .env.kandev-bak
 grep -q '^WORKTREE_OFFSET=' .env || echo "WORKTREE_OFFSET=$offset" >> .env
 
 tasks_root=$(dirname "$(dirname "$wt")")
-used_ports=$(grep -hs '^PORT=' "$tasks_root"/*/*/.env "$main"/.worktrees/*/.env 2>/dev/null | grep -v -F "$(grep '^PORT=' .env || true)" | cut -d= -f2 | sort -u)
+used_ports=$(grep -hs '^PORT=' "$tasks_root"/*/*/.env "$main"/.worktrees/*/.env 2>/dev/null | grep -v -F "$(grep '^PORT=' .env || true)" | cut -d= -f2 | sort -u || true)
 slot_taken() {
   echo "$used_ports" | grep -qx "$((3000 + $1))" && return 0
   for port in $((3000 + $1)) $((3130 + $1)) $((28080 + $1)) $((6379 + $1)); do
@@ -39,10 +39,10 @@ slot_taken() {
 }
 slot=1
 while slot_taken "$slot"; do slot=$((slot + 1)); done
-sed -i '' -e "s/^PORT=.*/PORT=$((3000 + slot))/" -e "s/^DEV_WEB_PORT=.*/DEV_WEB_PORT=$((3000 + slot))/" \
+sed -i.kandev-bak -e "s/^PORT=.*/PORT=$((3000 + slot))/" -e "s/^DEV_WEB_PORT=.*/DEV_WEB_PORT=$((3000 + slot))/" \
   -e "s/^VITE_PORT=.*/VITE_PORT=$((3130 + slot))/" -e "s/^WSS_PORT=.*/WSS_PORT=$((28080 + slot))/" \
   -e "s/^REDIS_PORT=.*/REDIS_PORT=$((6379 + slot))/" -e "s|^REDIS_URL=.*|REDIS_URL=redis://localhost:$((6379 + slot))/1|" \
-  -e "s|^SERVICE_URL=.*|SERVICE_URL=http://localhost:$((3000 + slot))|" .env
+  -e "s|^SERVICE_URL=.*|SERVICE_URL=http://localhost:$((3000 + slot))|" .env && rm -f .env.kandev-bak
 
 set -a
 while IFS='=' read -r key value; do
