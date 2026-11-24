@@ -96,6 +96,17 @@ class Personalize(ShellToolCase):
         self.assertEqual(result.returncode, 0)
         self.assertTrue(self.status().startswith("system FAIL "))
 
+    def test_returns_before_home_phase_finishes(self):
+        seed = self.seeds["dotfiles"]
+        with open(os.path.join(seed, "coder", "setup.sh"), "w") as fh:
+            fh.write('#!/bin/sh\n[ "$1" = home ] && sleep 4\necho "$1" >> "$STUB_LOG_DIR/setup.log"\n')
+        self.git("-C", seed, "commit", "-q", "-am", "slow home")
+        self.git("-C", seed, "push", "-q", "origin", "master")
+        started = time.time()
+        result = self.personalize()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertLess(time.time() - started, 3)
+
     def test_agent_env_written_private(self):
         self.personalize(CODER_AGENT_TOKEN="t")
         path = os.path.join(self.home, ".config", "coder-setup", "agent.env")

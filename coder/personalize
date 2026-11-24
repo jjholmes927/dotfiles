@@ -77,9 +77,9 @@ fi
 
 say "starting home phase in the background"
 if command -v setsid >/dev/null 2>&1; then
-  CODER_SETUP_STATE="$state" setsid nohup "$setup" home </dev/null >/dev/null 2>&1 &
+  CODER_SETUP_STATE="$state" setsid nohup "$setup" home </dev/null >/dev/null 2>&1 3>&- &
 else
-  CODER_SETUP_STATE="$state" nohup "$setup" home </dev/null >/dev/null 2>&1 &
+  CODER_SETUP_STATE="$state" nohup "$setup" home </dev/null >/dev/null 2>&1 3>&- &
 fi
 
 finish "$(grep '^system ' "$state/status" | cut -d' ' -f2)"

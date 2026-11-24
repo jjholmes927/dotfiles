@@ -39,7 +39,9 @@ system_phase() {
   local cache="$HOME/.cache/apt-archives"
   local apt=(sudo DEBIAN_FRONTEND=noninteractive apt-get -o "Dir::Cache::archives=$cache" -o Dpkg::Use-Pty=0 -qq)
   tighten_secrets
-  sudo mkdir -p "$cache/partial" || return 1
+  mkdir -p "$HOME/.cache"
+  [ -O "$HOME/.cache" ] || sudo chown "$USER:" "$HOME/.cache" || return 1
+  mkdir -p "$cache" && sudo mkdir -p "$cache/partial" || return 1
   say "apt update"
   "${apt[@]}" update || return 1
   say "apt install"
@@ -182,7 +184,7 @@ json.dump(servers, open(sys.argv[1], "w"), indent=2)
 }
 
 installers() {
-  "$repo/bash/install.sh" && "$repo/claude/install.sh" && "$repo/codex/install.sh"
+  bash "$repo/bash/install.sh" && bash "$repo/claude/install.sh" && bash "$repo/codex/install.sh"
 }
 
 repos() {
