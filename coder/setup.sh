@@ -35,6 +35,26 @@ wait_for_docker() {
   return 1
 }
 
+docker_store() {
+  local conf="${DOCKER_DAEMON_JSON:-/etc/docker/daemon.json}" merged
+  command -v docker >/dev/null || return 0
+  wait_for_docker || return 1
+  [ "$(docker info --format '{{.Driver}}' 2>/dev/null)" = overlay2 ] && return 0
+  merged=$(python3 -c '
+import json, sys
+try:
+    data = json.load(open(sys.argv[1]))
+except FileNotFoundError:
+    data = {}
+data.setdefault("features", {})["containerd-snapshotter"] = False
+print(json.dumps(data, indent=2))
+' "$conf") || return 1
+  sudo mkdir -p "$(dirname "$conf")" || return 1
+  printf '%s\n' "$merged" | sudo tee "$conf" >/dev/null || return 1
+  say "docker: moving images and containers onto /var/lib/docker"
+  sudo systemctl restart docker && wait_for_docker
+}
+
 system_phase() {
   local cache="$HOME/.cache/apt-archives"
   local apt=(sudo DEBIAN_FRONTEND=noninteractive apt-get -o "Dir::Cache::archives=$cache" -o Dpkg::Use-Pty=0 -qq)
@@ -47,6 +67,7 @@ system_phase() {
   say "apt install"
   "${apt[@]}" install -y --no-install-recommends $(grep -v '^[[:space:]]*$' "$here/apt-packages.txt") || return 1
   sudo locale-gen en_GB.UTF-8 >/dev/null || return 1
+  docker_store || return 1
   if [ -f "$mn1/compose.yaml" ]; then
     wait_for_docker || return 1
     (cd "$mn1" && docker compose up -d) || return 1
