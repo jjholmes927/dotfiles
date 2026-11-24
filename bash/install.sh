@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROFILE_D="${HOME}/.profile.d"
 BACKUP_DIR="${HOME}/.dotfiles-backups/bash-install-$(date +%Y-%m-%d-%H%M%S)"
+BASHRC_START="# >>> dotfiles profile.d >>>"
+BASHRC_END="# <<< dotfiles profile.d <<<"
 
 already() { printf '  ✓ %s\n' "$1"; }
 linking() { printf '  → %s\n' "$1"; }
@@ -42,13 +44,30 @@ link() {
 header "Bash dotfiles install"
 echo "  Source: $SCRIPT_DIR"
 
-link "$SCRIPT_DIR/.bash_profile" "$HOME/.bash_profile"
+if [[ "$(uname -s)" == Linux ]]; then
+  header "profile.d (Linux)"
+  for name in alias bash-colours bash-completion bash-history otel; do
+    link "$SCRIPT_DIR/.profile.d/$name" "$PROFILE_D/$name"
+  done
+  link "$SCRIPT_DIR/linux/exports" "$PROFILE_D/linux-exports"
 
-header "profile.d"
-for src in "$SCRIPT_DIR"/.profile.d/*; do
-  [[ -f "$src" ]] || continue
-  link "$src" "$PROFILE_D/$(basename "$src")"
-done
+  header ".bashrc"
+  if grep -qF "$BASHRC_START" "$HOME/.bashrc" 2>/dev/null; then
+    already "$HOME/.bashrc"
+  else
+    printf '\n%s\nfor f in "$HOME"/.profile.d/*; do [ -r "$f" ] && . "$f"; done\nunset f\n%s\n' \
+      "$BASHRC_START" "$BASHRC_END" >> "$HOME/.bashrc"
+    linking "$HOME/.bashrc (sources ~/.profile.d)"
+  fi
+else
+  link "$SCRIPT_DIR/.bash_profile" "$HOME/.bash_profile"
+
+  header "profile.d"
+  for src in "$SCRIPT_DIR"/.profile.d/*; do
+    [[ -f "$src" ]] || continue
+    link "$src" "$PROFILE_D/$(basename "$src")"
+  done
+fi
 
 header "Done"
 if [[ -d "$BACKUP_DIR" ]]; then
