@@ -63,6 +63,7 @@
 | Claude and Codex now; Cursor and OpenCode later | My call, Joel agreed |
 | Secrets as files under `~/.config/secrets/`, read through one helper | My call, Joel agreed |
 | Kandev reached from the Mac with `coder port-forward` on local port 38430 | My call, Joel agreed |
+| Copy the Mac's existing Linear, Honeycomb and LaunchDarkly credentials (no box-only keys) | Joel, 2026-11-24 |
 | Everything below this line | My call unless marked |
 
 ## Design
