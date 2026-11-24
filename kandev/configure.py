@@ -33,6 +33,7 @@ DEFAULTS = {
     ],
 }
 SOURCE_PLUGIN_SCRIPT = Path(__file__).resolve().parent / "plugins/install-source-plugin.sh"
+SECRET_GET = Path(__file__).resolve().parent.parent / "bin/secret-get"
 KANDEV = "http://127.0.0.1:38429"
 
 
@@ -110,7 +111,7 @@ def expand(path):
 def keychain_secret(item):
     if not item:
         return ""
-    out = subprocess.run(["security", "find-generic-password", "-s", item, "-w"], capture_output=True, text=True)
+    out = subprocess.run([str(SECRET_GET), item], capture_output=True, text=True)
     return out.stdout.strip() if out.returncode == 0 else ""
 
 
@@ -289,9 +290,12 @@ def ensure_linear(api, ws, linear):
     if not cfg.get("hasSecret"):
         secret = keychain_secret(linear.get("keychain_item", "linear-api-key"))
         if not secret:
-            raise RuntimeError(
-                f"Linear key missing: add it with `security add-generic-password -a $USER -s "
-                f"{linear.get('keychain_item', 'linear-api-key')} -w '<key>' -U` and re-run")
+            item = linear.get("keychain_item", "linear-api-key")
+            if sys.platform == "darwin":
+                raise RuntimeError(
+                    f"Linear key missing: add it with `security add-generic-password -a $USER -s "
+                    f"{item} -w '<key>' -U` and re-run")
+            raise RuntimeError(f"Linear key missing: write it to ~/.config/secrets/{item} (mode 600) and re-run")
         api.call("POST", f"/api/v1/linear/config?workspace_id={ws['id']}",
                  {"authMethod": "api_key", "defaultTeamKey": linear["team"], "secret": secret})
         changed("Linear connection configured")

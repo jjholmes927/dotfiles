@@ -18,7 +18,7 @@ else
   exit 0
 fi
 
-key=$(security find-generic-password -s honeycomb-agent-traces -w 2>/dev/null)
+key=$("$HOME/.local/bin/secret-get" honeycomb-agent-traces 2>/dev/null)
 [ -z "$key" ] && exit 0
 
 host_alias=$("$HOME/.local/bin/agent-host-name" 2>/dev/null || hostname -s)
