@@ -286,6 +286,7 @@ class PilotTests(unittest.TestCase):
         self.assertEqual({"features.other": False}, configure.settings({"runtime_flags": {"features.other": False}}, "runtime_flags"))
         self.assertEqual({}, configure.settings({"notifications": {}}, "notifications"))
 
+    @patch.object(configure.sys, "platform", "darwin")
     def test_old_kandev_is_refused_before_any_change(self):
         api = ClaudeProfileApi([])
         with self.assertRaisesRegex(RuntimeError, "brew upgrade kandev"):
@@ -296,6 +297,7 @@ class PilotTests(unittest.TestCase):
         with kandev_version("v0.99.1\n"):
             self.assertEqual("0.99.1", configure.require_kandev())
 
+    @patch.object(configure.sys, "platform", "darwin")
     def test_missing_kandev_binary_is_a_clean_error(self):
         with patch.object(configure.subprocess, "run", side_effect=FileNotFoundError("kandev")):
             with self.assertRaisesRegex(RuntimeError, "brew install kdlbs/kandev/kandev"):
