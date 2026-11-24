@@ -184,7 +184,12 @@ json.dump(servers, open(sys.argv[1], "w"), indent=2)
 }
 
 installers() {
-  bash "$repo/bash/install.sh" && bash "$repo/claude/install.sh" && bash "$repo/codex/install.sh"
+  bash "$repo/bash/install.sh" && bash "$repo/claude/install.sh"
+}
+
+codex_installer() {
+  [ -f "$HOME/.claude/plugins/installed_plugins.json" ] || skip claude-plugins || return
+  bash "$repo/codex/install.sh"
 }
 
 repos() {
@@ -242,6 +247,7 @@ home_phase() {
   step links links
   step mcp-overrides mcp_overrides
   step installers installers
+  step codex-installer codex_installer
   step repos repos
   step magicnotes-secrets magicnotes_secrets
   step magicnotes-setup magicnotes_setup
