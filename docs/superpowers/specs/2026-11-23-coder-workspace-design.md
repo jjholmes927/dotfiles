@@ -119,7 +119,7 @@ Order matters. The system layer runs first, because Ruby and native gems in home
 | **Codex** | `npm i -g @openai/codex` under nvm, then `codex/install.sh` unchanged |
 | **Hooks** | `tmux-alert.sh`, `adhd-colours.py`, `statusline.sh` and `confirm-github-posts.sh` checked on Linux; any BSD-only command gets a portable form that keeps Darwin output identical |
 | **One-time logins (Joel)** | Claude `/login`; `codex login --device-auth`; MCP OAuth for Linear, Sentry and Honeycomb. Their redirect lands on `localhost` on the box, so the callback port is forwarded with `coder port-forward` during login |
-| **Personal private repos** | Coder's GitHub app is installed only on `wearebeam`, so `life-vault` (used by `good-code-review`) and `second-brain` are unreachable. **Fix: a fine-grained token limited to those repos**, in the secrets folder, used by the credential helper for those repos only; Beam's app stays off the personal account (approved by Joel 2026-11-23) |
+| **Personal private repos** | Coder's GitHub app is installed only on `wearebeam`, so `life-vault` and `second-brain` are unreachable, and neither is cloned to the box: `life-vault` holds private notes. `good-code-review` needs only `life-vault/06-principles/good-code.md`, so that one file is copied to `~/.config/good-code/good-code.md` and `GOOD_CODE_CHECKLIST` points at it. No personal GitHub token, no full `gh auth login` (decided by Joel 2026-11-24). The copy goes stale when the checklist changes; a documented one-line command re-copies it |
 | **Agent memory** | Not ported. Memory is per machine and per project by design (`docs/operator-workflow.md`) |
 | **agent-browser** | Installed in home so `/verify` and `verify-ui` work headless |
 

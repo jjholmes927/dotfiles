@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **TL;DR** Six repo tasks make the dotfiles run on Linux without changing the Mac: a secrets helper, portable scripts, a bash Linux branch, Kandev under systemd, GitHub credentials for the box, and the `~/personalize` bootstrap. Three box tasks then run it on `joel-holmes-AKA-the-night-dragon`, add secrets and logins with Joel, and prove magicnotes, Kandev and a restart all work.
+> **TL;DR** Six repo tasks make the dotfiles run on Linux without changing the Mac: a secrets helper, portable scripts, a bash Linux branch, Kandev under systemd, fresh Coder GitHub credentials for services, and the `~/personalize` bootstrap. Three box tasks then run it on `joel-holmes-AKA-the-night-dragon`, add secrets and logins with Joel, and prove magicnotes, Kandev and a restart all work. No personal GitHub token and no `life-vault` clone: only its good-code checklist file is copied.
 
 **Goal:** Make Joel's Beam Coder workspace a full copy of his Mac dev setup (harnesses, plugins, MCPs, Kandev, runnable magicnotes) that rebuilds itself on every start.
 
@@ -114,7 +114,7 @@ Expected: PASS on both.
 
 **Interfaces:**
 - Produces: on Linux, `~/.profile.d/{alias,bash-colours,bash-completion,bash-history,otel}` link to the repo, and `~/.profile.d/linux-exports` links to `bash/linux/exports`. `~/.bashrc` holds exactly one block between `# >>> dotfiles profile.d >>>` and `# <<< dotfiles profile.d <<<` that sources every `~/.profile.d/*`.
-- Produces: `bash/linux/exports` sets up nvm (`$HOME/.nvm`), rbenv, PATH (`$HOME/.local/bin`, `$HOME/.local/go/bin`, `$HOME/.rbenv/bin` first), `LD_DEV_SERVER=true` and `LANG`/`LC_ALL=en_GB.UTF-8`. In interactive shells it prints one line, `coder-setup: <status line>`, when `~/.local/state/coder-setup/status` contains `FAIL`, `RUNNING` or `SKIP`.
+- Produces: `bash/linux/exports` sets up nvm (`$HOME/.nvm`), rbenv, PATH (`$HOME/.local/bin`, `$HOME/.local/go/bin`, `$HOME/.rbenv/bin` first), `LD_DEV_SERVER=true`, `GOOD_CODE_CHECKLIST=$HOME/.config/good-code/good-code.md` and `LANG`/`LC_ALL=en_GB.UTF-8`. In interactive shells it prints one line, `coder-setup: <status line>`, when `~/.local/state/coder-setup/status` contains `FAIL`, `RUNNING` or `SKIP`.
 
 - [ ] **Step 1: Write the failing tests** (stub `uname`):
   - `test_linux_links_portable_files_only`: expect the six links above. Expect no `~/.profile.d/bash-exports`, no `~/.profile.d/kinde` and no `~/.bash_profile`.
@@ -176,18 +176,15 @@ Expected: PASS on both.
 - Modify: `.github/workflows/tests.yml`
 
 **Interfaces:**
-- Consumes: `secret-get github-personal-token` (Task 1).
 - Produces: a git credential helper `coder/git-credential-coder get|store|erase`. For `get`, it reads `protocol`/`host`/`path` from stdin:
   - host other than `github.com`: no output, exit 0;
-  - path `jjholmes927/life-vault` or `jjholmes927/second-brain` (with or without `.git`): `username=x-access-token` and `password=<secret-get github-personal-token>`;
-  - any other path: the password from `coder external-auth access-token github`. When `CODER_AGENT_TOKEN` is unset, it sources `~/.config/coder-setup/agent.env` first, on every call.
+  - `github.com`: `username=x-access-token` and the password from `coder external-auth access-token github`. When `CODER_AGENT_TOKEN` is unset, it sources `~/.config/coder-setup/agent.env` first, on every call.
 
   `store` and `erase` exit 0 silently.
 - Produces: `coder/gh`, linked as `~/.local/bin/gh`. It sets `GH_TOKEN` from the same Coder token path, then runs the next `gh` on PATH after its own directory.
 
 - [ ] **Step 1: Write the failing tests** (`ShellToolCase`, stub `coder` printing `$CODER_AGENT_TOKEN-tok`):
   - `test_beam_repo_uses_coder_token`: stdin `protocol=https\nhost=github.com\npath=wearebeam/magicnotes.git\n` with `agent.env` holding `CODER_AGENT_TOKEN=one`. Expect `password=one-tok` and `coder` argv `["external-auth", "access-token", "github"]`.
-  - `test_personal_repo_uses_personal_token`: path `jjholmes927/life-vault.git`, secret file `pat` (mode 600). Expect `password=pat` and no `coder` call.
   - `test_other_host_is_silent`: host `gitlab.com`. Expect empty stdout and rc 0.
   - `test_agent_env_read_on_every_call`: call once, rewrite `agent.env` to `CODER_AGENT_TOKEN=two`, call again. Expect `one-tok` then `two-tok`.
   - `test_store_and_erase_are_noops`.
@@ -210,7 +207,7 @@ Expected: PASS on both.
 
 **Files:**
 - Create: `coder/personalize`, `coder/setup.sh`, `coder/apt-packages.txt`, `coder/versions.env`, `coder/kandev-fleet.json`, `tests/coder_personalize_test.py`
-- Modify: `README.md` (a "Coder workspace" section: the bootstrap command from Task 7 and a link to the spec), `docs/agent-setup.md` (one row for `coder/`), `.github/workflows/tests.yml`
+- Modify: `README.md` (a "Coder workspace" section: the bootstrap command from Task 7, the checklist re-copy command from Task 8 Step 2, and a link to the spec), `docs/agent-setup.md` (one row for `coder/`), `.github/workflows/tests.yml`
 
 **Interfaces:**
 - Consumes: Tasks 1–5.
@@ -231,7 +228,7 @@ Expected: PASS on both.
   - **git config:** the credential helper for `https://github.com` with `useHttpPath true`, `core.pager delta`, `merge.conflictStyle zdiff3`.
   - **Links:** `~/.tmux.conf` and `~/.tmux.conf.local`; `coder/gh` as `~/.local/bin/gh`.
   - **Installers:** `bash/install.sh`, `claude/install.sh`, `codex/install.sh`.
-  - **Repos:** clone magicnotes to `mn1` and run `git remote set-head origin -a`. Clone `life-vault` and `second-brain` into `~/engineering/` (`SKIP` without the personal token).
+  - **Repos:** clone magicnotes to `mn1` and run `git remote set-head origin -a`. `life-vault` and `second-brain` are never cloned on the box.
   - **magicnotes setup:** `docker compose up -d`, then `bin/setup`, once. It needs `development.key` (`SKIP` without it) and leaves the marker `$CODER_SETUP_STATE/mn1-setup-done`.
   - **Kandev:** copy `coder/kandev-fleet.json` to `~/.config/kandev-fleet.json` when missing, then run `kandev/install-linux.sh`. `SKIP linear-key` when `secret-get linear-api-key` fails; `SKIP codex-login` when `codex login status` fails.
   - **PATH:** sources `bash/linux/exports` before any step, so `configure.py` records the full PATH.
@@ -274,7 +271,7 @@ Run: `coder ssh joel-holmes-AKA-the-night-dragon -- 'git clone -b jjholmes927-co
 Expected: returns in under 3 minutes with rc 0, and `~/.local/state/coder-setup/status` shows `system OK`.
 
 - [ ] **Step 4: Wait for the home phase**, polling `cat ~/.local/state/coder-setup/status` every 2 minutes. Ruby compiles on the first run.
-Expected: `home SKIP … linear-key codex-login magicnotes-setup life-vault second-brain`, and no `FAIL`. **`test_partial_ruby_dir_is_rebuilt`:** `~/.rbenv/versions/4.0.10/bin/ruby -v` prints `ruby 4.0.10`.
+Expected: `home SKIP … linear-key codex-login magicnotes-setup`, and no `FAIL`. **`test_partial_ruby_dir_is_rebuilt`:** `~/.rbenv/versions/4.0.10/bin/ruby -v` prints `ruby 4.0.10`.
 
 - [ ] **Step 5: Check the tools:** `bash -lc 'node -v; pnpm -v; ruby -v; go version; claude --version; codex --version; overmind -v; ldcli --version; agent-browser --version; gh auth status; ls -l ~/.claude/CLAUDE.md'`
 Expected: Node `v24.19.0`, pnpm `12.6.0`, Ruby `4.0.10`; every command resolves; `CLAUDE.md` is a link into the dotfiles.
@@ -293,7 +290,8 @@ coder ssh $B -- 'umask 077; cat > ~/engineering/mn1/config/credentials/developme
 coder ssh $B -- 'umask 077; mkdir -p ~/.config/ldcli; cat > ~/.config/ldcli/config.yml' < ~/.config/ldcli/config.yml
 ```
 
-- [ ] **Step 2: Joel creates the personal token** at github.com → Settings → Developer settings → Fine-grained tokens. Repositories: `life-vault` and `second-brain`. Permissions: Contents read and write, Metadata read. Expiry: 90 days. He pastes it in his own terminal: `coder ssh joel-holmes-AKA-the-night-dragon -- 'umask 077; cat > ~/.config/secrets/github-personal-token'`, then presses Ctrl-D.
+- [ ] **Step 2: Copy the good-code checklist** (the only `life-vault` file the box needs; re-run this whenever the checklist changes): `coder ssh joel-holmes-AKA-the-night-dragon -- 'mkdir -p ~/.config/good-code && cat > ~/.config/good-code/good-code.md' < ~/engineering/life-vault/06-principles/good-code.md`
+Expected: `ls ~/.config/good-code/good-code.md` on the box lists the file; `/good-code-review` there reports the checklist path in its header line.
 
 - [ ] **Step 3: Joel's logins** in `coder ssh joel-holmes-AKA-the-night-dragon`:
   - `claude`, then `/login`.
