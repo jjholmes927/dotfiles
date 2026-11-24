@@ -42,7 +42,15 @@ class BashInstall(ShellToolCase):
         with open(self.bashrc) as fh:
             text = fh.read()
         self.assertEqual(text.count(START), 1)
-        self.assertTrue(text.startswith("export ORIGINAL=1\n"))
+        self.assertTrue(text.endswith("export ORIGINAL=1\n"))
+
+    def test_linux_block_runs_before_the_interactive_guard(self):
+        with open(self.bashrc, "w") as fh:
+            fh.write("case $- in\n    *i*) ;;\n      *) return;;\nesac\nexport ORIGINAL=1\n")
+        self.install("Linux")
+        result = subprocess.run(["bash", "-c", ". ~/.bashrc; echo \"$LD_DEV_SERVER\""], env=self.env,
+                                capture_output=True, encoding="utf-8", errors="replace", timeout=60)
+        self.assertIn("true", result.stdout.split())
 
     def test_darwin_unchanged(self):
         with open(self.bashrc, "w") as fh:

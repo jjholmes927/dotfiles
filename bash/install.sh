@@ -55,8 +55,12 @@ if [[ "$(uname -s)" == Linux ]]; then
   if grep -qF "$BASHRC_START" "$HOME/.bashrc" 2>/dev/null; then
     already "$HOME/.bashrc"
   else
-    printf '\n%s\nfor f in "$HOME"/.profile.d/*; do [ -r "$f" ] && . "$f"; done\nunset f\n%s\n' \
-      "$BASHRC_START" "$BASHRC_END" >> "$HOME/.bashrc"
+    {
+      printf '%s\nfor f in "$HOME"/.profile.d/*; do [ -r "$f" ] && . "$f"; done\nunset f\n%s\n\n' \
+        "$BASHRC_START" "$BASHRC_END"
+      cat "$HOME/.bashrc" 2>/dev/null || true
+    } > "$HOME/.bashrc.dotfiles-tmp"
+    mv "$HOME/.bashrc.dotfiles-tmp" "$HOME/.bashrc"
     linking "$HOME/.bashrc (sources ~/.profile.d)"
   fi
 else
