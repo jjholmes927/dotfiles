@@ -63,7 +63,10 @@
 | Claude and Codex now; Cursor and OpenCode later | My call, Joel agreed |
 | Secrets as files under `~/.config/secrets/`, read through one helper | My call, Joel agreed |
 | Kandev reached from the Mac with `coder port-forward` on local port 38430 | My call, Joel agreed |
-| Copy the Mac's existing Linear, Honeycomb and LaunchDarkly credentials (no box-only keys) | Joel, 2026-11-24 |
+| ~~Copy the Mac's existing Linear, Honeycomb and LaunchDarkly credentials~~ superseded below | Joel, 2026-11-24 |
+| Secrets stored as **Coder user secrets** (`coder secret create … --file`), written by Coder on every start | Joel, 2026-11-24 |
+| Least privilege: new Linear key (Read + Write, Interpret team only), new LaunchDarkly **Reader** token, existing Honeycomb **ingest** key (send-only) | Joel, 2026-11-24 |
+| MCPs on the box: Linear via the Interpret-only key as a header (no OAuth login); Honeycomb OAuth **read-only**; Sentry OAuth scoped to `beam-eu/magic-notes`; logins with `claude mcp login <name> --no-browser` | Joel, 2026-11-24 |
 | Everything below this line | My call unless marked |
 
 ## Design

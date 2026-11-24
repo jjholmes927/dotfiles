@@ -207,6 +207,7 @@ Expected: PASS on both.
 
 **Files:**
 - Create: `coder/personalize`, `coder/setup.sh`, `coder/apt-packages.txt`, `coder/versions.env`, `coder/kandev-fleet.json`, `tests/coder_personalize_test.py`
+- Modify: `claude/sync-mcps.sh` (after merging the repo servers, also merge `${CLAUDE_MCP_OVERRIDES:-$HOME/.config/coder-setup/mcp-overrides.json}` when it exists; nothing changes when it doesn't), `tests/sync_mcps_test.py` (`test_overrides_win_over_repo_servers`, `test_no_overrides_file_keeps_repo_servers`)
 - Modify: `README.md` (a "Coder workspace" section: the bootstrap command from Task 7, the checklist re-copy command from Task 8 Step 2, and a link to the spec), `docs/agent-setup.md` (one row for `coder/`), `.github/workflows/tests.yml`
 
 **Interfaces:**
@@ -217,6 +218,7 @@ Expected: PASS on both.
   3. runs `setup.sh system` in the foreground, then starts `setup.sh home` detached with `setsid nohup`;
   4. writes `system OK|FAIL <log>` to `$CODER_SETUP_STATE/status` (each phase replaces only its own line there), keeps the last 10 logs, and exits 0 on every path.
 - `coder/setup.sh system`:
+  - tightens Coder-written secrets: `~/.config/secrets` to `700`, its files and `~/.config/ldcli/config.yml` to `600`;
   - apt `update` and `install --no-install-recommends` of `apt-packages.txt`, with `Dir::Cache::archives=$HOME/.cache/apt-archives`;
   - `locale-gen en_GB.UTF-8`;
   - `docker compose up -d` in `~/engineering/mn1` when it exists.
@@ -229,7 +231,9 @@ Expected: PASS on both.
   - **Links:** `~/.tmux.conf` and `~/.tmux.conf.local`; `coder/gh` as `~/.local/bin/gh`.
   - **Installers:** `bash/install.sh`, `claude/install.sh`, `codex/install.sh`.
   - **Repos:** clone magicnotes to `mn1` and run `git remote set-head origin -a`. `life-vault` and `second-brain` are never cloned on the box.
-  - **magicnotes setup:** `docker compose up -d`, then `bin/setup`, once. It needs `config/credentials/development.key` and `test.key` and the Avo licence line in `~/.bundle/config` (`SKIP magicnotes-secrets` without them) and leaves the marker `$CODER_SETUP_STATE/mn1-setup-done`.
+  - **magicnotes secrets:** install `secret-get magicnotes-development-key` and `magicnotes-test-key` as `mn1/config/credentials/{development,test}.key` (mode 600), and run `bundle config set --global https://packager.dev/avo-hq/ "$(secret-get avo-licence)"`. `SKIP magicnotes-secrets` when any is missing.
+  - **magicnotes setup:** `docker compose up -d`, then `SKIP_SERVER_RESTART=1 bin/setup`, once, after the secrets step succeeded; leaves the marker `$CODER_SETUP_STATE/mn1-setup-done`.
+  - **MCP overrides** (before `claude/install.sh`): write `~/.config/coder-setup/mcp-overrides.json` (mode 600) with `sentry` → `https://mcp.sentry.dev/mcp/beam-eu/magic-notes` and, when `secret-get linear-api-key` succeeds, `linear-server` → `https://mcp.linear.app/mcp` with header `Authorization: Bearer <key>`.
   - **Kandev:** copy `coder/kandev-fleet.json` to `~/.config/kandev-fleet.json` when missing, then run `kandev/install-linux.sh`. `SKIP linear-key` when `secret-get linear-api-key` fails; `SKIP codex-login` when `codex login status` fails.
   - **PATH:** sources `bash/linux/exports` before any step, so `configure.py` records the full PATH.
 - `coder/kandev-fleet.json`: `workspace` `Default Workspace`, `workflow` `Development`, `executor` `worktree`, `kandev_version` `0.100.0`, `claude_acp_version` `0.70.0`, `claude_profile` `{auto_approve: true, model: "opus[1m]"}`, lanes `[{name: "mn1", path: "~/engineering/mn1"}]`. `linear` has `keychain_item: linear-api-key`, `team: INT`, `state: Todo`, `assigned: me`, `poll_seconds: 60`, `max_inflight: 1`, and the four core labels (`agent:implement`, `agent:investigate`, `agent:implement-codex`, `agent:investigate-codex`), each with `repository: mn1, enabled: false`.
@@ -252,7 +256,7 @@ Expected: FAIL (missing `coder/personalize`).
 
 - [ ] **Step 4: Run on the Mac and on Linux**, plus the full suite:
 
-Run: `for m in tests/secret_get_test tests/portability_test tests/bash_install_test tests/coder_credentials_test tests/coder_personalize_test kandev/test_secret kandev/test_install_linux kandev/test_core_watches workflow/test_doctor; do (cd ${m%/*} && python3 -m unittest ${m#*/}) || echo "FAILED $m"; done`
+Run: `for m in tests/secret_get_test tests/portability_test tests/bash_install_test tests/coder_credentials_test tests/coder_personalize_test tests/sync_mcps_test kandev/test_secret kandev/test_install_linux kandev/test_core_watches workflow/test_doctor; do (cd ${m%/*} && python3 -m unittest ${m#*/}) || echo "FAILED $m"; done`
 Expected: no `FAILED` lines.
 
 - [ ] **Step 5: Commit** with message `feat: Bootstrap the Coder workspace from ~/personalize`
@@ -271,36 +275,48 @@ Run: `coder ssh joel-holmes-AKA-the-night-dragon -- 'git clone -b jjholmes927-co
 Expected: returns in under 3 minutes with rc 0, and `~/.local/state/coder-setup/status` shows `system OK`.
 
 - [ ] **Step 4: Wait for the home phase**, polling `cat ~/.local/state/coder-setup/status` every 2 minutes. Ruby compiles on the first run.
-Expected: `home SKIP … linear-key codex-login magicnotes-secrets`, and no `FAIL`. **`test_partial_ruby_dir_is_rebuilt`:** `~/.rbenv/versions/4.0.10/bin/ruby -v` prints `ruby 4.0.10`.
+Expected: `home SKIP … magicnotes-secrets linear-key codex-login`, and no `FAIL`. **`test_partial_ruby_dir_is_rebuilt`:** `~/.rbenv/versions/4.0.10/bin/ruby -v` prints `ruby 4.0.10`.
 
 - [ ] **Step 5: Check the tools:** `bash -lc 'node -v; pnpm -v; ruby -v; go version; claude --version; codex --version; overmind -v; ldcli --version; agent-browser --version; gh auth status; ls -l ~/.claude/CLAUDE.md'`
 Expected: Node `v24.19.0`, pnpm `12.6.0`, Ruby `4.0.10`; every command resolves; `CLAUDE.md` is a link into the dotfiles.
 
 ### Task 8: Secrets and logins (with Joel)
 
-**Files:** none (operational). Values are piped and never printed.
+**Files:** none (operational). Secrets go into **Coder user secrets** (`coder secret create`), which Coder writes into the workspace on every start; values are piped or typed hidden and never printed. Decided by Joel 2026-11-24.
 
-- [ ] **Step 1: Copy the Mac secrets:**
+- [ ] **Step 1: Joel creates two least-privilege keys** (about 3 minutes):
+  - Linear: Settings, Security & access, Personal API keys, New. Permissions: Read and Write. Teams: Interpret only.
+  - LaunchDarkly: Account settings, Authorization, Access tokens, Create. Role: **Reader**. Name: `joel-coder-box`.
+
+- [ ] **Step 2: Joel stores those two** in his own Mac terminal (hidden input):
 
 ```bash
-B=joel-holmes-AKA-the-night-dragon
-security find-generic-password -s linear-api-key -w | coder ssh $B -- 'umask 077; mkdir -p ~/.config/secrets; cat > ~/.config/secrets/linear-api-key'
-security find-generic-password -s honeycomb-agent-traces -w | coder ssh $B -- 'umask 077; cat > ~/.config/secrets/honeycomb-agent-traces'
-for k in development test; do coder ssh $B -- "umask 077; cat > ~/engineering/mn1/config/credentials/$k.key" < ~/engineering/mn1/config/credentials/$k.key; done
-grep '^BUNDLE_HTTPS://PACKAGER__DEV/AVO___HQ/:' ~/.bundle/config | coder ssh $B -- 'umask 077; mkdir -p ~/.bundle; [ -s ~/.bundle/config ] || echo --- > ~/.bundle/config; grep -q "^BUNDLE_HTTPS://PACKAGER__DEV/AVO___HQ/:" ~/.bundle/config || cat >> ~/.bundle/config'
-coder ssh $B -- 'umask 077; mkdir -p ~/.config/ldcli; cat > ~/.config/ldcli/config.yml' < ~/.config/ldcli/config.yml
+read -rsp "Linear key: " k && echo && printf %s "$k" | coder secret create linear-api-key --file ~/.config/secrets/linear-api-key; unset k
+read -rsp "LaunchDarkly reader token: " k && echo && python3 -c 'import os,re,sys; t=open(os.path.expanduser("~/.config/ldcli/config.yml")).read(); print(re.sub(r"(?m)^access-token:.*$", "access-token: " + sys.argv[1], t), end="")' "$k" | coder secret create ldcli-config --file ~/.config/ldcli/config.yml; unset k
 ```
 
-- [ ] **Step 2: Copy the good-code checklist** (the only `life-vault` file the box needs; re-run this whenever the checklist changes): `coder ssh joel-holmes-AKA-the-night-dragon -- 'mkdir -p ~/.config/good-code && cat > ~/.config/good-code/good-code.md' < ~/engineering/life-vault/06-principles/good-code.md`
-Expected: `ls ~/.config/good-code/good-code.md` on the box lists the file; `/good-code-review` there reports the checklist path in its header line.
+- [ ] **Step 3: I store the Mac-held secrets:**
 
-- [ ] **Step 3: Joel's logins** in `coder ssh joel-holmes-AKA-the-night-dragon`:
+```bash
+security find-generic-password -s honeycomb-agent-traces -w | tr -d '\n' | coder secret create honeycomb-agent-traces --file ~/.config/secrets/honeycomb-agent-traces
+for k in development test; do coder secret create magicnotes-$k-key --file ~/.config/secrets/magicnotes-$k-key < ~/engineering/mn1/config/credentials/$k.key; done
+grep '^BUNDLE_HTTPS://PACKAGER__DEV/AVO___HQ/:' ~/.bundle/config | sed -E 's/^[^:]+:[^:]+: *//; s/^"//; s/"$//' | tr -d '\n' | coder secret create avo-licence --file ~/.config/secrets/avo-licence
+coder ssh joel-holmes-AKA-the-night-dragon -- 'mkdir -p ~/.config/good-code && cat > ~/.config/good-code/good-code.md' < ~/engineering/life-vault/06-principles/good-code.md
+```
+Expected: `coder secret list` shows the six secrets; no value appears in any output. Never copy `staging.key` or `production.key` (both sit in the Mac's `mn1`). The last line copies the good-code checklist (not a secret); re-run it whenever the checklist changes.
+
+- [ ] **Step 4: Restart so Coder writes the secrets:** `coder restart joel-holmes-AKA-the-night-dragon -y`, then poll `~/.local/state/coder-setup/status`.
+Expected: `home SKIP … codex-login` at most; `secret-get linear-api-key >/dev/null && echo ok` prints `ok`; `ls -l ~/.config/secrets` shows `-rw-------` on every file; `~/.claude.json` on the box has a `linear-server` entry with an `Authorization` header and `sentry` pointing at `/mcp/beam-eu/magic-notes`.
+
+- [ ] **Step 5: Joel's logins** in `coder ssh joel-holmes-AKA-the-night-dragon`:
   - `claude`, then `/login`.
   - `codex login --device-auth`.
-  - In `claude`, `/mcp`, then authenticate Linear, Sentry and Honeycomb. When the browser fails on `localhost:<port>`, run `coder port-forward joel-holmes-AKA-the-night-dragon --tcp <port>:<port>` on the Mac and retry.
+  - `claude mcp login honeycomb --no-browser`: open the link on the Mac, choose **read-only for all resources**, then paste the failed page's URL back.
+  - `claude mcp login sentry --no-browser`: same paste flow.
+  - Linear needs no login (the key header covers it).
 
-- [ ] **Step 4: Rerun the home phase:** `coder ssh … -- '~/engineering/dotfiles/coder/setup.sh home'`
-Expected: status `home OK`; `secret-get linear-api-key >/dev/null && echo ok` prints `ok`; `ls -l ~/.config/secrets` shows `-rw-------` on every file.
+- [ ] **Step 6: Rerun the home phase:** `coder ssh … -- '~/engineering/dotfiles/coder/setup.sh home'`
+Expected: status `home OK`.
 
 ### Task 9: Prove it end to end
 
@@ -315,7 +331,7 @@ Expected: the UI loads; four watches, all `"enabled": false`.
 - [ ] **Step 3: A Kandev task.** Create a manual task on lane `mn1` with the prompt `Run bin/rails test test/models/user_test.rb, then run git ls-remote origin HEAD, and report both results`.
 Expected: a worktree is created, `kandev-worktree-setup: done` appears in the task log, the test passes, and `ls-remote` prints a hash (the credential helper works under the service).
 
-- [ ] **Step 4: Restart.** Run `coder restart joel-holmes-AKA-the-night-dragon -y`, then wait for the agent.
+- [ ] **Step 4: Restart again.** Run `coder restart joel-holmes-AKA-the-night-dragon -y`, then wait for the agent.
 Expected: login within 3 minutes; status `system OK` and then `home OK`; `systemctl is-active kandev kandev-observer` prints `active` twice; `docker compose ps` in `mn1` shows Postgres and Redis running; `ruby -v` prints `4.0.10` with no rebuild in the log.
 
 - [ ] **Step 5: Mac unchanged.**
