@@ -94,13 +94,17 @@ def require_kandev(minimum=(0, 98, 0)):
     try:
         out = subprocess.run(["kandev", "--version"], capture_output=True, text=True).stdout
     except FileNotFoundError:
+        if sys.platform != "darwin":
+            raise RuntimeError("kandev is not on PATH; run kandev/install.sh")
         raise RuntimeError("kandev is not on PATH; install it with `brew install kdlbs/kandev/kandev` or run kandev/install.sh")
     match = re.search(r"(\d+)\.(\d+)\.(\d+)", out)
     if not match:
         raise RuntimeError(f"could not read the Kandev version from `kandev --version`: {out.strip()!r}")
     if tuple(int(n) for n in match.groups()) < minimum:
+        upgrade = ("run `brew upgrade kandev`" if sys.platform == "darwin"
+                   else "raise kandev_version in ~/.config/kandev-fleet.json and run kandev/install.sh")
         raise RuntimeError(f"Kandev {match.group(0)} is older than {'.'.join(map(str, minimum))}; "
-                           "run `brew upgrade kandev` while no task is running, then re-run")
+                           f"{upgrade} while no task is running, then re-run")
     return match.group(0)
 
 

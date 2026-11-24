@@ -1,0 +1,28 @@
+[Unit]
+Description=Kandev
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+User=@USER@
+WorkingDirectory=@HOME@/.kandev
+Environment=HOME=@HOME@
+Environment=PATH=@PATH@
+Environment=KANDEV_BUNDLE_DIR=@BUNDLE@
+Environment=KANDEV_VERSION=@VERSION@
+Environment=KANDEV_HOME_DIR=@HOME@/.kandev
+Environment=KANDEV_INTERNAL_CONFIG_FILE=@HOME@/.kandev/config.yaml
+Environment=KANDEV_INTERNAL_CONFIG_HOME_FILE=1
+Environment=KANDEV_LOG_LEVEL=info
+Environment=KANDEV_RUNNING_AS_SERVICE=true
+Environment=KANDEV_SERVICE_MANAGER=systemd
+Environment=KANDEV_SERVICE_MODE=system
+EnvironmentFile=-@HOME@/.config/coder-setup/agent.env
+ExecStart=@BUNDLE@/bin/kandev --headless
+Restart=always
+RestartSec=5
+StandardOutput=append:@HOME@/.kandev/logs/service.out
+StandardError=append:@HOME@/.kandev/logs/service.err
+
+[Install]
+WantedBy=multi-user.target

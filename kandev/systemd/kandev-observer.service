@@ -1,0 +1,18 @@
+[Unit]
+Description=Kandev fleet observer
+After=kandev.service
+
+[Service]
+User=@USER@
+WorkingDirectory=@HOME@
+Environment=HOME=@HOME@
+Environment=PATH=@PATH@
+EnvironmentFile=-@HOME@/.config/coder-setup/agent.env
+ExecStart=@REPO@/kandev/fleet-observer.sh
+Restart=always
+RestartSec=10
+StandardOutput=append:@HOME@/.kandev/logs/observer.out
+StandardError=append:@HOME@/.kandev/logs/observer.err
+
+[Install]
+WantedBy=multi-user.target

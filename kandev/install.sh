@@ -2,6 +2,7 @@
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
+[ "$(uname -s)" = Linux ] && exec "$here/install-linux.sh" "$@"
 conf="${KANDEV_FLEET_CONF:-$HOME/.config/kandev-fleet.json}"
 base="http://127.0.0.1:38429"
 
