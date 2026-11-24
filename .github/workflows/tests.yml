@@ -25,6 +25,7 @@ jobs:
           - { dir: tests, module: secret_get_test }
           - { dir: tests, module: portability_test }
           - { dir: tests, module: bash_install_test }
+          - { dir: tests, module: coder_credentials_test }
           - { dir: kandev, module: test_secret }
           - { dir: kandev, module: test_install_linux }
     name: ${{ matrix.suite.dir }}/${{ matrix.suite.module }}

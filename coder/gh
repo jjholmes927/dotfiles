@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+self_dir=$(cd "$(dirname "$0")" && pwd -P)
+helper="$(dirname "$(readlink -f "$0")")/git-credential-coder"
+
+real=""
+IFS=: read -r -a dirs <<< "$PATH"
+for dir in "${dirs[@]}"; do
+  [ -n "$dir" ] || continue
+  [ "$(cd "$dir" 2>/dev/null && pwd -P)" = "$self_dir" ] && continue
+  if [ -x "$dir/gh" ]; then
+    real="$dir/gh"
+    break
+  fi
+done
+[ -n "$real" ] || { echo "gh: no gh found on PATH besides this wrapper" >&2; exit 127; }
+
+fresh=$("$helper" token)
+[ -n "$fresh" ] && export GH_TOKEN="$fresh"
+exec "$real" "$@"
