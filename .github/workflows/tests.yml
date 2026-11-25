@@ -28,6 +28,7 @@ jobs:
           - { dir: tests, module: coder_credentials_test }
           - { dir: tests, module: coder_personalize_test }
           - { dir: tests, module: coder_setup_test }
+          - { dir: tests, module: prod_data_session_test }
           - { dir: tests, module: sync_mcps_test }
           - { dir: kandev, module: test_secret }
           - { dir: kandev, module: test_install_linux }

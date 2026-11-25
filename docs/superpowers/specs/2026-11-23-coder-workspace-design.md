@@ -67,6 +67,7 @@
 | Secrets stored as **Coder user secrets** (`coder secret create … --file`), written by Coder on every start | Joel, 2026-11-24 |
 | Least privilege: new Linear key (Read + Write, Interpret team only), new LaunchDarkly **Reader** token, existing Honeycomb **ingest** key (send-only) | Joel, 2026-11-24 |
 | MCPs on the box: Linear via the Interpret-only key as a header (no OAuth login); Honeycomb OAuth **read-only**; Sentry OAuth scoped to `beam-eu/magic-notes`; logins with `claude mcp login <name> --no-browser` | Joel, 2026-11-24 |
+| Production recordings and BigQuery for one experiment: your own `gcloud auth login`, only inside `prod-data-session`, which keeps the login and data in a private `/tmp` folder and on exit revokes the login and deletes the folder and its Claude and Codex history. A read-only service account is the later, stricter option | Joel, 2026-11-25 |
 | Everything below this line | My call unless marked |
 
 ## Design

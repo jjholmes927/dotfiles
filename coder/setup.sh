@@ -156,6 +156,16 @@ overmind_binary() {
   curl -fsSL "$url" | gunzip > "$bin.tmp" && chmod +x "$bin.tmp" && mv "$bin.tmp" "$bin"
 }
 
+gcloud_cli() {
+  local sdk="$HOME/.local/google-cloud-sdk"
+  [ "$(cat "$sdk/VERSION" 2>/dev/null)" = "$GCLOUD_VERSION" ] && return 0
+  rm -rf "$sdk" "$sdk.tmp"
+  mkdir -p "$sdk.tmp" || return 1
+  curl -fsSL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-$GCLOUD_VERSION-linux-x86_64.tar.gz" |
+    tar -C "$sdk.tmp" -xz || return 1
+  mv "$sdk.tmp/google-cloud-sdk" "$sdk" && rm -rf "$sdk.tmp"
+}
+
 claude_cli() {
   [ -x "$HOME/.local/bin/claude" ] && return 0
   curl -fsSL https://claude.ai/install.sh | bash
@@ -182,7 +192,8 @@ links() {
   mkdir -p "$HOME/.local/bin"
   ln -sfn "$repo/tmux/.tmux.conf" "$HOME/.tmux.conf" &&
     ln -sfn "$repo/tmux/.tmux.conf.local" "$HOME/.tmux.conf.local" &&
-    ln -sfn "$here/gh" "$HOME/.local/bin/gh"
+    ln -sfn "$here/gh" "$HOME/.local/bin/gh" &&
+    ln -sfn "$here/prod-data-session" "$HOME/.local/bin/prod-data-session"
 }
 
 mcp_overrides() {
@@ -262,6 +273,7 @@ home_phase() {
   step ruby ruby_toolchain
   step go go_toolchain
   step overmind overmind_binary
+  step gcloud gcloud_cli
   step claude claude_cli
   step npm-globals npm_globals
   step git-config git_config

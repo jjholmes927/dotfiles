@@ -93,6 +93,8 @@ ln -sf ~/engineering/dotfiles/coder/personalize ~/personalize
 coder ssh joel-holmes-AKA-the-night-dragon -- 'mkdir -p ~/.config/good-code && cat > ~/.config/good-code/good-code.md' < ~/engineering/life-vault/06-principles/good-code.md
 ```
 
+**Production data (BigQuery and recordings):** run `prod-data-session claude` (or `prod-data-session` for a shell). It logs you into Google Cloud for that session only, by pasting a link back to the Mac, and works in a private `/tmp` folder. On exit it revokes the login and deletes the folder and its Claude and Codex history. Never run a plain `gcloud auth login` on the box.
+
 **Kandev UI from the Mac:** `coder port-forward joel-holmes-AKA-the-night-dragon --tcp 38430:38429`, then open `http://localhost:38430`. Linear watches are off on the box.
 
 ## Warp

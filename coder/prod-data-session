@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+set -o pipefail
+
+base=$(cd "${PROD_DATA_TMP:-/tmp}" && pwd -P) || exit 1
+prefix="$base/prod-data."
+projects="$HOME/.claude/projects"
+codex_sessions="$HOME/.codex/sessions"
+
+encode() { printf '%s' "$1" | sed 's/[^A-Za-z0-9]/-/g'; }
+
+alive() {
+  local pid
+  pid=$(cat "$1/pid" 2>/dev/null) && [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+}
+
+revoke() {
+  [ -d "$1/gcloud" ] || return 0
+  CLOUDSDK_CONFIG="$1/gcloud" gcloud auth application-default revoke --quiet >/dev/null 2>&1
+  CLOUDSDK_CONFIG="$1/gcloud" gcloud auth revoke --all --quiet >/dev/null 2>&1
+  return 0
+}
+
+codex_files() {
+  [ -d "$codex_sessions" ] && grep -rlF "$1" "$codex_sessions" 2>/dev/null
+}
+
+clean() {
+  local dir="$1" name file
+  revoke "$dir"
+  rm -rf "$dir"
+  name=$(encode "$dir")
+  rm -rf "${projects:?}/$name" "$projects/$name"-*
+  codex_files "$dir/" | while IFS= read -r file; do rm -f "$file"; done
+}
+
+sweep() {
+  local dir entry name sid file live=" " live_dirs="" encoded_prefix
+  for dir in "$prefix"*; do
+    [ -d "$dir" ] && [ -O "$dir" ] || continue
+    if alive "$dir"; then
+      live="$live$(encode "$dir") "
+      live_dirs="$live_dirs$dir/
+"
+    else
+      clean "$dir"
+    fi
+  done
+  encoded_prefix=$(encode "$prefix")
+  for entry in "$projects/$encoded_prefix"*; do
+    [ -e "$entry" ] || continue
+    name=$(basename "$entry")
+    sid="$encoded_prefix${name:${#encoded_prefix}:6}"
+    case "$live" in
+      *" $sid "*) ;;
+      *) rm -rf "$entry" ;;
+    esac
+  done
+  codex_files "$prefix" | while IFS= read -r file; do
+    if [ -z "$live_dirs" ] || ! printf '%s' "$live_dirs" | grep -qFf - "$file"; then
+      rm -f "$file"
+    fi
+  done
+}
+
+sweep
+dir=$(mktemp -d "${prefix}XXXXXX") || exit 1
+chmod 700 "$dir"
+trap 'clean "$dir"' EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+echo "$$" > "$dir/pid"
+mkdir "$dir/gcloud" "$dir/work"
+export CLOUDSDK_CONFIG="$dir/gcloud"
+export GOOGLE_APPLICATION_CREDENTIALS="$dir/gcloud/application_default_credentials.json"
+export PROD_DATA_DIR="$dir/work"
+cd "$dir/work" || exit 1
+
+if ! gcloud auth login --no-browser --update-adc; then
+  echo "prod-data-session: login failed" >&2
+  exit 1
+fi
+echo "prod-data-session: working in $PROD_DATA_DIR. On exit the Google login is revoked and this folder and its agent history are deleted." >&2
+
+if [ $# -gt 0 ]; then
+  "$@"
+else
+  "${SHELL:-bash}" -i
+fi
+exit $?

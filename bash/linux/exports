@@ -1,4 +1,4 @@
-for _dir in "$HOME/.rbenv/bin" "$HOME/.local/go/bin" "$HOME/.local/bin"; do
+for _dir in "$HOME/.rbenv/bin" "$HOME/.local/go/bin" "$HOME/.local/google-cloud-sdk/bin" "$HOME/.local/bin"; do
   case ":$PATH:" in
     *":$_dir:"*) ;;
     *) PATH="$_dir:$PATH" ;;
