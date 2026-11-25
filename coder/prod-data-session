@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -o pipefail
 
+[ -d "$HOME/.local/google-cloud-sdk/bin" ] && PATH="$HOME/.local/google-cloud-sdk/bin:$PATH"
+if [ $# -gt 0 ] && ! command -v "$1" >/dev/null 2>&1; then
+  echo "prod-data-session: $1 is not a command. Shell aliases do not work here, so pass the real command, e.g. prod-data-session claude" >&2
+  exit 127
+fi
+
 base=$(cd "${PROD_DATA_TMP:-/tmp}" && pwd -P) || exit 1
 prefix="$base/prod-data."
 projects="$HOME/.claude/projects"

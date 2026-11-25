@@ -167,5 +167,21 @@ open(os.path.join(codex, "rollout-a.jsonl"), "w").write(json.dumps({"cwd": cwd})
         self.assertIn((["auth", "revoke", "--all", "--quiet"], stale_config), self.gcloud_calls())
 
 
+    def test_finds_the_box_gcloud_when_the_shell_path_is_stale(self):
+        sdk_bin = os.path.join(self.home, ".local", "google-cloud-sdk", "bin")
+        os.makedirs(sdk_bin)
+        os.rename(os.path.join(self.stub_bin, "gcloud"), os.path.join(sdk_bin, "gcloud"))
+        result = self.session(*self.probe(), PATH=os.pathsep.join([self.stub_bin, "/usr/bin", "/bin"]))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(self.report()["adc_exists"])
+
+    def test_refuses_an_unknown_command_before_asking_for_a_login(self):
+        result = self.session("klaude")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("klaude", result.stderr)
+        self.assertIn("alias", result.stderr)
+        self.assertEqual(self.stub_calls("gcloud"), [])
+        self.assertEqual(self.sessions_left(), [])
+
 if __name__ == "__main__":
     unittest.main()
