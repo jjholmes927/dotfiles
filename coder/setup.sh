@@ -184,6 +184,9 @@ git_config() {
   git config --global --unset-all credential.https://github.com.helper 2>/dev/null
   git config --global --add credential.https://github.com.helper "" || return 1
   git config --global --add credential.https://github.com.helper "!$here/git-credential-coder" || return 1
+  git config --global --unset-all url.https://github.com/.insteadOf 2>/dev/null
+  git config --global --add url.https://github.com/.insteadOf git@github.com: || return 1
+  git config --global --add url.https://github.com/.insteadOf ssh://git@github.com/ || return 1
   command -v delta >/dev/null && git config --global core.pager delta
   git config --global merge.conflictStyle zdiff3
 }

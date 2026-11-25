@@ -1,6 +1,8 @@
 import contextlib
 import copy
 import io
+import json
+import pathlib
 import unittest
 
 import configure
@@ -146,6 +148,17 @@ def wrap_writes(read, log):
         log.append((method, path, body))
         return {}
     return call
+
+
+class CoderFleetTests(unittest.TestCase):
+    def test_coder_watches_resolve_without_team_labels_and_stay_off(self):
+        conf = json.loads((pathlib.Path(__file__).resolve().parent.parent / "coder" / "kandev-fleet.json").read_text())
+        watches = configure.fleet_watches(conf)
+        self.assertEqual(["agent:implement", "agent:investigate"], [w["label"] for w in watches])
+        for watch in watches:
+            self.assertFalse(watch.get("optional"))
+            self.assertIs(watch["enabled"], False)
+            configure.resolve_watch(None, watch, {}, {"mn1": {"id": "repo"}}, {"id": "claude"}, "INT")
 
 
 if __name__ == "__main__":

@@ -27,23 +27,23 @@
     "watches": [
       {
         "label": "agent:implement",
+        "label_id": "b2d348cd-1204-4e22-b320-30b3bf1f6162",
         "repository": "mn1",
         "enabled": false
       },
       {
         "label": "agent:investigate",
+        "label_id": "083e7f8b-8a56-403a-b96d-7b73376f81b5",
         "repository": "mn1",
         "enabled": false
       },
       {
         "label": "agent:implement-codex",
-        "repository": "mn1",
-        "enabled": false
+        "skip": true
       },
       {
         "label": "agent:investigate-codex",
-        "repository": "mn1",
-        "enabled": false
+        "skip": true
       }
     ]
   }
