@@ -82,7 +82,7 @@ export GOOGLE_APPLICATION_CREDENTIALS="$dir/gcloud/application_default_credentia
 export PROD_DATA_DIR="$dir/work"
 cd "$dir/work" || exit 1
 
-if ! gcloud auth login --no-browser --update-adc; then
+if ! gcloud auth login --no-launch-browser --update-adc; then
   echo "prod-data-session: login failed" >&2
   exit 1
 fi

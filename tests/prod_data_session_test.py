@@ -95,7 +95,7 @@ class ProdDataSession(ShellToolCase):
         self.assertEqual(report["config"], os.path.join(session, "gcloud"))
         self.assertEqual(report["adc"], os.path.join(session, "gcloud", "application_default_credentials.json"))
         self.assertTrue(report["adc_exists"])
-        self.assertIn((["auth", "login", "--no-browser", "--update-adc"], report["config"]), self.gcloud_calls())
+        self.assertIn((["auth", "login", "--no-launch-browser", "--update-adc"], report["config"]), self.gcloud_calls())
 
     def test_revokes_the_login_and_deletes_the_folder_afterwards(self):
         self.session(*self.probe())
