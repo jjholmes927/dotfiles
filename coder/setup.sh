@@ -173,7 +173,7 @@ claude_cli() {
 
 npm_globals() {
   local pkg
-  for pkg in @openai/codex @launchdarkly/ldcli agent-browser opencode-ai; do
+  for pkg in @openai/codex @launchdarkly/ldcli agent-browser @opencode/cli; do
     npm ls -g --depth=0 "$pkg" >/dev/null 2>&1 || npm install -g "$pkg" || return 1
   done
   [ -f "$state/agent-browser-installed" ] && return 0

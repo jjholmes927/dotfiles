@@ -72,7 +72,7 @@ opencode_wrapper() {
   local real
   real=$(command -v opencode) || return 0
   mkdir -p "$dir/bin" "$dir/opencode/data" "$dir/opencode/state" "$dir/opencode/tmp" || return 1
-  printf '#!/usr/bin/env bash\nXDG_DATA_HOME=%q XDG_STATE_HOME=%q TMPDIR=%q exec %q "$@"\n' \
+  printf '#!/usr/bin/env bash\nXDG_DATA_HOME=%q XDG_STATE_HOME=%q TMPDIR=%q exec %q --standalone "$@"\n' \
     "$dir/opencode/data" "$dir/opencode/state" "$dir/opencode/tmp" "$real" > "$dir/bin/opencode" || return 1
   chmod +x "$dir/bin/opencode" && PATH="$dir/bin:$PATH"
 }

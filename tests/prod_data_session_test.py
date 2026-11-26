@@ -198,7 +198,7 @@ open(os.path.join(codex, "rollout-a.jsonl"), "w").write(json.dumps({"cwd": cwd})
         with open(os.path.join(self.log_dir, "opencode.json")) as fh:
             seen = json.load(fh)
         session = os.path.dirname(seen["cwd"])
-        self.assertEqual(seen["argv"], ["run", "hi"])
+        self.assertEqual(seen["argv"], ["--standalone", "run", "hi"])
         self.assertTrue(seen["data"].startswith(session + os.sep), seen)
         self.assertTrue(seen["state"].startswith(session + os.sep), seen)
         self.assertTrue(seen["tmp"].startswith(session + os.sep), seen)
