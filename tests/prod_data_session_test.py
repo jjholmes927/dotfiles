@@ -27,7 +27,8 @@ import json, os, sys
 
 with open(os.path.join(os.environ["STUB_LOG_DIR"], "opencode.json"), "w") as fh:
     json.dump({"argv": sys.argv[1:], "cwd": os.getcwd(),
-               "data": os.environ.get("XDG_DATA_HOME"), "state": os.environ.get("XDG_STATE_HOME")}, fh)
+               "data": os.environ.get("XDG_DATA_HOME"), "state": os.environ.get("XDG_STATE_HOME"),
+               "tmp": os.environ.get("TMPDIR")}, fh)
 for key in ("XDG_DATA_HOME", "XDG_STATE_HOME"):
     folder = os.path.join(os.environ[key], "opencode")
     os.makedirs(folder, exist_ok=True)
@@ -200,6 +201,7 @@ open(os.path.join(codex, "rollout-a.jsonl"), "w").write(json.dumps({"cwd": cwd})
         self.assertEqual(seen["argv"], ["run", "hi"])
         self.assertTrue(seen["data"].startswith(session + os.sep), seen)
         self.assertTrue(seen["state"].startswith(session + os.sep), seen)
+        self.assertTrue(seen["tmp"].startswith(session + os.sep), seen)
         self.assertEqual(self.sessions_left(), [])
         self.assertFalse(os.path.exists(os.path.join(self.home, ".local", "share", "opencode")))
 
