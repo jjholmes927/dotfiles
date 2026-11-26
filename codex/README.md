@@ -116,7 +116,9 @@ With `beam-claude-skills@beam-claude-skills` installed and enabled, run:
 python3 codex/sync-workflow.py --package beam
 ```
 
-This imports `socratic-codebase-interview` and `review-pr` from Beam. The interview source
+This imports `socratic-codebase-interview`, `review-pr` and, from Beam 1.29.0,
+`writing-interpret-tests`. An older Beam release without that skill is skipped, not an error.
+OpenCode needs no change: it imports every Beam skill already. The interview source
 is retained locally under `~/.codex/skills/socratic-codebase-interview/references/`,
 with source path, version and SHA-256 recorded in `~/.codex/beam-migration.json`.
 Beam remains the canonical maintenance home; this is not a personal fork.

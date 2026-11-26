@@ -17,7 +17,8 @@ python3 cursor/install.py --package beam --if-installed
 
 The personal import requires joel-workflow 2.20.0 or newer and discovers every
 published command and skill, including newly added workflows.
-The optional Beam import includes socratic-codebase-interview and review-pr.
+The optional Beam import includes socratic-codebase-interview, review-pr and,
+from Beam 1.29.0, writing-interpret-tests.
 Other packages remain outside this managed set. Source dependencies
 are resolved from their recorded package roots with Cursor's tool mappings.
 
