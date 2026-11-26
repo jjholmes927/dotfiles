@@ -16,7 +16,7 @@ Snapshot: 22 September 2026, updated after merging the portability release and r
 
 | Package / owner | Canonical source and purpose | Observed revision | Installation and harness support |
 |---|---|---|---|
-| Beam / team | [wearebeam/beam-claude-skills][beam]: team and product workflows | 1.26.0, `467c8048983b48b908b2f57e10a1d22b741af75f` | Claude plugin; OpenCode imports skills and prefixes commands with `beam-`; Codex has the complete Socratic interview and review source adapters |
+| Beam / team | [wearebeam/beam-claude-skills][beam]: team and product workflows | 1.26.0, `467c8048983b48b908b2f57e10a1d22b741af75f` | Claude plugin; OpenCode imports skills and prefixes commands with `beam-`; Codex has the complete Socratic interview, review and Interpret test-rule source adapters |
 | Personal / Joel | [jjholmes927/jjholmes927-claude-skills][personal]: personal delivery and working methods | 2.20.2, published `e98165d0323d` | Claude plugin; OpenCode adapters; seven complete Codex adapters, plus separate older ports |
 | Superpowers / upstream | [obra/superpowers][superpowers], distributed by [obra/superpowers-marketplace][superpowers-marketplace]: planning, debugging, testing and review methods | 7.0.2, `22f0b463e7a5e579904dd6211a520321035526f7` | Claude plugin; OpenCode loads upstream `.opencode/plugins/superpowers.js`; no dedicated Codex installation observed |
 | Claude official / upstream | [anthropics/claude-plugins-official][claude-official]: `claude-md-management`, `ruby-lsp`, `linear`, `frontend-design` | First two 1.0.0; latter two `c447c3207a42` | Claude plugins; OpenCode imports `revise-claude-md`, `claude-md-improver`, `frontend-design`; Claude hooks/LSP registration are not imported |
@@ -31,7 +31,7 @@ Snapshot: 22 September 2026, updated after merging the portability release and r
 | Claude plugins | `~/.claude/plugins/installed_plugins.json`, `known_marketplaces.json`, enabled plugins in settings; sources under the recorded `installPath` | `claude plugin list`; update through the plugin CLI, never patch cache files |
 | Codex shared workflows | Seven personal adapters in `~/.codex/skills/`; `~/.codex/workflow-migration.json` records sources, generated files and generator hashes | `python3 codex/sync-workflow.py`; uses the installed personal user plugin |
 | Codex Beam workflows | `~/.codex/skills/{socratic-codebase-interview,review-pr}`; `~/.codex/beam-migration.json` records source/version/hash | `python3 codex/sync-workflow.py --package beam`; imports Socratic interview and review-pr from the enabled Beam user plugin |
-| Cursor shared workflows | Nine personal/Beam adapters in `~/.cursor/skills/`; separate `workflow-migration.json` and `beam-migration.json` | [Cursor installer](../cursor/README.md): `python3 cursor/install.py`, then `python3 cursor/install.py --package beam --if-installed`; restart the session |
+| Cursor shared workflows | Ten personal/Beam adapters in `~/.cursor/skills/`; separate `workflow-migration.json` and `beam-migration.json` | [Cursor installer](../cursor/README.md): `python3 cursor/install.py`, then `python3 cursor/install.py --package beam --if-installed`; restart the session |
 | Codex remaining personal skills | Symlinks from `~/.codex/skills/` into [codex/skills](../codex/skills) | [Codex bootstrap](../codex/README.md); these separate ports need reconciliation before replacement |
 | OpenCode | `~/.config/opencode/{commands,skills}`, `migration.json`, configured upstream Superpowers plugin path | [Full install and doctor](../opencode/README.md), or `python3 opencode/install.py --workflow-only` for just the personal package |
 | Kandev | `~/.config/kandev-fleet.json`, local Kandev settings/API and task records | [Kandev setup](kandev-setup.md); preview current settings before applying its mutating installer/configurer |
@@ -80,9 +80,10 @@ No copies are deleted by this documentation change. A same-name entry is not suf
 
 All entries below are installed in Claude. OpenCode command spellings are shown explicitly; `+ skill` means a corresponding skill adapter is present. Codex **shared** means a complete source adapter with compatibility instructions (personal unless marked Beam); **separate** means an existing independent port with unproven parity; **missing** means no installed entry. These are availability observations, not complete workflow execution results.
 
-Cursor has its own adapters for the same seven shared personal workflows and two
+Cursor has its own adapters for the same seven shared personal workflows and three
 shared Beam workflows: e2e, ship, verify, verify-ui, investigate, codex-collab,
-writing-pr-descriptions, socratic-codebase-interview and review-pr. Other entries
+writing-pr-descriptions, socratic-codebase-interview, review-pr and
+writing-interpret-tests. Other entries
 are not managed by the Cursor importer. Automatic discovery from Claude/Codex
 directories does not establish a Cursor port; inspect the selected source and
 compatibility instructions. The [Cursor guide](../cursor/README.md) owns its setup.

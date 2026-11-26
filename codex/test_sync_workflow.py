@@ -112,6 +112,22 @@ class WorkflowInstallTests(unittest.TestCase):
         self.assertEqual(sync.REVIEW_COMPAT, (self.target / "skills/review-pr/compat.md").read_text())
         self.assertEqual(0, sync.install(source, self.target, "beam")["changed"])
 
+    def test_beam_import_adds_interpret_test_rules_with_their_own_compat(self):
+        source = self.beam_source()
+        skill = source / "skills/writing-interpret-tests/SKILL.md"
+        skill.parent.mkdir(parents=True)
+        skill.write_text("---\nname: writing-interpret-tests\ndescription: Write Interpret tests\n---\nApply the rules.\n")
+        sync.install(source, self.target, "beam")
+        manifest = json.loads((self.target / "beam-migration.json").read_text())
+        self.assertEqual({"socratic-codebase-interview", "review-pr", "writing-interpret-tests"}, set(manifest["skills"]))
+        self.assertEqual(sync.TESTS_COMPAT, (self.target / "skills/writing-interpret-tests/compat.md").read_text())
+
+    def test_beam_import_skips_interpret_test_rules_missing_from_an_older_release(self):
+        result = sync.install(self.beam_source(), self.target, "beam")
+        manifest = json.loads((self.target / "beam-migration.json").read_text())
+        self.assertEqual(["writing-interpret-tests"], result["skipped"])
+        self.assertEqual({"socratic-codebase-interview", "review-pr"}, set(manifest["skills"]))
+
     def test_optional_beam_source_and_registry_ambiguity(self):
         self.assertIsNone(sync.installed_source(self.root, "beam", optional=True))
         config = self.root / ".claude"

@@ -73,6 +73,14 @@ without a completed answer. A pending/timeout result ends the turn; it is not
 an answer. Outside Kandev, ask the one question in the reply and end the turn
 to wait. Never invent the user's answer or continue the interview autonomously.
 """
+
+TESTS_COMPAT = """# Interpret test rules in Codex
+
+Run the who check with the native shell. Never ask who the user is: when the
+check can't tell, skip the rules and say so in one line. Apply the rules while
+planning and writing tests, and run the end-of-writing check before reporting
+the work as done. This workflow never posts to GitHub.
+"""
 PACKAGES = {
     "personal": {
         "id": "joel-workflow@jjholmes927-claude-skills",
@@ -85,8 +93,11 @@ PACKAGES = {
         "commands": {
             "socratic-codebase-interview": "skills/socratic-codebase-interview/SKILL.md",
             "review-pr": "commands/review-pr.md",
+            "writing-interpret-tests": "skills/writing-interpret-tests/SKILL.md",
         },
+        "optional": {"writing-interpret-tests"},
         "compat": INTERVIEW_COMPAT, "manifest": "beam-migration.json",
+        "compat_by_name": {"review-pr": REVIEW_COMPAT, "writing-interpret-tests": TESTS_COMPAT},
     },
 }
 
@@ -117,6 +128,9 @@ def install(source, target, package="personal", *, compatibility=None, generator
     source = source.resolve()
     config = PACKAGES[package]
     commands = dict(config["commands"])
+    skipped = sorted(name for name in config.get("optional", ()) if not (source / commands[name]).is_file())
+    for name in skipped:
+        del commands[name]
     plugin = json.loads((source / config["metadata"]).read_text())
     if package == "beam" and plugin.get("name") != "beam-claude-skills":
         raise ValueError("Expected Beam plugin metadata for the interview adapter")
@@ -182,7 +196,7 @@ def install(source, target, package="personal", *, compatibility=None, generator
         write(relative / "SKILL.md", entry)
         rules = compatibility
         if rules is None:
-            rules = REVIEW_COMPAT if package == "beam" and name == "review-pr" else config["compat"]
+            rules = config.get("compat_by_name", {}).get(name, config["compat"])
         write(relative / "compat.md", rules)
         write(relative / "references/workflow.md", content.replace("${CLAUDE_PLUGIN_ROOT}", str(source)))
         manifest["skills"][name] = {"source": str(source / commands[name]),
@@ -194,7 +208,7 @@ def install(source, target, package="personal", *, compatibility=None, generator
                                     for relative in (generators or ["codex/sync-workflow.py"])}
     write(Path(config["manifest"]), json.dumps(manifest, indent=2) + "\n")
     return {"version": plugin["version"], "source": str(source), "changed": len(changed),
-            "backup": str(backup) if backup.exists() else None}
+            "backup": str(backup) if backup.exists() else None, "skipped": skipped}
 
 
 def main():
