@@ -22,6 +22,19 @@ if sys.argv[1:3] == ["auth", "login"]:
     sys.exit(rc)
 '''
 
+OPENCODE_STUB = r'''#!/usr/bin/env python3
+import json, os, sys
+
+with open(os.path.join(os.environ["STUB_LOG_DIR"], "opencode.json"), "w") as fh:
+    json.dump({"argv": sys.argv[1:], "cwd": os.getcwd(),
+               "data": os.environ.get("XDG_DATA_HOME"), "state": os.environ.get("XDG_STATE_HOME")}, fh)
+for key in ("XDG_DATA_HOME", "XDG_STATE_HOME"):
+    folder = os.path.join(os.environ[key], "opencode")
+    os.makedirs(folder, exist_ok=True)
+    with open(os.path.join(folder, "opencode.db"), "w") as fh:
+        fh.write("secret transcript")
+'''
+
 PROBE = r'''
 import json, os, stat, sys
 cwd = os.getcwd()
@@ -33,6 +46,8 @@ report = {
     "config": os.environ.get("CLOUDSDK_CONFIG"),
     "data_dir": os.environ.get("PROD_DATA_DIR"),
     "adc_exists": os.path.exists(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "")),
+    "xdg_data": os.environ.get("XDG_DATA_HOME"),
+    "xdg_state": os.environ.get("XDG_STATE_HOME"),
 }
 with open(os.path.join(os.environ["STUB_LOG_DIR"], "probe.json"), "w") as fh:
     json.dump(report, fh)
@@ -174,6 +189,27 @@ open(os.path.join(codex, "rollout-a.jsonl"), "w").write(json.dumps({"cwd": cwd})
         result = self.session(*self.probe(), PATH=os.pathsep.join([self.stub_bin, "/usr/bin", "/bin"]))
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(self.report()["adc_exists"])
+
+    def test_keeps_opencode_history_inside_the_session_folder(self):
+        self.write_stub("opencode", OPENCODE_STUB)
+        result = self.session("sh", "-c", "opencode run hi")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with open(os.path.join(self.log_dir, "opencode.json")) as fh:
+            seen = json.load(fh)
+        session = os.path.dirname(seen["cwd"])
+        self.assertEqual(seen["argv"], ["run", "hi"])
+        self.assertTrue(seen["data"].startswith(session + os.sep), seen)
+        self.assertTrue(seen["state"].startswith(session + os.sep), seen)
+        self.assertEqual(self.sessions_left(), [])
+        self.assertFalse(os.path.exists(os.path.join(self.home, ".local", "share", "opencode")))
+
+    def test_leaves_other_tools_on_their_normal_data_folders(self):
+        self.write_stub("opencode", OPENCODE_STUB)
+        result = self.session(*self.probe())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = self.report()
+        self.assertIsNone(report["xdg_data"])
+        self.assertIsNone(report["xdg_state"])
 
     def test_refuses_an_unknown_command_before_asking_for_a_login(self):
         result = self.session("klaude")

@@ -68,6 +68,15 @@ sweep() {
   done
 }
 
+opencode_wrapper() {
+  local real
+  real=$(command -v opencode) || return 0
+  mkdir -p "$dir/bin" "$dir/opencode/data" "$dir/opencode/state" || return 1
+  printf '#!/usr/bin/env bash\nXDG_DATA_HOME=%q XDG_STATE_HOME=%q exec %q "$@"\n' \
+    "$dir/opencode/data" "$dir/opencode/state" "$real" > "$dir/bin/opencode" || return 1
+  chmod +x "$dir/bin/opencode" && PATH="$dir/bin:$PATH"
+}
+
 sweep
 dir=$(mktemp -d "${prefix}XXXXXX") || exit 1
 chmod 700 "$dir"
@@ -80,6 +89,7 @@ mkdir "$dir/gcloud" "$dir/work"
 export CLOUDSDK_CONFIG="$dir/gcloud"
 export GOOGLE_APPLICATION_CREDENTIALS="$dir/gcloud/application_default_credentials.json"
 export PROD_DATA_DIR="$dir/work"
+opencode_wrapper || exit 1
 cd "$dir/work" || exit 1
 
 if ! gcloud auth login --no-launch-browser --update-adc; then
