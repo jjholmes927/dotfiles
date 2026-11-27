@@ -69,6 +69,7 @@
 | MCPs on the box: Linear via the Interpret-only key as a header (no OAuth login); Honeycomb OAuth **read-only**; Sentry OAuth scoped to `beam-eu/magic-notes`; logins with `claude mcp login <name> --no-browser` | Joel, 2026-11-24 |
 | Production recordings and BigQuery for one experiment: your own `gcloud auth login`, only inside `prod-data-session`, which keeps the login and data in a private `/tmp` folder and on exit revokes the login and deletes the folder and its Claude and Codex history. A read-only service account is the later, stricter option | Joel, 2026-11-25 |
 | OpenCode on the box after all: installed alongside Claude and Codex; inside `prod-data-session` its history goes in the session folder and only Vertex works | Joel ran `opencode` on the box, 2026-11-26 |
+| OpenCode with Vertex for everyday work: `vertex-session` logs in for the session only, revokes on exit and keeps OpenCode's history, until the box's own Google identity gets Vertex access from Tim | Joel, 2026-11-27 |
 | Everything below this line | My call unless marked |
 
 ## Design

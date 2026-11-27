@@ -196,7 +196,8 @@ links() {
   ln -sfn "$repo/tmux/.tmux.conf" "$HOME/.tmux.conf" &&
     ln -sfn "$repo/tmux/.tmux.conf.local" "$HOME/.tmux.conf.local" &&
     ln -sfn "$here/gh" "$HOME/.local/bin/gh" &&
-    ln -sfn "$here/prod-data-session" "$HOME/.local/bin/prod-data-session"
+    ln -sfn "$here/prod-data-session" "$HOME/.local/bin/prod-data-session" &&
+    ln -sfn "$here/vertex-session" "$HOME/.local/bin/vertex-session"
 }
 
 mcp_overrides() {

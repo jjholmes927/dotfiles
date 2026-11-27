@@ -95,6 +95,8 @@ coder ssh joel-holmes-AKA-the-night-dragon -- 'mkdir -p ~/.config/good-code && c
 
 **Production data (BigQuery and recordings):** run `prod-data-session claude` (or `prod-data-session` for a shell). It logs you into Google Cloud for that session only (open the link it prints in any browser, then paste the code Google shows back into the box), and works in a private `/tmp` folder. On exit it revokes the login and deletes the folder and its Claude, Codex and OpenCode history. `prod-data-session opencode` uses Vertex through that login; its OpenAI login is not available inside. Never run a plain `gcloud auth login` on the box.
 
+**OpenCode with Vertex for everyday work:** run `vertex-session opencode` (add `-s <session id>` to pick a chat back up). It uses the same copy-a-code Google login, revokes it when you quit, and keeps OpenCode's history. The login can still reach production data, so keep that work in `prod-data-session`. This is a stopgap until the box's own Google identity gets Vertex access.
+
 **Kandev UI from the Mac:** `coder port-forward joel-holmes-AKA-the-night-dragon --tcp 38430:38429`, then open `http://localhost:38430`. Linear watches are off on the box.
 
 ## Warp
