@@ -216,6 +216,36 @@ class DoctorTests(unittest.TestCase):
         (target / "commands/ship.md").unlink()
         self.assertIn("generated file missing: commands/ship.md", self.run_doctor()[1])
 
+    def install_beam(self, *extra):
+        importer = runpy.run_path(str(doctor.ROOT / "codex/sync-workflow.py"))
+        package = importer["PACKAGES"]["beam"]
+        beam = self.home / "beam"
+        self.write(beam / ".claude-plugin/plugin.json", {"name": "beam-claude-skills", "version": "1.29.0"})
+        self.write(beam / "commands/README.md", "Index of commands")
+        for relative in package["commands"].values():
+            self.write(beam / relative, "---\ndescription: Beam workflow\n---\nBeam source")
+        for name in [*package["skip"], *extra]:
+            self.write(beam / "skills" / name / "SKILL.md", "Beam source")
+        identity = package["id"]
+        registry = json.loads(self.registry.read_text())
+        registry["plugins"][identity] = [{"scope": "user", "installPath": str(beam)}]
+        self.write(self.registry, registry)
+        self.write(self.home / ".claude/settings.json", {"enabledPlugins": {self.identity: True, identity: True}})
+        importer["install"](beam, self.target, "beam")
+
+    def test_beam_skills_all_chosen_for_import_or_skip_are_ok(self):
+        self.install_beam()
+        code, output = self.run_doctor()
+        self.assertEqual(0, code, output)
+        self.assertIn("OK codex/beam", output)
+
+    def test_new_beam_skill_without_an_import_or_skip_choice_warns(self):
+        self.install_beam("new-beam-skill")
+        code, output = self.run_doctor()
+        self.assertEqual(1, code)
+        self.assertIn("WARN codex/beam", output)
+        self.assertIn("Beam skills not chosen for this harness: new-beam-skill;", output)
+
     def install_cursor(self):
         importer = runpy.run_path(str(doctor.ROOT / "cursor/install.py"))
         self.write(self.source / "plugin.json", {"version": "2.20.3"})

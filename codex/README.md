@@ -116,7 +116,9 @@ With `beam-claude-skills@beam-claude-skills` installed and enabled, run:
 python3 codex/sync-workflow.py --package beam
 ```
 
-This imports `socratic-codebase-interview` and `review-pr` from Beam. The interview source
+This imports `socratic-codebase-interview`, `review-pr` and `writing-tests` from Beam.
+Every other Beam skill is on the skip list in `sync-workflow.py`; a new Beam skill on
+neither list makes `workflow-doctor` warn until you add it to one. The interview source
 is retained locally under `~/.codex/skills/socratic-codebase-interview/references/`,
 with source path, version and SHA-256 recorded in `~/.codex/beam-migration.json`.
 Beam remains the canonical maintenance home; this is not a personal fork.

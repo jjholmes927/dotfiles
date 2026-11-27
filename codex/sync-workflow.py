@@ -73,6 +73,15 @@ without a completed answer. A pending/timeout result ends the turn; it is not
 an answer. Outside Kandev, ask the one question in the reply and end the turn
 to wait. Never invent the user's answer or continue the interview autonomously.
 """
+WRITING_TESTS_COMPAT = """# Beam test rules in Codex
+
+Use native read/search tools. The source's `references/rules.md` lives in the
+source skill directory named in this skill's SKILL.md, not in this adapter's
+references folder. Read it in full before planning or writing any test.
+Apply the rules only to the tests the source puts in scope and leave other
+files alone. The rules shape how tests are written; they do not authorize
+extra changes, commits or publication. Finish with the source's report line.
+"""
 PACKAGES = {
     "personal": {
         "id": "joel-workflow@jjholmes927-claude-skills",
@@ -85,8 +94,19 @@ PACKAGES = {
         "commands": {
             "socratic-codebase-interview": "skills/socratic-codebase-interview/SKILL.md",
             "review-pr": "commands/review-pr.md",
+            "writing-tests": "skills/writing-tests/SKILL.md",
         },
-        "compat": INTERVIEW_COMPAT, "manifest": "beam-migration.json",
+        "compat": {
+            "socratic-codebase-interview": INTERVIEW_COMPAT,
+            "review-pr": REVIEW_COMPAT,
+            "writing-tests": WRITING_TESTS_COMPAT,
+        },
+        "skip": {
+            "brag-doc", "cloudflare-tunnel-swap", "commit-archaeology", "debug-interpret-conversation",
+            "get-it-looking-nice", "interpret-review-pr", "investigate-alert", "pick-up-linear-ticket",
+            "sentry-triage", "ship", "skill-reviewer", "verify-ui",
+        },
+        "manifest": "beam-migration.json",
     },
 }
 
@@ -182,7 +202,7 @@ def install(source, target, package="personal", *, compatibility=None, generator
         write(relative / "SKILL.md", entry)
         rules = compatibility
         if rules is None:
-            rules = REVIEW_COMPAT if package == "beam" and name == "review-pr" else config["compat"]
+            rules = config["compat"][name] if package == "beam" else config["compat"]
         write(relative / "compat.md", rules)
         write(relative / "references/workflow.md", content.replace("${CLAUDE_PLUGIN_ROOT}", str(source)))
         manifest["skills"][name] = {"source": str(source / commands[name]),

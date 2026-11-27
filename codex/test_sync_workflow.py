@@ -86,6 +86,9 @@ class WorkflowInstallTests(unittest.TestCase):
         review = source / "commands/review-pr.md"
         review.parent.mkdir()
         review.write_text('---\ndescription: Review with four lenses\n---\nReport evidence.\n')
+        tests = source / "skills/writing-tests/SKILL.md"
+        tests.parent.mkdir(parents=True)
+        tests.write_text('---\nname: writing-tests\ndescription: Rules for magicnotes tests\n---\nRead `references/rules.md` beside this file.\n')
         return source
 
     def test_legacy_e2e_source_is_rejected_before_writing(self):
@@ -108,9 +111,14 @@ class WorkflowInstallTests(unittest.TestCase):
             self.assertEqual(original, (self.target / relative).read_bytes())
         manifest = json.loads((self.target / "beam-migration.json").read_text())
         self.assertEqual(str(source.resolve()), manifest["source_root"])
-        self.assertEqual({"socratic-codebase-interview", "review-pr"}, set(manifest["skills"]))
+        self.assertEqual({"socratic-codebase-interview", "review-pr", "writing-tests"}, set(manifest["skills"]))
         self.assertEqual(sync.REVIEW_COMPAT, (self.target / "skills/review-pr/compat.md").read_text())
         self.assertEqual(0, sync.install(source, self.target, "beam")["changed"])
+
+    def test_beam_test_rules_get_their_own_codex_rules(self):
+        sync.install(self.beam_source(), self.target, "beam")
+        self.assertEqual(sync.WRITING_TESTS_COMPAT, (self.target / "skills/writing-tests/compat.md").read_text())
+        self.assertEqual(sync.INTERVIEW_COMPAT, (self.target / "skills/socratic-codebase-interview/compat.md").read_text())
 
     def test_optional_beam_source_and_registry_ambiguity(self):
         self.assertIsNone(sync.installed_source(self.root, "beam", optional=True))

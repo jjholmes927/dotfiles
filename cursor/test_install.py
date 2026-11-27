@@ -65,7 +65,7 @@ class CursorInstallTests(unittest.TestCase):
         self.assertEqual(personal, (self.target / "workflow-migration.json").read_bytes())
         manifest = json.loads((self.target / "beam-migration.json").read_text())
         self.assertEqual(set(ADAPTER["GENERATORS"]), set(manifest["generator_hashes"]))
-        self.assertEqual({"socratic-codebase-interview", "review-pr"}, set(manifest["skills"]))
+        self.assertEqual({"socratic-codebase-interview", "review-pr", "writing-tests"}, set(manifest["skills"]))
         self.assertEqual(0, ADAPTER["install"](beam, self.target, "beam")["changed"])
 
     def test_invalid_source_fails_before_any_live_files_change(self):

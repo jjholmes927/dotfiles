@@ -27,6 +27,17 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
+def package_skills(root):
+    names = {p.parent.name for p in (root / "skills").glob("*/SKILL.md")}
+    names.update(p.stem for p in (root / "commands").glob("*.md") if p.stem.lower() != "readme")
+    return names
+
+
+def beam_choices():
+    beam = runpy.run_path(str(ROOT / "codex/sync-workflow.py"))["PACKAGES"]["beam"]
+    return set(beam["commands"]) | beam["skip"]
+
+
 def inspect_manifest(path, target, selected):
     data = read(path)
     problems = []
@@ -48,12 +59,15 @@ def inspect_manifest(path, target, selected):
             problems.append("manifest has incomplete adapter coverage; run a full refresh")
     personal = data.get("packages", {}).get("joel-workflow")
     if personal:
-        root = Path(personal)
-        expected = {p.parent.name for p in (root / "skills").glob("*/SKILL.md")}
-        expected.update(p.stem for p in (root / "commands").glob("*.md") if p.stem.lower() != "readme")
-        missing = expected - data.get("skills", {}).keys()
+        missing = package_skills(Path(personal)) - data.get("skills", {}).keys()
         if missing:
             problems.append("marketplace skills have no managed adapter: " + ", ".join(sorted(missing)))
+    beam = data.get("packages", {}).get("beam-claude-skills")
+    if beam and path.name == "beam-migration.json":
+        undecided = package_skills(Path(beam)) - beam_choices()
+        if undecided:
+            problems.append("Beam skills not chosen for this harness: " + ", ".join(sorted(undecided))
+                            + "; add each to the Beam import or skip list in codex/sync-workflow.py")
     for label, hashes, base in [
         ("source", sources, Path("/")),
         ("generated file", data.get("generated_hashes", {}), target),
