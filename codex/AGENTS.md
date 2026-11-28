@@ -86,6 +86,8 @@ and start fresh sessions. A skill-only change needs no dotfiles content copy.
 New dotfiles workflow bodies require a justified native-only exception in
 `workflow/local-workflows.json`; shared names cannot be overridden there.
 
+For any change to code, config or docs that isn't pure research, use the `making-changes` skill.
+
 ## Working style
 
 - When scope is unclear, ask one clarifying question instead of guessing.

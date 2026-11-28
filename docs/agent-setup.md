@@ -107,7 +107,7 @@ Relative paths are resolved inside the linked package at its observed revision: 
 | Command `skill-reviewer` | Review skill quality; current authoring guidance and host capabilities | Separate personal port | `/beam-skill-reviewer` | B? |
 | Command `verify-ui` | Browser evidence; agent-browser, checkout/staging target and login | Personal shared variant | `/beam-verify-ui` | B? |
 
-### Personal — 7 skills and 9 commands
+### Personal — 10 skills and 9 commands
 
 | Kind / name | Purpose and portability dependencies | Codex | OpenCode | Provenance |
 |---|---|---|---|---|
@@ -118,6 +118,9 @@ Relative paths are resolved inside the linked package at its observed revision: 
 | Skill `investigate` | Evidence-backed investigation without implementation; Linear for ticket mode and relevant data sources | Shared | `/investigate` + skill | R |
 | Skill `orchestrating-lanes` | Legacy parallel dispatch; Fleet/new-agent dependencies | Missing | `/orchestrating-lanes` + skill | J:`919f073` |
 | Skill `writing-pr-descriptions` | What/Why PR writing; project PR guide and publication context | Shared | `/writing-pr-descriptions` + skill | J:`f8bed02` |
+| Skill `writing-good-tests` | Rules for unit, component and browser tests; the repository's guide and CI test rules win | Shared | `/writing-good-tests` + skill | J:`17fc2ea` |
+| Skill `good-code` | Ranked good-code principles with write-time rules and review questions; loaded by trigger | Shared | `/good-code` + skill | J:`e6252c9` |
+| Skill `making-changes` | The loop for every non-research change; good-code, writing-good-tests, verify, quality signals and the workflow ledger | Shared | `/making-changes` + skill | J:`a756ef3` |
 | Command `brag-doc` | Contribution summary; GitHub activity and output destination | Separate | `/brag-doc` + skill | J:`947eb74` |
 | Command `brief` | Daily actions/decisions brief; available personal information sources | Missing | `/brief` | J:`63c2e22` |
 | Command `newspaper` | Rewrite a draft as headline/impact/detail; no sending implied | Missing | `/newspaper` | J:`459f1b2` |
